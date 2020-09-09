@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "pinpoint-web.fullname" . }}
+  labels:
+{{ include "pinpoint-web.labels" . | indent 4 }}
+data:
+  SPRING_PROFILES_ACTIVE: "{{ .Values.profiles }}"
+  SERVER_PORT: "{{ .Values.serverPort }}"
+  PINPOINT_ZOOKEEPER_ADDRESS: "{{ include "pinpoint-web.zookeeper.address" . }}"
+  CLUSTER_ENABLE: "{{ .Values.clusterEnable }}"
+  CONFIG_SENDUSAGE: "{{ .Values.sendUsage }}"
+  LOGGING_LEVEL_ROOT: "{{ .Values.loggingLevelRoot }}"
+  CONFIG_SHOW_APPLICATIONSTAT: "{{ .Values.showApplicationStat }}"
+  BATCH_ENABLE: "{{ .Values.batch.enable }}"
+  BATCH_SERVER_IP: "{{ .Values.batch.server }}"
+  BATCH_FILNK_SERVER: "{{ .Values.batch.flink }}"
+  JDBC_DRIVERCLASSNAME: "com.mysql.jdbc.Driver"
+  JDBC_URL: "{{ include "pinpoint-web.mysql.url" .}}"
+  ALARM_MAIL_SERVER_URL: "{{ .Values.mail.server.url }}"
+  ALARM_MAIL_SERVER_PORT: "{{ .Values.mail.server.port }}"
+  ALARM_MAIL_SENDER_ADDRESS: "{{ .Values.mail.sender }}"
+  ALARM_MAIL_TRANSPORT_PROTOCOL: "{{ .Values.mail.transportProtocol }}"
+  ALARM_MAIL_SMTP_PORT: "{{ .Values.mail.smtp.port }}"
+  ALARM_MAIL_SMTP_AUTH: "{{ .Values.mail.smtp.auth }}"
+  ALARM_MAIL_SMTP_STARTTLS_ENABLE: "{{ .Values.mail.smtp.startTls.enable }}"
+  ALARM_MAIL_SMTP_STARTTLS_REQUIRED: "{{ .Values.mail.smtp.startTls.required }}"
+  ALARM_MAIL_DEBUG: "{{ .Values.mail.debug }}"
