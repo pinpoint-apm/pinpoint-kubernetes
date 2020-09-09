@@ -1,0 +1,24 @@
+mysql:
+  enable: true
+  # docker image
+  image: "pinpointdocker/pinpoint-mysql"
+  # tag
+  imageTag: "2.0.4"
+
+  ## Specify password for root user
+  ## Default: random 10 character string
+  mysqlRootPassword: root123
+
+  ## Create a database user
+  mysqlUser: admin
+
+  ## Default: random 10 character string
+  mysqlPassword: admin
+
+  ## Create a database
+  mysqlDatabase: pinpoint
+
+  ## Extra Initial Script
+  # initializationFiles:     
+  #   extra_init.sql: |-
+  #     CREATE TABLE ...

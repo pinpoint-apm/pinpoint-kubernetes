@@ -6,3 +6,9 @@ type: application
 version: 0.1.0
 # version number of the application being deployed. 
 appVersion: 2.0.4
+# Dependecy for Pinpoint
+dependencies:
+    - name: mysql
+      version: 1.6.7
+      repository: https://kubernetes-charts.storage.googleapis.com
+      condition: mysql.enable
