@@ -1,9 +1,11 @@
+### See helm stable chart to apply other settings of MYSQL.
+### Link : https://github.com/helm/charts/tree/master/stable/mysql
 mysql:
   enable: true
   # docker image
   image: "pinpointdocker/pinpoint-mysql"
   # tag
-  imageTag: "2.0.4"
+  imageTag: "2.1.0"
 
   ## Specify password for root user
   ## Default: random 10 character string
