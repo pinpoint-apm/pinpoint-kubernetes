@@ -24,3 +24,22 @@ mysql:
   # initializationFiles:     
   #   extra_init.sql: |-
   #     CREATE TABLE ...
+
+pinpoint-web:
+  ### If you want to use external MySQL or other settings that are different from default values, fill these fields.
+  ### When the field is empty, it applies the default value.
+  ### Default Value
+  ###   mysql.host : pinpoint-mysql
+  ###   mysql.port : 3306
+  ###   mysql.user : admin
+  ###   mysql.password : admin
+  mysql:
+    host: 
+    port: 
+    user: 
+    password: 
+    database: 
+  
+  ### External zookeeper address (Default : pinpoint-zookeeper) 
+  zookeeper: 
+    host:
