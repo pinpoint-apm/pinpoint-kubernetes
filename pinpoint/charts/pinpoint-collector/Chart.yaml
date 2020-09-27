@@ -1,8 +1,7 @@
-apiVersion: v2
+apiVersion: v1
 name: pinpoint-collector
-description: A Helm chart for Pinpoint Collector
-type: application
-# chart version. 
+description: Helm chart for deploying Pinpoint collector
 version: 0.1.0
-# version number of the application being deployed. 
-appVersion: 2.0.4
+keywords:
+  - pinpoint
+  - collector

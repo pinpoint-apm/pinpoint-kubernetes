@@ -1,0 +1,22 @@
+#
+# pinpoint collector configuration
+#
+replicaCount: 1
+rollingMaxSurge: 1
+rollingMaxUnavailable: 1
+tolerations: []
+resources: {}
+image: pinpointdocker/pinpoint-collector:2.1.0
+profiles: release
+
+externalZookeeperAddress:
+externalHbaseAddress:
+
+cluster:
+  enable: true
+  
+hbase:
+  port: "2181"
+
+flink:
+  enable: false
