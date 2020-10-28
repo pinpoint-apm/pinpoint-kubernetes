@@ -1,0 +1,43 @@
+# Default values for hbase
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# The base hadoop image to use for all components.
+# See this repo for image build details: https://github.com/Comcast/kube-yarn/tree/master/image
+image:
+  repository: pinpointdocker/pinpoint-hbase
+  tag: 2.1.0
+  pullPolicy: IfNotPresent
+
+# The version of the hadoop libraries being used in the image.
+hbaseVersion: 1.2.6
+
+# Select antiAffinity as either hard or soft, default is 'soft'
+# 'hard' is recommended for higher availaility
+antiAffinity: "soft"
+
+conf:
+  hadoopUserName: hdfs
+  hbaseSite:
+    hbase.rootdir:  # default is "hdfs://{{.Release.Name}}-hdfs-namenode:8020/hbase"
+    hbase.zookeeper.quorum:  # default is "{{.Release.Name}}-zookeeper:2181"
+
+hbase:
+  master:
+    replicas: 1
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "10m"
+      limits:
+        memory: "2048Mi"
+        cpu: "1000m"
+  regionServer:
+    replicas: 1
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "10m"
+      limits:
+        memory: "2048Mi"
+        cpu: "1000m"
