@@ -3,7 +3,7 @@ kind: StatefulSet
 metadata:
   name: {{ include "hbase.fullname" . }}-regionserver
   annotations:
-    checksum/config: {{ include (print $.Template.BasePath "/hbase-configmap.yaml") . | sha256sum }}
+    checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
   labels:
     app.kubernetes.io/name: {{ include "hbase.name" . }}
     app.kubernetes.io/component: regionserver

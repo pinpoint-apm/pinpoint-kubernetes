@@ -41,7 +41,7 @@ spec:
             failureThreshold: 3
             tcpSocket:
               port: {{ .Values.serverPort }}
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 2
@@ -49,7 +49,7 @@ spec:
             failureThreshold: 3
             tcpSocket:
               port: {{ .Values.serverPort }}
-            initialDelaySeconds: 5
+            initialDelaySeconds: 30
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 2
