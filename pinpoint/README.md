@@ -6,8 +6,8 @@ Pinpoint is an application monitoring platform.
 Add helm repository for dependency (Stable,Incubator,Gradiant).
 ```
 > helm repo add gradiant https://gradiant.github.io/charts
-> helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com
-> helm repo add stable https://kubernetes-charts.storage.googleapis.com
+> helm repo add incubator https://charts.helm.sh/incubator 
+> helm repo add stable https://charts.helm.sh/stable
 ```
 
 ## Deploy Pinpoint
