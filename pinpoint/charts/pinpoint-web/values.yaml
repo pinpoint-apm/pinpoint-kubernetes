@@ -33,7 +33,7 @@ image:
 
 profiles: release, batch
 serverPort: 8079
-clusterEnable: false
+clusterEnable: true
 
 adminPassword: admin
 sendUsage: false
