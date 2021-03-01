@@ -25,7 +25,7 @@ image:
 service:
   type: "LoadBalancer"
   nodePort:
-  clusterIp:
+  clusterIP:
 
 receiver:
   grpc:
