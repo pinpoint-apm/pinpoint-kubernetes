@@ -23,7 +23,7 @@ service:
   ui:
     type: "LoadBalancer"
     nodePort:
-    clusterIp:
+    clusterIP:
     port: 8080
 
 # Configuration for Docker Image 
