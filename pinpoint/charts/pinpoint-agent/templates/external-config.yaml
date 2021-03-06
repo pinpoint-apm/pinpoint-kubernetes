@@ -1,0 +1,11 @@
+{{ if .Values.agent.externalConfigName }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: external-config-{{ .Values.agent.externalConfigName }}
+  labels:
+{{ include "pinpoint-agent.labels" . | indent 4}}
+data:
+  {{ .Values.agent.externalConfigName}}.config: |
+{{ .Files.Get (printf "files/conf/%s.config" .Values.agent.externalConfigName ) | indent 4 }}
+{{- end -}}

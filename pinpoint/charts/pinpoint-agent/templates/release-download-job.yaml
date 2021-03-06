@@ -1,0 +1,38 @@
+{{ if .Values.agent.version }}
+{{- $agentJob := (lookup "batch/v1" "Job" .Release.Namespace (printf "agent-%s-downloader" .Values.agent.version )) }}
+{{- if not $agentJob }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: agent-{{.Values.agent.version}}-downloader
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation
+    "helm.sh/hook-weight": "2"
+  labels:
+{{ include "pinpoint-agent.labels" . | indent 4}}
+spec:
+  template:
+    spec:
+      containers:
+        - name: downloader
+          image: alpine
+          command:
+            - sh
+            - -c
+            - |
+              wget https://github.com/pinpoint-apm/pinpoint/releases/download/v{{ .Values.agent.version }}/pinpoint-agent-{{ .Values.agent.version }}.tar.gz
+              tar xvzf pinpoint-agent-{{ .Values.agent.version }}.tar.gz
+              mv pinpoint-agent-{{ .Values.agent.version }} ./agent-init/pinpoint-agent
+
+          volumeMounts:
+          - name: agent-init
+            mountPath: /agent-init
+      volumes:
+      - name : agent-init
+        persistentVolumeClaim:
+          claimName: agent-{{ .Values.agent.version }}-pvc
+      restartPolicy: Never
+  backoffLimit: 3
+{{- end -}}
+{{- end -}}

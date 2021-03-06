@@ -1,0 +1,23 @@
+{{ if .Values.agent.version }}
+{{- $agentpvc := (lookup "v1" "PersistentVolumeClaim" .Release.Namespace (printf "agent-%s-pvc" .Values.agent.version )) }}
+{{- if not $agentpvc }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: agent-{{ .Values.agent.version }}-pvc
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "1"
+  labels:
+{{ include "pinpoint-agent.labels" . | indent 4}}
+spec:
+    {{- if .Values.agent.storageClass }}
+    storageClassName: {{ .Values.agent.storageClass}}
+    {{- end}}
+    accessModes:
+        - ReadOnlyMany
+    resources:
+        requests:
+            storage: 1Gi
+{{- end -}}
+{{- end -}}

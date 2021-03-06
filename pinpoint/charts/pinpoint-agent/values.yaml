@@ -1,0 +1,5 @@
+agent:
+  version: 2.2.2
+  # -Dpinpoint.config=$MY_EXTERNAL_CONFIG_PATH
+  externalConfigName: example
+  storageClass: ""
