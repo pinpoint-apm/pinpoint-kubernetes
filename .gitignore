@@ -1,3 +1,7 @@
+# Chart
+**/Chart.lock
+**/charts/*.tgz
+
 # Eclipse
 .classpath
 .project
