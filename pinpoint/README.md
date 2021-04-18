@@ -12,6 +12,14 @@ Add helm repository for dependency (Stable,Incubator,Gradiant).
 
 ## Deploy Pinpoint
 ```
-> helm dependency update pinpoint
-> helm install [Release Name] pinpoint -n [Namespace]
+> helm dependency update .
+> kubectl create ns [Namespace]
+> helm install [Release Name] . -n [Namespace]
 ```
+
+## Uninstall Pinpoint
+```
+> helm uninstall [Release Name] -n [Namespace]
+> kubectl delete ns [Namespace]
+```
+
