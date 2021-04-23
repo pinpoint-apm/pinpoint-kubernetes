@@ -42,4 +42,3 @@ loggingLevelRoot: INFO
 clusterEnable: true
 flink:
   enable: false
-

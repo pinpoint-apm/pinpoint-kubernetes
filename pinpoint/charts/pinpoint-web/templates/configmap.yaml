@@ -8,7 +8,7 @@ data:
   SPRING_PROFILES_ACTIVE: "{{ .Values.profiles }}"
   SERVER_PORT: "{{ .Values.serverPort }}"
   PINPOINT_ZOOKEEPER_ADDRESS: "{{ include "pinpoint-web.zookeeper.address" . }}"
-  PINPOINT_HBASE_NAMESPACE: "{{ include "pinpoint-web.hbase.namespace" . }}"
+  HBASE_NAMESPACE: "{{ include "pinpoint-web.hbase.namespace" . }}"
   CLUSTER_ENABLE: "{{ .Values.clusterEnable }}"
   CONFIG_SENDUSAGE: "{{ .Values.sendUsage }}"
   LOGGING_LEVEL_ROOT: "{{ .Values.loggingLevelRoot }}"
