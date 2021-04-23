@@ -1,7 +1,7 @@
 ### See helm stable chart to apply other settings of MYSQL.
 ### Link : https://github.com/helm/charts/tree/master/stable/mysql
 mysql:
-  enable: true
+  enabled: true
   # docker image
   image: "pinpointdocker/pinpoint-mysql"
   # tag
