@@ -14,11 +14,9 @@ spec:
     metadata:
       labels:
 {{ include "pinpoint-collector.labels" . | indent 8 }}
+      {{- with .Values.podAnnotations }}
       annotations:
-      {{- if .Values.podAnnotations }}
-      {{- range $key, $value := .Values.podAnnotations }}
-      {{ $key }}: {{ $value | quote }}
-      {{- end }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
       containers:

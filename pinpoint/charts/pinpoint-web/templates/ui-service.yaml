@@ -1,14 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-{{- if .Values.podAnnotations }}
-  {{- range $key, $value := .Values.podAnnotations }}
-  {{ $key }}: {{ $value | quote }}
-  {{- end }}
-{{- end }}
   name: {{ include "pinpoint-web.fullname" . }}-ui
   labels:
 {{ include "pinpoint-web.labels" . | indent 4 }}
+  {{- with .Values.service.ui.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   ports:
     - name: ui

@@ -21,6 +21,7 @@ tolerations: []
 # Configuration for web UI service
 service:
   ui:
+    annotations: {}
     type: "LoadBalancer"
     nodePort:
     clusterIp:
