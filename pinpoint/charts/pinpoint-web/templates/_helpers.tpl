@@ -86,3 +86,10 @@ Create Zookeeper address
 {{- define "pinpoint-web.zookeeper.address" -}}
 {{- default "pinpoint-zookeeper" .Values.zookeeper.host -}}
 {{- end }}
+
+{{/*
+Create HBase namespace
+*/}}
+{{- define "pinpoint-web.hbase.namespace" -}}
+{{- default "default" .Values.hbase.namespace -}}
+{{- end }}

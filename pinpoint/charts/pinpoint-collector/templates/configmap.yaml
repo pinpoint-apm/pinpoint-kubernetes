@@ -7,6 +7,7 @@ metadata:
 data:
   CLUSTER_ENABLE:  "{{ .Values.clusterEnable }}"
   PINPOINT_ZOOKEEPER_ADDRESS: "{{ include "pinpoint-collector.zookeeper.address" . }}"
+  PINPOINT_HBASE_NAMESPACE: "{{ include "pinpoint-collector.hbase.namespace" . }}"
   SPRING_PROFILES: "{{ .Values.profiles }}"
   JAVA_OPTS: "-Dspring.profiles.active={{ .Values.profiles }}"
   LOGGING_LEVEL_ROOT:  "{{ .Values.loggingLevelRoot }}"
