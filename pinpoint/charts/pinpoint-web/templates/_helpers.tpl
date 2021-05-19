@@ -75,9 +75,21 @@ Create Mysql Database for Pinpoint
 Create a fully qualified mysql url
 */}}
 {{- define "pinpoint-web.mysql.url" -}}
-{{- $host :=  default "pinpoint-mysql" .Values.mysql.host }}
-{{- $port :=  default 3306 .Values.mysql.port | int }}
-{{- printf "jdbc:mysql://%s:%d/%s?characterEncoding=UTF-8" $host $port (include "pinpoint-web.mysql.database" .) }}
+{{- printf "jdbc:mysql://%s:%d/%s?characterEncoding=UTF-8" (include "pinpoint-web.mysql.host" .) (include "pinpoint-web.mysql.port" .) (include "pinpoint-web.mysql.database" .) }}
+{{- end }}
+
+{{/*
+MySQL Host
+*/}}
+{{- define "pinpoint-web.mysql.host" -}}
+{{- default "pinpoint-mysql" .Values.mysql.host }}
+{{- end }}
+
+{{/*
+MySQL Port
+*/}}
+{{- define "pinpoint-web.mysql.port" -}}
+{{- default 3306 .Values.mysql.port | int }}
 {{- end }}
 
 {{/*
