@@ -11,33 +11,40 @@ metadata:
 spec:
   ports:
   - port: {{ .Values.receiver.grpc.agentPort}}
+    protocol: TCP
     targetPort: 9991
     name: grpc-agent
   - port: {{ .Values.receiver.grpc.statPort}}
+    protocol: TCP
     targetPort: 9992
     name: grpc-stat
   - port: {{ .Values.receiver.grpc.spanPort}}
+    protocol: TCP
     targetPort: 9993
     name: grpc-span
   - port: {{ .Values.receiver.thrift.basePort}}
+    protocol: TCP
     targetPort: 9994
     name: thrift-base
   - port: {{ .Values.receiver.thrift.statPort}}
+    protocol: UDP
     targetPort: 9995
     name: thrift-stat
   - port: {{ .Values.receiver.thrift.spanPort}}
+    protocol: UDP
     targetPort: 9996
     name: thrift-span
-{{- if eq "NodePort" .Values.service.type }}
-  {{- if .Values.service.ui.nodePort }}
-      nodePort:  {{ .Values.service.nodePort }}
-  {{- end }}
-{{- end }}
-{{- if eq "ClusterIP" .Values.service.type }}
-  {{- if .Values.service.ui.clusterIP }}
-  clusterIP:  {{ .Values.service.clusterIP }}
-  {{- end }}
-{{- end }}
   selector:
 {{ include "pinpoint-collector.selectorLabels" . | indent 6 }}
   type: "{{ .Values.service.type }}"
+{{- if eq "LoadBalancer" .Values.service.type }}
+  {{- if .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.service.loadBalancerIP }}
+  {{- end -}}
+  {{- if .Values.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- range .Values.service.loadBalancerSourceRanges }}
+    - {{ . }}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}

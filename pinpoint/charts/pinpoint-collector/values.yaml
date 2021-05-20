@@ -25,8 +25,8 @@ image:
 service:
   annotations: {}
   type: "LoadBalancer"
-  nodePort:
-  clusterIp:
+  loadBalancerIP:
+  loadBalancerSourceRanges:
 
 receiver:
   grpc:
