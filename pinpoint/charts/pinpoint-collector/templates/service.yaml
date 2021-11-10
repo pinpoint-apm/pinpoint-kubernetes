@@ -10,27 +10,27 @@ metadata:
   {{- end }}
 spec:
   ports:
-  - port: {{ .Values.receiver.grpc.agentPort}}
+  - port: {{ .Values.receiver.grpc.agentPort }}
     protocol: TCP
     targetPort: 9991
     name: grpc-agent
-  - port: {{ .Values.receiver.grpc.statPort}}
+  - port: {{ .Values.receiver.grpc.statPort }}
     protocol: TCP
     targetPort: 9992
     name: grpc-stat
-  - port: {{ .Values.receiver.grpc.spanPort}}
+  - port: {{ .Values.receiver.grpc.spanPort }}
     protocol: TCP
     targetPort: 9993
     name: grpc-span
-  - port: {{ .Values.receiver.thrift.basePort}}
+  - port: {{ .Values.receiver.thrift.basePort }}
     protocol: TCP
     targetPort: 9994
     name: thrift-base
-  - port: {{ .Values.receiver.thrift.statPort}}
+  - port: {{ .Values.receiver.thrift.statPort }}
     protocol: UDP
     targetPort: 9995
     name: thrift-stat
-  - port: {{ .Values.receiver.thrift.spanPort}}
+  - port: {{ .Values.receiver.thrift.spanPort }}
     protocol: UDP
     targetPort: 9996
     name: thrift-span

@@ -17,7 +17,7 @@ tolerations: []
   #   value: "value"
   #   effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
 
-# Configuration for Docker Image 
+# Configuration for Docker Image
 image:
   repository: pinpointdocker/pinpoint-collector
   tag: 2.1.0
@@ -30,6 +30,7 @@ service:
 
 receiver:
   grpc:
+    sslEnable: false
     agentPort: 9991
     statPort: 9992
     spanPort: 9993
@@ -37,7 +38,7 @@ receiver:
     basePort: 9994
     statPort: 9995
     spanPort: 9996
-  
+
 profiles: release
 loggingLevelRoot: INFO
 clusterEnable: true

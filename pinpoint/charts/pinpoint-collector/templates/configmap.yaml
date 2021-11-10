@@ -5,11 +5,15 @@ metadata:
   labels:
 {{ include "pinpoint-collector.labels" . | indent 4 }}
 data:
-  CLUSTER_ENABLE:  "{{ .Values.clusterEnable }}"
+  CLUSTER_ENABLE: "{{ .Values.clusterEnable }}"
   PINPOINT_ZOOKEEPER_ADDRESS: "{{ include "pinpoint-collector.zookeeper.address" . }}"
   HBASE_NAMESPACE: "{{ include "pinpoint-collector.hbase.namespace" . }}"
+  COLLECTOR_RECEIVER_GRPC_SSL_ENABLE: "{{ .Values.receiver.grpc.sslEnable }}"
+  COLLECTOR_RECEIVER_GRPC_AGENT_SSL_ENABLE: "{{ .Values.receiver.grpc.sslEnable }}"
+  COLLECTOR_RECEIVER_GRPC_STAT_SSL_ENABLE: "{{ .Values.receiver.grpc.sslEnable }}"
+  COLLECTOR_RECEIVER_GRPC_SPAN_SSL_ENABLE: "{{ .Values.receiver.grpc.sslEnable }}"
   SPRING_PROFILES: "{{ .Values.profiles }}"
   JAVA_OPTS: "-Dspring.profiles.active={{ .Values.profiles }}"
-  LOGGING_LEVEL_ROOT:  "{{ .Values.loggingLevelRoot }}"
-  FLINK_CLUSTER_ENABLE:  "{{ .Values.flink.enable }}"
+  LOGGING_LEVEL_ROOT: "{{ .Values.loggingLevelRoot }}"
+  FLINK_CLUSTER_ENABLE: "{{ .Values.flink.enable }}"
   FLINK_CLUSTER_ZOOKEEPER_ADDRESS: "{{ include "pinpoint-collector.zookeeper.address" . }}"
