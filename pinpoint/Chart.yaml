@@ -14,7 +14,7 @@ dependencies:
       condition: mysql.enable
     - name: hdfs
       version: ~0.1.8
-      repository: https://gradiant.github.io/charts
+      repository: https://github.com/Gradiant/bigdata-charts/tree/master/charts/hdfs
       condition: hdfs.enabled
     - name: zookeeper
       version: ~2.1.0
