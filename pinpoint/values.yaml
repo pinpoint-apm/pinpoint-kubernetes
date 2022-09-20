@@ -5,7 +5,7 @@ mysql:
   # docker image
   image: "pinpointdocker/pinpoint-mysql"
   # tag
-  imageTag: "2.1.0"
+  imageTag: "2.4.1"
 
   ## Specify password for root user
   ## Default: random 10 character string

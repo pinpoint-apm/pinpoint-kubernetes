@@ -20,7 +20,7 @@ tolerations: []
 # Configuration for Docker Image 
 image:
   repository: pinpointdocker/pinpoint-collector
-  tag: 2.1.0
+  tag: 2.4.1
 
 service:
   type: "LoadBalancer"

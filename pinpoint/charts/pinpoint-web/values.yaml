@@ -29,7 +29,7 @@ service:
 # Configuration for Docker Image 
 image:
   repository: pinpointdocker/pinpoint-web
-  tag: 2.1.0
+  tag: 2.4.1
 
 profiles: release, batch
 serverPort: 8079

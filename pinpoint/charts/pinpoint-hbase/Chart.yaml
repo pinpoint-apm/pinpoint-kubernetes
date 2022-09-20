@@ -5,4 +5,4 @@ type: application
 # chart version. 
 version: 0.1.0
 # version number of the application being deployed. 
-appVersion: 2.1.0
+appVersion: 2.4.1
