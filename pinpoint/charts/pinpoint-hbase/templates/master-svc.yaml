@@ -12,7 +12,7 @@ spec:
   publishNotReadyAddresses: true
   ports:
   - name: hbase-master
-    port: 60000
+    port: 16000
     protocol: TCP
   - name: hbase-ui
     port: 16010
