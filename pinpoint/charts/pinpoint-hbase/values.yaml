@@ -35,4 +35,4 @@ hbase:
         cpu: "1000m"
 
 zookeeper:
-  name: "pinpoint-zookeeper"
+  name:
