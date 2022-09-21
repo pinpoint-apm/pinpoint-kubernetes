@@ -35,4 +35,5 @@ hbase:
         cpu: "1000m"
 
 zookeeper:
-  name:
+  ## Required ex) pinpoint-zookeeper.namespace.svc.cluster.local
+  host:
