@@ -87,12 +87,12 @@ data:
         <property>
           <name>hbase.zookeeper.property.clientPort</name>
           <value>2181</value>
-          </property>
-          <property>
+        </property>
+        <property>
           <name>hbase.master.port</name>
           <value>60000</value>
-          </property>
-          <property>
+        </property>
+        <property>
           <name>hbase.regionserver.port</name>
           <value>60020</value>
         </property>
