@@ -4,7 +4,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
 {{ include "pinpoint-zookeeper.labels" . | indent 4 }}
-  name: {{ include "pinpoint-zookeeper.fullname" . }}
+  name: {{ include "pinpoint-zookeeper.name" . }}
 spec:
   replicas: 3
   selector:
