@@ -25,6 +25,8 @@ spec:
     spec:
 {{- with .Values.affinity }}
       affinity:
+{{- toYaml . | nindent 8 }}
+{{- end }}
       containers:
       - name: regionserver
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
