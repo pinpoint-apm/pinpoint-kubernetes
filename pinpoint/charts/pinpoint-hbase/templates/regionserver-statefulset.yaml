@@ -23,27 +23,8 @@ spec:
         app.kubernetes.io/component: regionserver
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
     spec:
+{{- with .Values.affinity }}
       affinity:
-        podAntiAffinity:
-        {{- if eq .Values.antiAffinity "hard" }}
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: "kubernetes.io/hostname"
-            labelSelector:
-              matchLabels:
-                app.kubernetes.io/name: {{ include "hbase.name" . }}
-                app.kubernetes.io/component: regionserver
-                {{- include "hbase.labels" . | nindent 16 }}            
-        {{- else if eq .Values.antiAffinity "soft" }}
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 5
-            podAffinityTerm:
-              topologyKey: "kubernetes.io/hostname"
-              labelSelector:
-                matchLabels:
-                  app.kubernetes.io/name: {{ include "hbase.name" . }}
-                  app.kubernetes.io/component: regionserver
-                  {{- include "hbase.labels" . | nindent 18 }}
-        {{- end }}
       containers:
       - name: regionserver
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

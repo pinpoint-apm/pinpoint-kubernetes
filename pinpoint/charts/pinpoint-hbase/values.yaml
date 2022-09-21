@@ -12,9 +12,7 @@ image:
 # The version of the hadoop libraries being used in the image.
 hbaseVersion: 1.2.6
 
-# Select antiAffinity as either hard or soft, default is 'soft'
-# 'hard' is recommended for higher availaility
-antiAffinity: "hard"
+affinity: {}
 
 conf:
   hadoopUserName: hdfs

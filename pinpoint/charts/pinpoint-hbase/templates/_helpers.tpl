@@ -32,3 +32,11 @@ app.kubernetes.io/instance: {{ .Release.Name | quote }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/part-of: {{ .Chart.Name }}
 {{- end -}}
+
+
+{{/*
+Create hbase affinity
+*/}}
+{{- define "pinpoint-hbase.affinity" -}}
+{{- default {} .Values.affinity -}}
+{{- end }}
