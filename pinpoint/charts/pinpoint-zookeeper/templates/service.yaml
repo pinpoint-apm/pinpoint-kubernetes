@@ -18,4 +18,4 @@ spec:
     name: zookeeper-replica-port
   - port: 3888
     targetPort: 3888
-    name: zookeeper-replica-port
+    name: zookeeper-replica-port-2
