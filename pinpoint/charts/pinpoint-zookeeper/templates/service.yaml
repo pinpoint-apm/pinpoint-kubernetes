@@ -19,11 +19,3 @@ spec:
   - port: 3888
     targetPort: 3888
     name: zookeeper-replica-port
-{{- if eq "ClusterIP" .Values.service.type }}
-  {{- if .Values.service.clusterIP }}
-  clusterIP:  {{ .Values.service.clusterIP }}
-  {{- end }}
-{{- end }}
-  selector:
-{{ include "pinpoint-collector.selectorLabels" . | indent 6 }}
-  type: "{{ .Values.service.type }}"

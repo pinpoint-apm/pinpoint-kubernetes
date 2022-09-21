@@ -23,7 +23,7 @@ image:
   tag: 2.4.1
 
 service:
-  type: "LoadBalancer"
+  type: "ClusterIP"
   nodePort:
   clusterIP:
 

@@ -21,10 +21,9 @@ tolerations: []
 # Configuration for web UI service
 service:
   ui:
-    type: "LoadBalancer"
+    type: "ClusterIP"
     nodePort:
     clusterIP:
-    port: 8080
 
 # Configuration for Docker Image 
 image:
