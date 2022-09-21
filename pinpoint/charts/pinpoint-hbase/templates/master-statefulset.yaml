@@ -27,6 +27,7 @@ spec:
       affinity:
 {{- toYaml . | nindent 8 }}
 {{- end }}
+      dnsPolicy: "Default"
       containers:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
