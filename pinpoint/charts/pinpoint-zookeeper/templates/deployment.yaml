@@ -28,7 +28,7 @@ spec:
               value: server.1=
           envFrom:
           - configMapRef:
-              name: {{ include "pinpoint-zookeeper.fullname" .}}
+              name: {{ include "pinpoint-zookeeper.name" .}}
           ports:
           - containerPort: 2181
             protocol: TCP
