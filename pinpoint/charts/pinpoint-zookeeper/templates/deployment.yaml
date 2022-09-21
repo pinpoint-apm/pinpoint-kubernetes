@@ -4,9 +4,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
 {{ include "pinpoint-zookeeper.labels" . | indent 4 }}
-  name: {{ include "pinpoint-zookeeper.name" . }}
+  name: {{ include "pinpoint-zookeeper.fullname" . }}
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
 {{ include "pinpoint-zookeeper.selectorLabels" . | indent 6 }}
@@ -24,11 +24,10 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           env:
+            - name: ZOO_MY_ID
+              value: "1"
             - name: ZOO_SERVERS
-              value: server.1=
-          envFrom:
-          - configMapRef:
-              name: {{ include "pinpoint-zookeeper.name" .}}
+              value: server.1={{ include "pinpoint-zookeeper.fullname" . }}:2888:3888
           ports:
           - containerPort: 2181
             protocol: TCP
