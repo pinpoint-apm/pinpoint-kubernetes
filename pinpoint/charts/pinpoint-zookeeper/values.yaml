@@ -1,3 +1,5 @@
+imagePullPolicy: Always
+
 image:
   repository: pinpointdocker/pinpoint-zookeeper
   tag: 2.4.1

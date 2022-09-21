@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  {{- with .Values.podAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ include "pinpoint-collector.fullname" . }}
+  labels:
+{{ include "pinpoint-collector.labels" . | indent 4 }}
+spec:
+  ports:
+  - port: 2181
+    targetPort: 2181
+    name: zookeeper-port
+  - port: 2888
+    targetPort: 2888
+    name: zookeeper-replica-port
+  - port: 3888
+    targetPort: 3888
+    name: zookeeper-replica-port
+{{- if eq "ClusterIP" .Values.service.type }}
+  {{- if .Values.service.clusterIP }}
+  clusterIP:  {{ .Values.service.clusterIP }}
+  {{- end }}
+{{- end }}
+  selector:
+{{ include "pinpoint-collector.selectorLabels" . | indent 6 }}
+  type: "{{ .Values.service.type }}"
