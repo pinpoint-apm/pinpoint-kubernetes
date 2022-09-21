@@ -3,6 +3,6 @@ imagePullPolicy: Always
 podAnnotations: {}
 
 image:
-  repository: pinpointdocker/pinpoint-zookeeper
-  tag: 2.4.1
+  repository: zookeeper
+  tag: 3.5.9
   pullPolicy: IfNotPresent
