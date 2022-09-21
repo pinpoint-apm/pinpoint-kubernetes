@@ -18,6 +18,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      subdomain: pinpoint-subdomain
       initContainers:
        - name: wait-mysql
          image: alpine
