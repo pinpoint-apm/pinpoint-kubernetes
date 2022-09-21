@@ -45,3 +45,11 @@ app.kubernetes.io/name: {{ include "pinpoint-zookeeper.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/component: "pinpoint-zookeeper"
 {{- end }}
+
+
+{{/*
+Create hbase affinity
+*/}}
+{{- define "pinpoint-zookeeper.affinity" -}}
+{{- .Values.affinity -}}
+{{- end }}

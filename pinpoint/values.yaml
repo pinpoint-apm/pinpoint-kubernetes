@@ -52,3 +52,6 @@ pinpoint-collector:
 
 pinpoint-hbase:
   affinity:
+
+pinpoint-zookeeper:
+  affinity:

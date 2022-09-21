@@ -2,6 +2,8 @@ imagePullPolicy: Always
 
 podAnnotations: {}
 
+affinity: {}
+
 image:
   repository: zookeeper
   tag: 3.5.9
