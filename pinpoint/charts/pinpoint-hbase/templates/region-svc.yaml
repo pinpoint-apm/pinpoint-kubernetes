@@ -10,7 +10,7 @@ metadata:
 spec:
   ports:
   - name: hbase-regionserver
-    port: 16020
+    port: 60020
     protocol: TCP
   - name: hbase-ui
     port: 16030
