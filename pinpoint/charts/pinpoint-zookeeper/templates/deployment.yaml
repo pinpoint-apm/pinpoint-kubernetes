@@ -20,6 +20,7 @@ spec:
       {{- end }}
     spec:
       hostname: {{ include "pinpoint-zookeeper.fullname" . }}
+      dnsPolicy: "Default"
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
