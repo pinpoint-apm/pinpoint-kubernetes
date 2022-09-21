@@ -1,6 +1,6 @@
 apiVersion: v2
-name: pinpoint-flink
-description: A Helm chart for Pinpoint Flink
+name: pinpoint-batch
+description: A Helm chart for Pinpoint Batch
 type: application
 # chart version. 
 version: 0.1.0

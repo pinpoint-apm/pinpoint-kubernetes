@@ -1,0 +1,4 @@
+image:
+  repository: pinpointdocker/pinpoint-mysql
+  tag: 2.4.1
+  pullPolicy: IfNotPresent

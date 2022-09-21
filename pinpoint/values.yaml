@@ -25,27 +25,6 @@ mysql:
   #   extra_init.sql: |-
   #     CREATE TABLE ...
 
-### See helm stable chart to apply other settings of Zookeeper.
-### Link : https://github.com/helm/charts/tree/master/incubator/zookeeper
-zookeeper: 
-  enabled: true
-  replicaCount: 1
-  persistence:
-    enabled: true
-    size : 10Gi
-
-### See helm stable chart to apply other settings of HDFS.
-### Link : https://github.com/Gradiant/charts/tree/master/charts/hdfs
-hdfs:
-  enabled: true
-  persistence:
-    dataNode:
-      enabled: true
-      size: "20Gi"
-
-    nameNode:
-      enabled: true
-      size : "20Gi"
       
 pinpoint-web:
   ### If you want to use external MySQL or other settings that are different from default values, fill these fields.

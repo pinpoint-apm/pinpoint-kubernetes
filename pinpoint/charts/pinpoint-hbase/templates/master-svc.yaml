@@ -11,14 +11,8 @@ spec:
   clusterIP: None
   publishNotReadyAddresses: true
   ports:
-  - name: thrift
-    port: 9090
-    protocol: TCP
-  - name: thrift-ui
-    port: 9095
-    protocol: TCP
   - name: hbase-master
-    port: 16000
+    port: 60000
     protocol: TCP
   - name: hbase-ui
     port: 16010

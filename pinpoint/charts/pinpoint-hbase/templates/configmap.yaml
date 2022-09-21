@@ -74,7 +74,7 @@ data:
       </property>
       <property>
         <name>hbase.master</name>
-        <value>>{{ include "hbase.fullname" . }}-master:16000</value>
+        <value>>{{ include "hbase.fullname" . }}-master:60000</value>
       </property>
       {{- if not (index .Values.conf "hbaseSite" "hbase.zookeeper.quorum")  }}
       <property>
