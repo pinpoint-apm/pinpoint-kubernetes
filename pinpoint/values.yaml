@@ -40,17 +40,17 @@ pinpoint-web:
     user: 
     password: 
     database: 
-  
-  ### External zookeeper address (Default : pinpoint-zookeeper) 
+
   zookeeper: 
     host:
 
 pinpoint-collector:
-  ### External zookeeper address (Default : pinpoint-zookeeper) 
   zookeeper:
     host:
 
 pinpoint-hbase:
+  zookeeper:
+    host:
   affinity:
 
 pinpoint-zookeeper:

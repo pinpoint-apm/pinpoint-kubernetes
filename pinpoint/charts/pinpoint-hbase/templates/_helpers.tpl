@@ -42,6 +42,6 @@ Create hbase affinity
 {{- end }}
 
 
-{{- define "pinpoint-hbase.pinpoint-zookeeper.host" -}}
+{{- define "pinpoint-hbase.zookeeper.host" -}}
 {{- .Values.zookeeper.host -}}
 {{- end }}
