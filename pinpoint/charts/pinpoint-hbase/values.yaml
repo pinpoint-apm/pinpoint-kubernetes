@@ -14,12 +14,6 @@ hbaseVersion: 1.2.6
 
 affinity: {}
 
-conf:
-  hadoopUserName: hdfs
-  hbaseSite:
-    hbase.rootdir:  # default is "hdfs://{{.Release.Name}}-hdfs-namenode:8020/hbase"
-    hbase.zookeeper.quorum:  # default is "{{.Release.Name}}-zookeeper:2181"
-
 hbase:
   master:
     replicas: 1
@@ -39,3 +33,6 @@ hbase:
       limits:
         memory: "2048Mi"
         cpu: "1000m"
+
+zookeeper:
+  name: "pinpoint-zookeeper"

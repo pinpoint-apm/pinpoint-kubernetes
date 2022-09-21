@@ -42,5 +42,5 @@ Create hbase affinity
 {{- end }}
 
 {{- define "pinpoint-zookeeper.fullname" -}}
-{{- default "pinpoint-zookeeper" .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- default "pinpoint-zookeeper" .Values.zookeeper.name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
