@@ -38,5 +38,5 @@ app.kubernetes.io/part-of: {{ .Chart.Name }}
 Create hbase affinity
 */}}
 {{- define "pinpoint-hbase.affinity" -}}
-{{- default {} .Values.affinity -}}
+{{- default "" .Values.affinity -}}
 {{- end }}
