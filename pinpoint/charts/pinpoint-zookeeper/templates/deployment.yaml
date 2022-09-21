@@ -26,10 +26,6 @@ spec:
           ports:
           - containerPort: 2181
             protocol: TCP
-          - containerPort: 2888
-            protocol: TCP
-          - containerPort: 3888
-            protocol: TCP
           livenessProbe:
             failureThreshold: 3
             tcpSocket:

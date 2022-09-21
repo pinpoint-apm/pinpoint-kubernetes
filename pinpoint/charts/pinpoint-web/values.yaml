@@ -1,6 +1,6 @@
 replicaCount: 1
 
-imagePullPolicy: Always
+imagePullPolicy: IfNotPresent
 ## Annotations to be added to Pinpoint Web pods
 ##
 podAnnotations: {}
