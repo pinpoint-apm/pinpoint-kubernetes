@@ -19,12 +19,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
-      hostname: {{ include "pinpoint-zookeeper.fullname" . }}
-      subdomain: pinpoint-subdomain
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+            - name: ZOO_SERVERS
+              value: server.1={{ include "pinpoint-zookeeper.fullname" . }}:2888:3888;2181
           ports:
           - containerPort: 2181
             protocol: TCP

@@ -19,7 +19,6 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
-      subdomain: pinpoint-subdomain
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
