@@ -34,7 +34,7 @@ data:
 
     if [[ $2 == "regionserver" ]]; then
       #  wait up to 30 seconds for masternode
-      (while [[ $count -lt 15 && -z `curl -sf http://{{ include "hbase.fullname" . }}-master:16010` ]]; do ((count=count+1)) ; echo "Waiting for {{ include "hbase.fullname" . }}-master" ; sleep 2; done && [[ $count -lt 15 ]])
+      (while [[ $count -lt 15 && -z `curl -sf http://{{ include "hbase.fullname" . }}-master:60000` ]]; do ((count=count+1)) ; echo "Waiting for {{ include "hbase.fullname" . }}-master" ; sleep 2; done && [[ $count -lt 15 ]])
       [[ $? -ne 0 ]] && echo "Timeout waiting for hbase-master, exiting." && exit 1
       $HBASE_PREFIX/bin/hbase-daemon.sh start regionserver
     fi
@@ -68,29 +68,32 @@ data:
     <?xml version="1.0"?>
     <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
     <configuration>
-      <property>
-        <name>hbase.cluster.distributed</name>
-        <value>true</value>
-      </property>
-      <property>
-        <name>hbase.master</name>
-        <value>>{{ include "hbase.fullname" . }}-master:16000</value>
-      </property>
-      {{- if not (index .Values.conf "hbaseSite" "hbase.zookeeper.quorum")  }}
-      <property>
-        <name>hbase.zookeeper.quorum</name>
-        <value>{{- printf "%s-zookeeper:2181" .Release.Name }}</value>
-      </property>
-      {{- end }}
-      {{- if not (index .Values.conf "hbaseSite" "hbase.rootdir")  }}
-      <property>
-        <name>hbase.rootdir</name>
-        <value>{{- printf "hdfs://%s-hdfs-namenode:8020/hbase" .Release.Name }}</value>
-      </property>
-      {{- end }}
-      {{- if index .Values.conf "hbaseSite" }}
-      {{- range $key, $value := index .Values.conf "hbaseSite" }}
-      <property><name>{{ $key }}</name><value>{{ $value }}</value></property>
-      {{- end }}
-      {{- end }}
+        <property>
+            <name>hbase.rootdir</name>
+            <value>file:///home/pinpoint/hbase</value>
+        </property>
+        <property>
+            <name>hbase.cluster.distributed</name>
+            <value>true</value>
+        </property>
+        <property>
+            <name>zookeeper.znode.parent</name>
+            <value>/hbase</value>
+        </property>
+        <property>
+            <name>hbase.zookeeper.quorum</name>
+            <value>zoo1,zoo2,zoo3</value>
+        </property>
+        <property>
+          <name>hbase.zookeeper.property.clientPort</name>
+          <value>2181</value>
+          </property>
+          <property>
+          <name>hbase.master.port</name>
+          <value>60000</value>
+          </property>
+          <property>
+          <name>hbase.regionserver.port</name>
+          <value>60020</value>
+        </property>
     </configuration>
