@@ -27,10 +27,6 @@ spec:
       affinity:
 {{- toYaml . | nindent 8 }}
 {{- end }}
-      volumes:
-        - name: hbase-config
-          configMap:
-            name: {{ include "hbase.fullname" . }}
       containers:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -49,7 +45,7 @@ spec:
           httpGet:
             path: /
             port: 16010
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           timeoutSeconds: 2
         livenessProbe:
           httpGet:
@@ -87,3 +83,8 @@ spec:
         volumeMounts:
           - name: hbase-config
             mountPath: /tmp/hbase-config
+      volumes:
+        - name: hbase-config
+          emptyDir: {}
+          configMap:
+            name: {{ include "hbase.fullname" . }}
