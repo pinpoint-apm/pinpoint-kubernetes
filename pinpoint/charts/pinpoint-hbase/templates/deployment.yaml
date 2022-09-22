@@ -26,7 +26,6 @@ spec:
       affinity:
 {{- toYaml . | nindent 8 }}
 {{- end }}
-      restartPolicy: OnFailure
       volumes:
         - name: hbase-config
           configMap:
@@ -35,12 +34,6 @@ spec:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
-        command:
-        - "/bin/bash"
-        - "/tmp/hbase-config/bootstrap.sh"
-        - "/bin/bash -c"
-        args:
-          - "while true; do sleep 30; done;"
         resources:
 {{ toYaml .Values.hbase.master.resources | indent 10 }}
         volumeMounts:
