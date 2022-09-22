@@ -30,17 +30,11 @@ spec:
         - name: hbase-config
           configMap:
             name: {{ include "hbase.fullname" . }}-cm
-      initContainers:
-        - name: sidecar
-          image: busybox
-          command: ['sh', '/tmp/hbase-config/bootstrap.sh']
-          volumeMounts:
-            - name: hbase-config
-              mountPath: /tmp/hbase-config
       containers:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        command: ['sh', '/tmp/hbase-config/bootstrap.sh']
         resources:
 {{ toYaml .Values.hbase.master.resources | indent 10 }}
         volumeMounts:
