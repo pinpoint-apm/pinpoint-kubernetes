@@ -43,3 +43,6 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
         resources:
 {{ toYaml .Values.hbase.master.resources | indent 10 }}
+        volumeMounts:
+          - name: hbase-config
+            mountPath: /tmp/hbase-config
