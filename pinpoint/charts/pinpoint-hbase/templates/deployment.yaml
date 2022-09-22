@@ -34,7 +34,7 @@ spec:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
-        command: ['sh', '/tmp/hbase-config/bootstrap.sh']
+        command: ['/bin/bash', '/tmp/hbase-config/bootstrap.sh']
         resources:
 {{ toYaml .Values.hbase.master.resources | indent 10 }}
         volumeMounts:
