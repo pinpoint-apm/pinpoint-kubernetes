@@ -35,6 +35,7 @@ spec:
         volumeMounts:
           - name: hbase-config
             mountPath: /opt/hbase/hbase-1.2.6/conf
+            readOnly: true
       volumes:
         - name: hbase-config
           configMap:
