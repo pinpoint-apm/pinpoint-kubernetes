@@ -10,11 +10,8 @@ data:
     #!/bin/bash
 
     BASE_DIR="/opt/hbase"
-
     : ${HBASE_PREFIX:=${BASE_DIR}/hbase-1.2.6}
-
     . $HBASE_PREFIX/conf/hbase-env.sh
-
     CONFIG_DIR="/tmp/hbase-config"
 
     for f in hbase-site.xml hbase-env.sh; do
@@ -25,8 +22,6 @@ data:
         exit 1
       fi
     done
-
-    exec /usr/local/bin/initialize-hbase.sh
 
   hbase-env.sh: |
     # Extra Java runtime options.

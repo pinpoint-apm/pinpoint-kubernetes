@@ -30,6 +30,10 @@ spec:
         - name: hbase-config
           configMap:
             name: {{ include "hbase.fullname" . }}-cm
+      initContainers:
+        - name: sidecar
+          image: busybox
+          command: ['sh', '/tmp/hbase-config/bootstrap.sh']
       containers:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
