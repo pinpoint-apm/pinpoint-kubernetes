@@ -16,14 +16,13 @@ data:
 
     ls /tmp/hbase-config -alh
 
-    for f in hbase-site.xml /bin/bash/hbase-env.sh; do
-      if [[ -e ${CONFIG_DIR}/$f ]]; then
-        cp ${CONFIG_DIR}/$f $HBASE_PREFIX/conf/$f
-      else
-        echo "ERROR: Could not find $f in $CONFIG_DIR"
-        exit 1
+    for f in hbase-site.xml hbase-env.sh; do
+      cp ${CONFIG_DIR}/$f $HBASE_PREFIX/conf/$f
       fi
     done
+
+    cat $HBASE_PREFIX/conf/hbase-site.xml
+    cat $HBASE_PREFIX/conf/hbase-env.sh
 
   hbase-env.sh: |
     # Extra Java runtime options.
