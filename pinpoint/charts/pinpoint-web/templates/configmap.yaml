@@ -7,7 +7,7 @@ metadata:
 data:
   SPRING_PROFILES_ACTIVE: "{{ .Values.profiles }}"
   SERVER_PORT: "{{ .Values.serverPort }}"
-  PINPOINT_ZOOKEEPER_ADDRESS: "{{ include "pinpoint-web.zookeeper.address" . }}"
+  PINPOINT_ZOOKEEPER_ADDRESS: "{{ include "pinpoint-web.zookeeper.fullname" . }}"
   CLUSTER_ENABLE: "{{ .Values.clusterEnable }}"
   CONFIG_SENDUSAGE: "{{ .Values.sendUsage }}"
   LOGGING_LEVEL_ROOT: "{{ .Values.loggingLevelRoot }}"
