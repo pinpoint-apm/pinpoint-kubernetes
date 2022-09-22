@@ -31,7 +31,7 @@ spec:
         - name: hbase-config
           emptyDir: {}
           configMap:
-            name: {{ include "hbase.fullname" . }}
+            name: {{ include "hbase.fullname" . }}-cm
       containers:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
