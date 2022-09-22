@@ -80,9 +80,7 @@ Create a fully qualified mysql url
 {{- printf "jdbc:mysql://%s:%d/%s?characterEncoding=UTF-8" $host $port (include "pinpoint-web.mysql.database" .) }}
 {{- end }}
 
-{{/*
-Create Zookeeper address
-*/}}
-{{- define "pinpoint-web.zookeeper.address" -}}
-{{- default "pinpoint-zookeeper" .Values.zookeeper.host -}}
-{{- end }}
+{{- define "pinpoint-web.zookeeper.fullname" -}}
+{{- $name := default "pinpoint-zookeeper" .Values.zookeeper.hostName -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 47 | trimSuffix "-" -}}
+{{- end -}}

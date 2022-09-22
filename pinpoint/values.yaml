@@ -42,15 +42,15 @@ pinpoint-web:
     database: 
 
   zookeeper: 
-    host:
+    hostName:
 
 pinpoint-collector:
   zookeeper:
-    host:
+    hostName:
 
 pinpoint-hbase:
   zookeeper:
-    host:
+    hostName:
   affinity:
 
 pinpoint-zookeeper:

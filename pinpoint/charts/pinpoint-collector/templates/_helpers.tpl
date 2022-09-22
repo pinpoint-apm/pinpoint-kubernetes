@@ -51,9 +51,8 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/component: "pinpoint-collector"
 {{- end }}
 
-{{/*
-Create Zookeeper address
-*/}}
-{{- define "pinpoint-collector.zookeeper.address" -}}
-{{- default "pinpoint-zookeeper" .Values.zookeeper.host -}}
-{{- end }}
+
+{{- define "pinpoint-collector.zookeeper.fullname" -}}
+{{- $name := default "pinpoint-zookeeper" .Values.zookeeper.hostName -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 47 | trimSuffix "-" -}}
+{{- end -}}
