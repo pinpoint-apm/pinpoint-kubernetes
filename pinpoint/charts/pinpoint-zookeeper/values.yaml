@@ -3,8 +3,3 @@ imagePullPolicy: IfNotPresent
 podAnnotations: {}
 
 affinity: {}
-
-image:
-  repository: zookeeper
-  tag: 3.5.9
-  pullPolicy: IfNotPresent
