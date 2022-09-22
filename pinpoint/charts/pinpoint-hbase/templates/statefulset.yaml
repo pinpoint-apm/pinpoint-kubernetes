@@ -38,9 +38,47 @@ spec:
         - "master"
         resources:
 {{ toYaml .Values.hbase.master.resources | indent 10 }}
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 16010
+          initialDelaySeconds: 5
+          timeoutSeconds: 2
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 16010
+          initialDelaySeconds: 10
+          timeoutSeconds: 2
         volumeMounts:
         - name: hbase-config
           mountPath: /tmp/hbase-config
+
+      - name: regionserver
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        command:
+          - "/bin/bash"
+          - "/tmp/hbase-config/bootstrap.sh"
+          - "-d"
+          - "regionserver"
+        resources:
+{{ toYaml .Values.hbase.regionServer.resources | indent 10 }}
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 16030
+          initialDelaySeconds: 5
+          timeoutSeconds: 2
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 16030
+          initialDelaySeconds: 10
+          timeoutSeconds: 2
+        volumeMounts:
+          - name: hbase-config
+            mountPath: /tmp/hbase-config
       volumes:
       - name: hbase-config
         configMap:
