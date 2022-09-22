@@ -41,6 +41,6 @@ spec:
             name: {{ include "hbase.fullname" . }}-cm
             items:
               - key: hbase-env.sh
-                path: /opt/hbase/hbase-1.2.6/hbase-env.sh
+                path: ../../opt/hbase/hbase-1.2.6/hbase-env.sh
               - key: hbase-site.xml
-                path: /opt/hbase/hbase-1.2.6/hbase-site.xml
+                path: ../../opt/hbase/hbase-1.2.6/hbase-site.xml
