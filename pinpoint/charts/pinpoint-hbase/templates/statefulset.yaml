@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "hbase.fullname" . }}-master
+  name: {{ include "hbase.fullname" . }}
   annotations:
     checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
   labels:
@@ -14,7 +14,7 @@ spec:
       app.kubernetes.io/name: {{ include "hbase.name" . }}
       app.kubernetes.io/component: master
       app.kubernetes.io/instance: {{ .Release.Name | quote }}
-  serviceName: {{ include "hbase.fullname" . }}-master
+  serviceName: {{ include "hbase.fullname" . }}
   replicas: {{ .Values.hbase.master.replicas }}
   template:
     metadata:
@@ -31,6 +31,9 @@ spec:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        ports:
+          - containerPort: 60000
+          - containerPort: 16010
         command:
         - "/bin/bash"
         - "/tmp/hbase-config/bootstrap.sh"
@@ -57,13 +60,14 @@ spec:
       - name: regionserver
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        ports:
+          - containerPort: 60020
+          - containerPort: 16030
         command:
           - "/bin/bash"
           - "/tmp/hbase-config/bootstrap.sh"
           - "-d"
           - "regionserver"
-        resources:
-{{ toYaml .Values.hbase.regionServer.resources | indent 10 }}
         readinessProbe:
           httpGet:
             path: /

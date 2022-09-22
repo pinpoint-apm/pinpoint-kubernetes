@@ -24,15 +24,6 @@ hbase:
       limits:
         memory: "2048Mi"
         cpu: "1000m"
-  regionServer:
-    replicas: 1
-    resources:
-      requests:
-        memory: "256Mi"
-        cpu: "10m"
-      limits:
-        memory: "2048Mi"
-        cpu: "1000m"
 
 zookeeper:
   hostName: "pinpoint-zookeeper"
