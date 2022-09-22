@@ -26,7 +26,7 @@ spec:
       affinity:
 {{- toYaml . | nindent 8 }}
 {{- end }}
-      restartPolicy: Never
+      restartPolicy: OnFailure
       volumes:
         - name: hbase-config
           configMap:
