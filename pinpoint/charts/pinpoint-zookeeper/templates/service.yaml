@@ -9,7 +9,6 @@ metadata:
   labels:
 {{ include "pinpoint-zookeeper.labels" . | indent 4 }}
 spec:
-  clusterIP: None
   ports:
   - port: 2181
     targetPort: 2181
