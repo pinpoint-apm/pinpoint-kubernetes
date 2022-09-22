@@ -38,18 +38,6 @@ spec:
         - "master"
         resources:
 {{ toYaml .Values.hbase.master.resources | indent 10 }}
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 60000
-          initialDelaySeconds: 5
-          timeoutSeconds: 2
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 60000
-          initialDelaySeconds: 10
-          timeoutSeconds: 2
         volumeMounts:
         - name: hbase-config
           mountPath: /tmp/hbase-config
