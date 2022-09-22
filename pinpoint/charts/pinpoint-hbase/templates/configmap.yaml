@@ -17,46 +17,6 @@ data:
 
     CONFIG_DIR="/tmp/hbase-config"
 
-    for f in hbase-site.xml hbase-env.sh; do
-      if [[ -e ${CONFIG_DIR}/$f ]]; then
-        cp ${CONFIG_DIR}/$f $HBASE_PREFIX/conf/$f
-      else
-        echo "ERROR: Could not find $f in $CONFIG_DIR"
-        exit 1
-      fi
-    done
-
-    if [[ $2 == "master" ]]; then
-      $HBASE_PREFIX/bin/hbase-daemon.sh start master
-      $HBASE_PREFIX/bin/hbase-daemon.sh start thrift
-    fi
-
-    if [[ $2 == "regionserver" ]]; then
-      #  wait up to 30 seconds for masternode
-      (while [[ $count -lt 15 && -z `curl -sf http://{{ include "hbase.fullname" . }}-0.{{ include "hbase.fullname" . }}:60000` ]]; do ((count=count+1)) ; echo "Waiting for {{ include "hbase.fullname" . }}-master-0.{{ include "hbase.fullname" . }}-master" ; sleep 2; done && [[ $count -lt 15 ]])
-      [[ $? -ne 0 ]] && echo "Timeout waiting for hbase-master, exiting." && exit 1
-      $HBASE_PREFIX/bin/hbase-daemon.sh start regionserver
-    fi
-
-    if echo -e "exists 'HostApplicationMap_Ver2'" | ${HBASE_PREFIX}/bin/hbase shell 2>&1 | grep -q "does exist" 2>/dev/null
-    then
-      echo "Tables already exist"
-    else
-      sleep 15
-      echo "create tables"
-      chmod 777 /opt/hbase/hbase-create.hbase
-      ${HBASE_PREFIX}/bin/hbase shell ${BASE_DIR}/hbase-create.hbase
-    fi
-
-    if [[ $1 == "-d" ]]; then
-      until find ${HBASE_PREFIX}/logs -mmin -1 | egrep -q '.*'; echo "`date`: Waiting for logs..." ; do sleep 2 ; done
-      tail -F ${HBASE_PREFIX}/logs/* &
-      while true; do sleep 1000; done
-    fi
-
-    if [[ $1 == "-bash" ]]; then
-      /bin/bash
-    fi
   hbase-env.sh: |
     # Extra Java runtime options.
     # Below are what we set by default.  May only work with SUN JVM.

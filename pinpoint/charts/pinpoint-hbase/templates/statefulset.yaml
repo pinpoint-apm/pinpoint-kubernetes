@@ -35,9 +35,6 @@ spec:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
-        ports:
-          - containerPort: 60000
-          - containerPort: 16010
         command:
         - "/bin/bash"
         - "/tmp/hbase-config/bootstrap.sh"
@@ -60,30 +57,3 @@ spec:
         volumeMounts:
         - name: hbase-config
           mountPath: /tmp/hbase-config
-
-      - name: regionserver
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
-        ports:
-          - containerPort: 60020
-          - containerPort: 16030
-        command:
-          - "/bin/bash"
-          - "/tmp/hbase-config/bootstrap.sh"
-          - "-d"
-          - "regionserver"
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 16030
-          initialDelaySeconds: 5
-          timeoutSeconds: 2
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 16030
-          initialDelaySeconds: 10
-          timeoutSeconds: 2
-        volumeMounts:
-          - name: hbase-config
-            mountPath: /tmp/hbase-config
