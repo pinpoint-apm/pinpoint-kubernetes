@@ -71,7 +71,7 @@ data:
     sed -i "/ApplicationMapStatisticsCallee_Ver2/s/TTL => .[[:digit:]]*/TTL => ${APPMAPSTATCALLEV2_TTL:-5184000}/g" ${BASE_DIR}/hbase-update-ttl.hbase
     sed -i "/ApplicationMapStatisticsSelf_Ver2/s/TTL => .[[:digit:]]*/TTL => ${APPMAPSTATSELFV2_TTL:-5184000}/g" ${BASE_DIR}/hbase-update-ttl.hbase
     sed -i "/HostApplicationMap_Ver2/s/TTL => .[[:digit:]]*/TTL => ${HOSTAPPMAPV2_TTL:-5184000}/g" ${BASE_DIR}/hbase-update-ttl.hbase
-    exec "$@"
+    exec /usr/local/bin/initialize-hbase.sh && tail -f /dev/null
     
     if echo -e "exists 'HostApplicationMap_Ver2'" | ${HBASE_PREFIX}/bin/hbase shell 2>&1 | grep -q "does exist" 2>/dev/null
     then 
