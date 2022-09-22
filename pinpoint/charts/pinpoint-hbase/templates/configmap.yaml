@@ -18,7 +18,6 @@ data:
 
     for f in hbase-site.xml hbase-env.sh; do
       cp ${CONFIG_DIR}/$f $HBASE_PREFIX/conf/$f
-      fi
     done
 
     cat $HBASE_PREFIX/conf/hbase-site.xml
