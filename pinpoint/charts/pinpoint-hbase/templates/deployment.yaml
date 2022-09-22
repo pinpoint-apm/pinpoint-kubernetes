@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: {{ include "hbase.fullname" . }}
   annotations:
@@ -14,7 +14,6 @@ spec:
       app.kubernetes.io/name: {{ include "hbase.name" . }}
       app.kubernetes.io/component: master
       app.kubernetes.io/instance: {{ .Release.Name | quote }}
-  serviceName: {{ include "hbase.fullname" . }}
   replicas: {{ .Values.hbase.master.replicas }}
   template:
     metadata:
