@@ -28,8 +28,6 @@ data:
 
     exec /usr/local/bin/initialize-hbase.sh
 
-    while true; do sleep 1000; done;
-
   hbase-env.sh: |
     # Extra Java runtime options.
     # Below are what we set by default.  May only work with SUN JVM.
