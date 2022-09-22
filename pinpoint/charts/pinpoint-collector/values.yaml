@@ -22,10 +22,7 @@ image:
   repository: pinpointdocker/pinpoint-collector
   tag: 2.4.1
 
-service:
-  type: "ClusterIP"
-  nodePort:
-  clusterIP:
+resources:
 
 receiver:
   grpc:
@@ -42,4 +39,3 @@ loggingLevelRoot: INFO
 clusterEnable: true
 flink:
   enable: false
-

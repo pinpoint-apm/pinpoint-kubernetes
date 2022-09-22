@@ -41,13 +41,13 @@ spec:
         readinessProbe:
           httpGet:
             path: /
-            port: 16010
+            port: 60000
           initialDelaySeconds: 5
           timeoutSeconds: 2
         livenessProbe:
           httpGet:
             path: /
-            port: 16010
+            port: 60000
           initialDelaySeconds: 10
           timeoutSeconds: 2
         volumeMounts:
