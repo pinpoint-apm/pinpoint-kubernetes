@@ -27,6 +27,10 @@ spec:
       affinity:
 {{- toYaml . | nindent 8 }}
 {{- end }}
+      volumes:
+        - name: hbase-config
+          configMap:
+            name: {{ include "hbase.fullname" . }}
       containers:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -83,7 +87,3 @@ spec:
         volumeMounts:
           - name: hbase-config
             mountPath: /tmp/hbase-config
-      volumes:
-      - name: hbase-config
-        configMap:
-          name: {{ include "hbase.fullname" . }}
