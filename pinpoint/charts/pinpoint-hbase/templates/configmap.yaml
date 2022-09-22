@@ -82,7 +82,7 @@ data:
         </property>
         <property>
             <name>hbase.zookeeper.quorum</name>
-            <value>{{ include "pinpoint-hbase.zookeeper.host" .}}</value>
+            <value>zoo1</value>
         </property>
         <property>
           <name>hbase.zookeeper.property.clientPort</name>

@@ -19,6 +19,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      hostname: zoo1
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -26,6 +27,15 @@ spec:
           ports:
           - containerPort: 2181
             protocol: TCP
+          - containerPort: 2888
+            protocol: TCP
+          - containerPort: 3888
+            protocol: TCP
+          env:
+            - name: ZOO_MY_ID
+              value: "1"
+            - name: ZOO_SERVERS
+              value: server.1=0.0.0.0:2888:3888
           livenessProbe:
             failureThreshold: 3
             tcpSocket:

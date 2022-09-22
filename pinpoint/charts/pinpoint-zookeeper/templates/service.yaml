@@ -10,6 +10,12 @@ metadata:
 {{ include "pinpoint-zookeeper.labels" . | indent 4 }}
 spec:
   ports:
-  - port: 2181
+  - name: zookeeper-port
+    port: 2181
     targetPort: 2181
-    name: zookeeper-port
+  - name: zookeeper-replica-1
+    port: 2888
+    targetPort: 2888
+  - name: zookeeper-replica-2
+    port: 3888
+    targetPort: 3888
