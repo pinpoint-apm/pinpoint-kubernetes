@@ -6,22 +6,6 @@ metadata:
     app.kubernetes.io/name: {{ include "hbase.name" . }}
     {{- include "hbase.labels" . | nindent 4 }}
 data:
-  bootstrap.sh: |
-    #!/bin/bash
-
-    BASE_DIR="/opt/hbase"
-    : ${HBASE_PREFIX:=${BASE_DIR}/hbase-1.2.6}
-    . $HBASE_PREFIX/conf/hbase-env.sh
-    CONFIG_DIR="/tmp/hbase-config"
-
-    ls /tmp/hbase-config -alh
-
-    for f in hbase-site.xml hbase-env.sh; do
-      cp ${CONFIG_DIR}/$f $HBASE_PREFIX/conf/$f
-    done
-
-    cat $HBASE_PREFIX/conf/hbase-site.xml
-    cat $HBASE_PREFIX/conf/hbase-env.sh
 
   hbase-env.sh: |
     # Extra Java runtime options.

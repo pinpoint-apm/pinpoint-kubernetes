@@ -26,17 +26,16 @@ spec:
       affinity:
 {{- toYaml . | nindent 8 }}
 {{- end }}
-      volumes:
-        - name: hbase-config
-          configMap:
-            name: {{ include "hbase.fullname" . }}-cm
       containers:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
-        command: ['sh', '/tmp/hbase-config/bootstrap.sh']
         resources:
 {{ toYaml .Values.hbase.master.resources | indent 10 }}
         volumeMounts:
           - name: hbase-config
-            mountPath: /tmp/hbase-config
+            mountPath: /opt/hbase/hbase-1.2.6
+      volumes:
+        - name: hbase-config
+          configMap:
+            name: {{ include "hbase.fullname" . }}-cm
