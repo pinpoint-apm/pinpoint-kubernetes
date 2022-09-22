@@ -14,7 +14,7 @@ data:
     . $HBASE_PREFIX/conf/hbase-env.sh
     CONFIG_DIR="/tmp/hbase-config"
 
-    ls -alh
+    ls /tmp/hbase-config -alh
 
     for f in hbase-site.xml /bin/bash/hbase-env.sh; do
       if [[ -e ${CONFIG_DIR}/$f ]]; then
