@@ -29,7 +29,6 @@ spec:
 {{- end }}
       volumes:
         - name: hbase-config
-          emptyDir: {}
           configMap:
             name: {{ include "hbase.fullname" . }}-cm
       containers:
