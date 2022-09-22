@@ -28,9 +28,7 @@ data:
 
     exec /usr/local/bin/initialize-hbase.sh
 
-    until find ${HBASE_PREFIX}/logs -mmin -1 | egrep -q '.*'; echo "`date`: Waiting for logs..." ; do sleep 2 ; done
-    tail -F ${HBASE_PREFIX}/logs/* &
-    while true; do sleep 1000; done
+    while true; do sleep 1000; done;
 
   hbase-env.sh: |
     # Extra Java runtime options.
