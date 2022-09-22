@@ -82,7 +82,7 @@ data:
         </property>
         <property>
             <name>hbase.zookeeper.quorum</name>
-            <value>{{ include "hbase.zookeeper.fullname" . }}-0,{{ include "hbase.zookeeper.fullname" . }}-1,{{ include "hbase.zookeeper.fullname" . }}-2</value>
+            <value>{{ include "hbase.zookeeper.fullname" . }}-0.{{ include "hbase.zookeeper.fullname" . }}-hs,{{ include "hbase.zookeeper.fullname" . }}-1.{{ include "hbase.zookeeper.fullname" . }}-hs,{{ include "hbase.zookeeper.fullname" . }}-2.{{ include "hbase.zookeeper.fullname" . }}-hs</value>
         </property>
         <property>
           <name>hbase.zookeeper.property.clientPort</name>
