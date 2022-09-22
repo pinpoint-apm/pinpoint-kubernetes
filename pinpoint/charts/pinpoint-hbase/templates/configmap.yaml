@@ -14,7 +14,9 @@ data:
     . $HBASE_PREFIX/conf/hbase-env.sh
     CONFIG_DIR="/tmp/hbase-config"
 
-    for f in /bin/bash/hbase-site.xml /bin/bash/hbase-env.sh; do
+    ls -alh
+
+    for f in hbase-site.xml /bin/bash/hbase-env.sh; do
       if [[ -e ${CONFIG_DIR}/$f ]]; then
         cp ${CONFIG_DIR}/$f $HBASE_PREFIX/conf/$f
       else
