@@ -32,6 +32,9 @@ data:
     fi
 
     if [[ $2 == "regionserver" ]]; then
+      #  wait up to 30 seconds for masternode
+      (while [[ $count -lt 15 && -z `curl -sf http://{{ include "hbase.fullname" . }}-0.{{ include "hbase.fullname" . }}:60000` ]]; do ((count=count+1)) ; echo "Waiting for {{ include "hbase.fullname" . }}-master-0.{{ include "hbase.fullname" . }}-master" ; sleep 2; done && [[ $count -lt 15 ]])
+      [[ $? -ne 0 ]] && echo "Timeout waiting for hbase-master, exiting." && exit 1
       $HBASE_PREFIX/bin/hbase-daemon.sh start regionserver
     fi
 
