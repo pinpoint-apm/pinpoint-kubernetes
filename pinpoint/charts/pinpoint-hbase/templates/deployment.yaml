@@ -39,3 +39,8 @@ spec:
         - name: hbase-config
           configMap:
             name: {{ include "hbase.fullname" . }}-cm
+            items:
+              - key: hbase-env.sh
+                path: hbase-env.sh
+              - key: hbase-site.xml
+                path: hbase-site.xml
