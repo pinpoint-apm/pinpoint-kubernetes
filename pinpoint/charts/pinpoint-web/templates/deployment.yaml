@@ -25,7 +25,6 @@ spec:
           ports:
             - name: ui
               containerPort: {{ .Values.serverPort }}
-              protocol: TCP
           envFrom:
           - configMapRef:
               name: {{ template "pinpoint-web.fullname" . }}
