@@ -1,5 +1,6 @@
 
 pinpoint-web:
+  affinity:
   ### If you want to use external MySQL or other settings that are different from default values, fill these fields.
   ### When the field is empty, it applies the default value.
   ### Default Value
@@ -8,16 +9,18 @@ pinpoint-web:
   ###   mysql.user : admin
   ###   mysql.password : admin
   mysql:
-    host: 
-    port: 
-    user: 
-    password: 
-    database: 
+    host:
+    port:
+    user:
+    password:
+    database:
 
   zookeeper: 
     hostName:
 
 pinpoint-collector:
+  affinity:
+
   zookeeper:
     hostName:
 
@@ -35,3 +38,5 @@ pinpoint-mysql:
   user: admin
   password: admin
   database: pinpoint
+
+  affinity:
