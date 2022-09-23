@@ -18,6 +18,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      initContainers:
+        - name: init-zookeeper
+          image: busybox
+          command: ['sh', '-c', "until nslookup {{ include "pinpoint-web.zookeeper.fullname" . }}-2.{{ include "pinpoint-web.zookeeper.fullname" . }}-hs; do echo waiting for zookeeper; sleep 2; done"]
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
