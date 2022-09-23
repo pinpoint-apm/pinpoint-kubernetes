@@ -29,8 +29,8 @@ spec:
 {{- end }}
       initContainers:
         - name: init-zookeeper
-          image: busybox
-          command: ['sh', '-c', "until nslookup {{ include "pinpoint-collector.zookeeper.fullname" . }}-2.{{ include "pinpoint-collector.zookeeper.fullname" . }}-hs.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for zookeeper; sleep 2; done"]
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup {{ include "pinpoint-collector.zookeeper.fullname" . }}-2.{{ include "pinpoint-collector.zookeeper.fullname" . }}-hs; do echo waiting for zookeeper; sleep 10; done;"]
       containers:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
