@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "hbase.fullname" . }}
   annotations:
@@ -32,6 +32,18 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
         resources:
 {{ toYaml .Values.hbase.master.resources | indent 10 }}
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 16010
+          initialDelaySeconds: 10
+          timeoutSeconds: 2
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 16010
+          initialDelaySeconds: 10
+          timeoutSeconds: 2
         volumeMounts:
           - name: hbase-config
             mountPath: /opt/hbase/hbase-1.2.6/conf/hbase-site.xml
