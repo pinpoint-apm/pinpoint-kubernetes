@@ -26,4 +26,4 @@ hbase:
         cpu: "1000m"
 
 zookeeper:
-  hostName: "pinpoint-zookeeper"
+  hostName:

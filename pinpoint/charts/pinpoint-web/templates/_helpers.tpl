@@ -72,18 +72,14 @@ Create Mysql Database for Pinpoint
 {{- end }}
 
 
-{{- define "pinpoint-mysql.fullname" -}}
-{{- $name := default "pinpoint-mysql" .Values.mysql.nameOverride -}}
-{{- if contains $name .Release.Name -}}
-{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
+{{- define "pinpoint-web.mysql.fullname" -}}
+{{- $name := default "pinpoint-mysql" .-}}
 {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
 {{- end -}}
 
 
 {{- define "pinpoint-web.mysql.url" -}}
-{{- $host :=  default (include "pinpoint-mysql.fullname" .) .Values.mysql.host }}
+{{- $host :=  default (include "pinpoint-web.mysql.fullname" .) .Values.mysql.host }}
 {{- $port :=  default 3306 .Values.mysql.port | int }}
 {{- printf "jdbc:mysql://%s:%d/%s?characterEncoding=UTF-8" $host $port (include "pinpoint-web.mysql.database" .) }}
 {{- end }}
