@@ -1,31 +1,4 @@
-### See helm stable chart to apply other settings of MYSQL.
-### Link : https://github.com/helm/charts/tree/master/stable/mysql
-mysql:
-  enable: true
-  # docker image
-  image: "pinpointdocker/pinpoint-mysql"
-  # tag
-  imageTag: "2.4.1"
 
-  ## Specify password for root user
-  ## Default: random 10 character string
-  mysqlRootPassword: root123
-
-  ## Create a database user
-  mysqlUser: admin
-
-  ## Default: random 10 character string
-  mysqlPassword: admin
-
-  ## Create a database
-  mysqlDatabase: pinpoint
-
-  ## Extra Initial Script
-  # initializationFiles:     
-  #   extra_init.sql: |-
-  #     CREATE TABLE ...
-
-      
 pinpoint-web:
   ### If you want to use external MySQL or other settings that are different from default values, fill these fields.
   ### When the field is empty, it applies the default value.
@@ -49,9 +22,10 @@ pinpoint-collector:
     hostName:
 
 pinpoint-hbase:
+  affinity:
+
   zookeeper:
     hostName:
-  affinity:
 
 pinpoint-zookeeper:
   affinity:
