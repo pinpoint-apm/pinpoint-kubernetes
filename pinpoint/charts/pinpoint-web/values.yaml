@@ -18,20 +18,13 @@ tolerations: []
   #   value: "value"
   #   effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
 
-# Configuration for web UI service
-service:
-  ui:
-    type: "ClusterIP"
-    nodePort:
-    clusterIP:
-
 # Configuration for Docker Image 
 image:
   repository: pinpointdocker/pinpoint-web
   tag: 2.4.1
 
 profiles: release
-serverPort: 8079
+serverPort: 8080
 clusterEnable: true
 
 adminPassword: admin
