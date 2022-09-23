@@ -39,6 +39,13 @@ sendUsage: false
 loggingLevelRoot: INFO
 showApplicationStat: true
 
+mysql:
+  host:
+  port:
+  user:
+  password:
+  database:
+
 batch:
   enable: false
   server: 127.0.0.1
