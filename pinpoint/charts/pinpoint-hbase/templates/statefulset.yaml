@@ -30,7 +30,7 @@ spec:
       initContainers:
         - name: init-zookeeper
           image: bash
-          command: ['/bin/bash', '-c', "until nslookup {{ include "pinpoint-collector.zookeeper.fullname" . }}-2.{{ include "pinpoint-collector.zookeeper.fullname" . }}-hs; do echo waiting for zookeeper; sleep 2; done"]
+          command: ['bash', '-c', "until nslookup {{ include "pinpoint-collector.zookeeper.fullname" . }}-2.{{ include "pinpoint-collector.zookeeper.fullname" . }}-hs; do echo waiting for zookeeper; sleep 2; done"]
       containers:
       - name: master
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
