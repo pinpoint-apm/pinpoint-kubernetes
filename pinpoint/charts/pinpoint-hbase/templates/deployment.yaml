@@ -34,9 +34,6 @@ spec:
 {{ toYaml .Values.hbase.master.resources | indent 10 }}
         volumeMounts:
           - name: hbase-config
-            mountPath: /opt/hbase/hbase-1.2.6/conf/hbase-env.sh
-            subPath: hbase-site.sh
-          - name: hbase-config
             mountPath: /opt/hbase/hbase-1.2.6/conf/hbase-site.xml
             subPath: hbase-site.xml
       volumes:
@@ -44,7 +41,5 @@ spec:
           configMap:
             name: {{ include "hbase.fullname" . }}-cm
             items:
-              - key: hbase-env.sh
-                path: hbase-env.sh
               - key: hbase-site.xml
                 path: hbase-site.xml
