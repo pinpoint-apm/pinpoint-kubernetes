@@ -37,13 +37,13 @@ spec:
           httpGet:
             path: /
             port: 16010
-          initialDelaySeconds: 10
+          initialDelaySeconds: 60
           timeoutSeconds: 2
         livenessProbe:
           httpGet:
             path: /
             port: 16010
-          initialDelaySeconds: 10
+          initialDelaySeconds: 60
           timeoutSeconds: 2
         volumeMounts:
           - name: hbase-config
