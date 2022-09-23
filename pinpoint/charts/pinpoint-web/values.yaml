@@ -30,7 +30,7 @@ image:
   repository: pinpointdocker/pinpoint-web
   tag: 2.4.1
 
-profiles: release, batch
+profiles: release
 serverPort: 8079
 clusterEnable: true
 
@@ -45,6 +45,8 @@ mysql:
   user:
   password:
   database:
+
+resources:
 
 batch:
   enable: false
