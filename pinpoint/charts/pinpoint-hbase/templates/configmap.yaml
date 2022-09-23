@@ -6,13 +6,6 @@ metadata:
     app.kubernetes.io/name: {{ include "hbase.name" . }}
     {{- include "hbase.labels" . | nindent 4 }}
 data:
-
-  hbase-env.sh: |
-    # Extra Java runtime options.
-    # Below are what we set by default.  May only work with SUN JVM.
-    # For more on why as well as other possible settings,
-    # see http://hbase.apache.org/book.html#performance
-    export HBASE_OPTS="$HBASE_OPTS -XX:+UseConcMarkSweepGC"
   hbase-site.xml: |
     <?xml version="1.0"?>
     <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
