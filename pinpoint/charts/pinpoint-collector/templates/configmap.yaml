@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: {{ include "pinpoint-collector.fullname" . }}
   labels:
-{{ include "pinpoint-web.labels" . | indent 4 }}
+{{ include "pinpoint-collector.labels" . | indent 4 }}
 data:
   CLUSTER_ENABLE:  "{{ .Values.clusterEnable }}"
   PINPOINT_ZOOKEEPER_ADDRESS: "{{ include "pinpoint-collector.zookeeper.fullname" . }}-0.{{ include "hbase.zookeeper.fullname" . }}-hs"

@@ -55,3 +55,9 @@ pinpoint-hbase:
 
 pinpoint-zookeeper:
   affinity:
+
+pinpoint-mysql:
+  rootPassword: root123
+  user: admin
+  password: admin
+  database: pinpoint

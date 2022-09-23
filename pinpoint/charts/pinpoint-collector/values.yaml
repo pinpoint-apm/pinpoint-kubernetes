@@ -1,5 +1,4 @@
 replicaCount: 1
-imagePullPolicy: IfNotPresent
 ## Annotations to be added to Pinpoint Web pods
 ##
 podAnnotations: {}
@@ -21,6 +20,7 @@ tolerations: []
 image:
   repository: pinpointdocker/pinpoint-collector
   tag: 2.4.1
+  pullPolicy: IfNotPresent
 
 resources:
 

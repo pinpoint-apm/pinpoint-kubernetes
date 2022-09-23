@@ -2,7 +2,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "pinpoint-collector.name" -}}
+{{- define "pinpoint-mysql.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
@@ -11,7 +11,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "pinpoint-collector.fullname" -}}
+{{- define "pinpoint-mysql.fullname" -}}
 {{- $name := default .Chart.Name .Values.nameOverride -}}
 {{- if contains $name .Release.Name -}}
 {{- .Release.Name | trunc 63 | trimSuffix "-" -}}
@@ -23,16 +23,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "pinpoint-collector.chart" -}}
+{{- define "pinpoint-mysql.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end -}}
 
 {{/*
 Common labels
 */}}
-{{- define "pinpoint-collector.labels" -}}
-helm.sh/chart: {{ include "pinpoint-collector.chart" . }}
-{{ include "pinpoint-collector.selectorLabels" . }}
+{{- define "pinpoint-mysql.labels" -}}
+helm.sh/chart: {{ include "pinpoint-mysql.chart" . }}
+{{ include "pinpoint-mysql.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -41,14 +41,8 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{/*
 Selector labels
 */}}
-{{- define "pinpoint-collector.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "pinpoint-collector.name" . }}
+{{- define "pinpoint-mysql.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "pinpoint-mysql.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/component: "pinpoint-collector"
+app.kubernetes.io/component: "pinpoint-mysql"
 {{- end }}
-
-
-{{- define "pinpoint-collector.zookeeper.fullname" -}}
-{{- $name := default "pinpoint-zookeeper" .Values.zookeeper.hostName -}}
-{{- printf "%s-%s" .Release.Name $name | trunc 47 | trimSuffix "-" -}}
-{{- end -}}
