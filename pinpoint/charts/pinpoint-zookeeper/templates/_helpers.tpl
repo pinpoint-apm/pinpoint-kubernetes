@@ -53,3 +53,8 @@ Create hbase affinity
 {{- define "pinpoint-zookeeper.affinity" -}}
 {{- .Values.affinity -}}
 {{- end }}
+
+
+{{- define "pinpoint-zookeeper.storage" -}}
+{{- .Values.storage -}}
+{{- end }}

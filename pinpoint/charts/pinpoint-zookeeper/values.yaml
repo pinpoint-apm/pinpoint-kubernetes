@@ -3,3 +3,5 @@ imagePullPolicy: IfNotPresent
 podAnnotations: {}
 
 affinity: {}
+
+storage: 10Gi
