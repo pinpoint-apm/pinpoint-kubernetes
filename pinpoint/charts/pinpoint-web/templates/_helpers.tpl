@@ -73,7 +73,7 @@ Create Mysql Database for Pinpoint
 
 
 {{- define "pinpoint-web.mysql.fullname" -}}
-{{- $name := default "pinpoint-mysql" .-}}
+{{- $name := default "pinpoint-mysql" .Values.mysql.host -}}
 {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
