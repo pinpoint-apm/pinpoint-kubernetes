@@ -33,6 +33,7 @@ loggingLevelRoot: INFO
 showApplicationStat: true
 
 mysql:
+  serviceName:
   host:
   port:
   user:
