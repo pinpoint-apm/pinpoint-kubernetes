@@ -20,6 +20,9 @@ spec:
       affinity:
 {{- toYaml . | nindent 8 }}
 {{- end }}
+      volumes:
+        - name: datadir
+          emptyDir: {}
       containers:
         - name: kubernetes-zookeeper
           imagePullPolicy: Always
@@ -78,11 +81,3 @@ spec:
       securityContext:
         runAsUser: 1000
         fsGroup: 1000
-  volumeClaimTemplates:
-    - metadata:
-        name: datadir
-      spec:
-        accessModes: [ "ReadWriteOnce" ]
-        resources:
-          requests:
-            storage: {{ include "pinpoint-zookeeper.storage" . }}

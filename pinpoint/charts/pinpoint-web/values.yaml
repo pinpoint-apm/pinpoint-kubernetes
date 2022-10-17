@@ -21,7 +21,7 @@ tolerations: []
 # Configuration for Docker Image 
 image:
   repository: pinpointdocker/pinpoint-web
-  tag: 2.4.1
+  tag: 2.4.2
 
 profiles: release
 serverPort: 8080
