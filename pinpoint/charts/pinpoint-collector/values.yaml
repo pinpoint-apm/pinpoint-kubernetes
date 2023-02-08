@@ -19,10 +19,13 @@ tolerations: []
 # Configuration for Docker Image 
 image:
   repository: pinpointdocker/pinpoint-collector
-  tag: 2.4.2
+  tag: 2.5.0
   pullPolicy: IfNotPresent
 
 resources:
+  requests:
+    memory: "512Mi"
+    cpu: "256m"
 
 receiver:
   grpc:

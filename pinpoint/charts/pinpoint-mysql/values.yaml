@@ -4,7 +4,7 @@ podAnnotations:
 
 image:
   repository: pinpointdocker/pinpoint-mysql
-  tag: 2.4.2
+  tag: 2.5.0
   pullPolicy: IfNotPresent
 
 rootPassword: root123
@@ -13,6 +13,9 @@ password: admin
 database: pinpoint
 
 resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
 
 affinity: {}
 

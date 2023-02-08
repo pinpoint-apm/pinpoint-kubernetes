@@ -21,7 +21,7 @@ tolerations: []
 # Configuration for Docker Image 
 image:
   repository: pinpointdocker/pinpoint-web
-  tag: 2.4.2
+  tag: 2.5.0
 
 profiles: release
 serverPort: 8080
@@ -40,7 +40,11 @@ mysql:
   password:
   database:
 
+
 resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
 
 batch:
   enable: false

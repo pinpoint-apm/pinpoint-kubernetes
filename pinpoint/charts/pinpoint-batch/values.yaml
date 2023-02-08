@@ -1,4 +1,4 @@
 image:
   repository: pinpointdocker/pinpoint-batch
-  tag: 2.4.2
+  tag: 2.5.0
   pullPolicy: IfNotPresent

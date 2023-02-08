@@ -6,7 +6,7 @@
 # See this repo for image build details: https://github.com/Comcast/kube-yarn/tree/master/image
 image:
   repository: pinpointdocker/pinpoint-hbase
-  tag: 2.4.2
+  tag: 2.5.0
   pullPolicy: IfNotPresent
 
 # The version of the hadoop libraries being used in the image.
