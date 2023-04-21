@@ -32,7 +32,9 @@ pinpoint-hbase:
 
 pinpoint-zookeeper:
   affinity: {}
-  storage: 10Gi
+  persistence:
+    enabled: true
+    size: 10Gi
 
 pinpoint-mysql:
   rootPassword: root123

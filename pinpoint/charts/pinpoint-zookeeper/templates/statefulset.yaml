@@ -20,13 +20,16 @@ spec:
       affinity:
 {{- toYaml . | nindent 8 }}
 {{- end }}
+      {{- if .Values.persistence.enabled }}
       volumes:
         - name: datadir
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: zookeeper-claim
+      {{- end }}
       containers:
-        - name: kubernetes-zookeeper
-          imagePullPolicy: Always
-          image: "registry.k8s.io/kubernetes-zookeeper:1.0-3.4.10"
+        - name: {{ .Chart.Name }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           resources:
             requests:
               memory: "1Gi"
@@ -75,9 +78,23 @@ spec:
                 - "zookeeper-ready 2181"
             initialDelaySeconds: 10
             timeoutSeconds: 5
+          {{- if .Values.persistence.enabled }}
           volumeMounts:
             - name: datadir
               mountPath: /var/lib/zookeeper
+          {{- end }}
       securityContext:
         runAsUser: 1000
         fsGroup: 1000
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: datadir
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+        volumeMode: Filesystem
+  {{- end }}

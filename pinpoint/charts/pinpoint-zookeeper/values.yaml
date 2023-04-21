@@ -1,7 +1,12 @@
-imagePullPolicy: IfNotPresent
+image:
+  repository: "registry.k8s.io/kubernetes-zookeeper"
+  tag: 1.0-3.4.10
+  pullPolicy: IfNotPresent
 
 podAnnotations: {}
 
 affinity: {}
 
-storage: 10Gi
+persistence:
+  enabled: true
+  size: 10Gi

@@ -22,6 +22,7 @@ tolerations: []
 image:
   repository: pinpointdocker/pinpoint-web
   tag: 2.5.1
+  pullPolicy: IfNotPresent
 
 profiles: release
 serverPort: 8080

@@ -24,3 +24,7 @@ hbase:
 
 zookeeper:
   hostName:
+
+persistence:
+  enabled: true
+  size: 2Gi
