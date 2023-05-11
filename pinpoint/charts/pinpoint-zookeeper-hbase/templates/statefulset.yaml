@@ -38,6 +38,9 @@ spec:
       - name: pinpoint-hbase
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        env:
+          - name: HBASE_OFFHEAPSIZE
+            value: {{ toYaml .Values.hbase.resources.limits }}
         resources:
 {{ toYaml .Values.hbase.resources | indent 10 }}
         readinessProbe:
