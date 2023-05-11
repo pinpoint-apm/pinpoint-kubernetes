@@ -42,7 +42,7 @@ spec:
           - name: HBASE_HEAPSIZE
             value: 2G
           - name: HBASE_OFFHEAPSIZE
-            value: 2G
+            value: 4G
         resources:
 {{ toYaml .Values.hbase.resources | indent 10 }}
         readinessProbe:
