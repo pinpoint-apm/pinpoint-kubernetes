@@ -40,7 +40,7 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
         env:
           - name: HBASE_OFFHEAPSIZE
-            value: {{ .Values.hbase.resources.limits }}
+            value: {{ .Values.hbase.resources.limits.memory }}
         resources:
 {{ toYaml .Values.hbase.resources | indent 10 }}
         readinessProbe:
