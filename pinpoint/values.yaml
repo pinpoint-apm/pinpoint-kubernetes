@@ -24,17 +24,11 @@ pinpoint-collector:
   zookeeper:
     hostName:
 
-pinpoint-hbase:
+pinpoint-zookeeper-hbase:
   affinity: {}
 
   zookeeper:
     hostName:
-
-pinpoint-zookeeper:
-  affinity: {}
-  persistence:
-    enabled: true
-    size: 10Gi
 
 pinpoint-mysql:
   rootPassword: root123

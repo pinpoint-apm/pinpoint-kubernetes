@@ -15,7 +15,7 @@ spec:
       app.kubernetes.io/component: master
       app.kubernetes.io/instance: {{ .Release.Name | quote }}
   serviceName: {{ include "hbase.fullname" . }}
-  replicas: {{ .Values.hbase.master.replicas }}
+  replicas: 1
   template:
     metadata:
       labels:
@@ -30,25 +30,16 @@ spec:
       volumes:
         - name: hbase-config
           configMap:
-            name: {{ include "hbase.fullname" . }}-cm
+            name: {{ include "hbase.fullname" . }}
             items:
               - key: hbase-site.xml
                 path: hbase-site.xml
-        {{- if .Values.persistence.enabled }}
-        - name: data
-          persistentVolumeClaim:
-            claimName: hbase-claim
-        {{- end }}
-      initContainers:
-        - name: init-zookeeper
-          image: busybox:1.28
-          command: ['sh', '-c', "until nslookup {{ include "pinpoint-collector.zookeeper.fullname" . }}-2.{{ include "pinpoint-collector.zookeeper.fullname" . }}-hs; do echo waiting for zookeeper; sleep 10; done;"]
       containers:
-      - name: master
+      - name: pinpoint-hbase
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
         resources:
-{{ toYaml .Values.hbase.master.resources | indent 10 }}
+{{ toYaml .Values.hbase.resources | indent 10 }}
         readinessProbe:
           httpGet:
             path: /
@@ -71,6 +62,63 @@ spec:
           - name: data
             mountPath: /home/pinpoint/zookeeper
           {{- end }}
+
+      - name: pinpoint-zookeeper
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        image: registry.k8s.io/kubernetes-zookeeper:1.0-3.4.10
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "0.1"
+        ports:
+          - containerPort: 2181
+            name: client
+          - containerPort: 2888
+            name: server
+          - containerPort: 3888
+            name: leader-election
+        command:
+          - sh
+          - -c
+          - "start-zookeeper \
+      --servers=1 \
+      --data_dir=/var/lib/zookeeper/data \
+      --data_log_dir=/var/lib/zookeeper/data/log \
+      --conf_dir=/opt/zookeeper/conf \
+      --client_port=2181 \
+      --election_port=3888 \
+      --server_port=2888 \
+      --tick_time=2000 \
+      --init_limit=10 \
+      --sync_limit=5 \
+      --heap=512M \
+      --max_client_cnxns=60 \
+      --snap_retain_count=3 \
+      --purge_interval=12 \
+      --max_session_timeout=40000 \
+      --min_session_timeout=4000 \
+      --log_level=INFO"
+        readinessProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - "zookeeper-ready 2181"
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - "zookeeper-ready 2181"
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+      {{- if .Values.persistence.enabled }}
+        volumeMounts:
+          - name: data
+            mountPath: /var/lib/zookeeper
+      {{- end }}
   {{- if .Values.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:

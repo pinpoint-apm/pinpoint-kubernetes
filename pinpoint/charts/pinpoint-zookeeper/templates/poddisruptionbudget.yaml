@@ -1,9 +1,0 @@
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: {{ include "pinpoint-zookeeper.fullname" . }}-pdb
-spec:
-  selector:
-    matchLabels:
-      app:  {{ include "pinpoint-zookeeper.fullname" . }}
-  maxUnavailable: 1

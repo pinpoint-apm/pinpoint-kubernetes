@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "hbase.fullname" . }}-cm
+  name: {{ include "hbase.fullname" . }}
   labels:
     app.kubernetes.io/name: {{ include "hbase.name" . }}
     {{- include "hbase.labels" . | nindent 4 }}
@@ -24,7 +24,7 @@ data:
         </property>
         <property>
             <name>hbase.zookeeper.quorum</name>
-            <value>{{ include "hbase.zookeeper.fullname" . }}-0.{{ include "hbase.zookeeper.fullname" . }}-hs,{{ include "hbase.zookeeper.fullname" . }}-1.{{ include "hbase.zookeeper.fullname" . }}-hs,{{ include "hbase.zookeeper.fullname" . }}-2.{{ include "hbase.zookeeper.fullname" . }}-hs</value>
+            <value>{{ include "hbase.fullname" . }}-0.{{ include "hbase.fullname" . }}</value>
         </property>
         <property>
           <name>hbase.zookeeper.property.clientPort</name>

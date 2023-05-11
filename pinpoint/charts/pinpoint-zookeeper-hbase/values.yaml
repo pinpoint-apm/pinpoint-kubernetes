@@ -15,12 +15,10 @@ hbaseVersion: 1.2.6
 affinity: {}
 
 hbase:
-  master:
-    replicas: 1
-    resources:
-      requests:
-        memory: "256Mi"
-        cpu: "100m"
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "100m"
 
 zookeeper:
   hostName:
