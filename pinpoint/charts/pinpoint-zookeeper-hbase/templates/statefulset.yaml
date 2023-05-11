@@ -67,9 +67,7 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         image: registry.k8s.io/kubernetes-zookeeper:1.0-3.4.10
         resources:
-          requests:
-            memory: "512Mi"
-            cpu: "0.1"
+{{ toYaml .Values.zookeeper.resources | indent 10 }}
         ports:
           - containerPort: 2181
             name: client

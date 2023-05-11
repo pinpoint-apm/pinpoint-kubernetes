@@ -17,11 +17,20 @@ affinity: {}
 hbase:
   resources:
     requests:
-      memory: "512Mi"
-      cpu: "100m"
+      memory: "1Gi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "512m"
 
 zookeeper:
-  hostName:
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "100m"
 
 persistence:
   enabled: true
