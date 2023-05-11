@@ -40,9 +40,9 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
         env:
           - name: HBASE_HEAPSIZE
-            value: 2G
-          - name: HBASE_OFFHEAPSIZE
             value: 4G
+          - name: HBASE_OFFHEAPSIZE
+            value: 5G
         resources:
 {{ toYaml .Values.hbase.resources | indent 10 }}
         readinessProbe:
