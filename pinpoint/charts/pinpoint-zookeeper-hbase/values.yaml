@@ -17,11 +17,11 @@ affinity: {}
 hbase:
   resources:
     requests:
-      memory: "1Gi"
-      cpu: "250m"
+      memory: "4Gi"
+      cpu: "1"
     limits:
-      memory: "2Gi"
-      cpu: "512m"
+      memory: "4Gi"
+      cpu: "1"
 
 zookeeper:
   resources:
