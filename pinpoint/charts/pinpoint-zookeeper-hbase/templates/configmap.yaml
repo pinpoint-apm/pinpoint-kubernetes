@@ -38,16 +38,4 @@ data:
           <name>hbase.regionserver.port</name>
           <value>60020</value>
         </property>
-        <property>
-          <name>hbase.bucketcache.ioengine</name>
-          <value>offheap</value>
-        </property>
-        <property>
-          <name>hfile.block.cache.size</name>
-          <value>0.2</value>
-        </property>
-        <property>
-          <name>hbase.bucketcache.size</name>
-          <value>4096,8192</value>
-        </property>
     </configuration>
