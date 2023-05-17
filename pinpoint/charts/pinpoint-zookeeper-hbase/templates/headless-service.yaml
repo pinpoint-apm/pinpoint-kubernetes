@@ -1,18 +1,17 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "hbase.fullname" . }}
+  name: {{ include "hbase.fullname" . }}-headless
   labels:
     app.kubernetes.io/name: {{ include "hbase.name" . }}
     app.kubernetes.io/component: master
     {{- include "hbase.labels" . | nindent 4 }}
 spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
   ports:
   - name: hbase-master
     port: 60000
-    protocol: TCP
-  - name: hbase-ui
-    port: 16010
     protocol: TCP
   - name: hbase-regionserver
     port: 60020

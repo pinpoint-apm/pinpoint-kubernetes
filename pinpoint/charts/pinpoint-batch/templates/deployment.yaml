@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "batch.fullname" . }}
+  annotations:
+    checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+  labels:
+    app.kubernetes.io/name: {{ include "batch.name" . }}
+    app.kubernetes.io/component: pinpoint-server
+    {{- include "batch.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "batch.name" . }}
+      app.kubernetes.io/component: pinpoint-server
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "batch.name" . }}
+        app.kubernetes.io/component: pinpoint-server
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    spec:
+{{- with .Values.affinity }}
+      affinity:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.tolerations }}
+      tolerations:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+      initContainers:
+        - name: init-zookeeper
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup {{ include "batch.zookeeper.fullname" . }}; do echo waiting for zookeeper; sleep 2; done"]
+      containers:
+        - name: pinpoint-batch
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources:
+{{- toYaml .Values.resources | nindent 12 }}
+          ports:
+            - name: batch
+              containerPort: {{ .Values.serverPort}}
+          envFrom:
+            - configMapRef:
+                name: {{ template "batch.fullname" . }}

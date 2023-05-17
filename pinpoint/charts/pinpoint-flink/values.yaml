@@ -1,0 +1,14 @@
+image:
+  repository: pinpointdocker/pinpoint-flink
+  tag: 2.5.1
+  pullPolicy: IfNotPresent
+serverPort: 8081
+affinity: {}
+tolerations:
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "256m"
+
+zookeeper:
+  host:

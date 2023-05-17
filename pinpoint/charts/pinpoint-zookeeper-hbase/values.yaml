@@ -13,22 +13,18 @@ image:
 hbaseVersion: 1.2.6
 
 affinity: {}
+tolerations:
 
 hbase:
   resources:
     requests:
       memory: "4Gi"
       cpu: "1"
-    limits:
-      memory: "4Gi"
-      cpu: "1"
 
 zookeeper:
+  host:
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "100m"
-    limits:
       memory: "256Mi"
       cpu: "100m"
 

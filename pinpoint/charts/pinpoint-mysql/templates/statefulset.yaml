@@ -1,12 +1,13 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   labels:
 {{ include "pinpoint-mysql.labels" . | indent 4 }}
   name: {{ include "pinpoint-mysql.fullname" . }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  serviceName: {{ include "pinpoint-mysql.fullname" . }}-headless
+  replicas: 1
   selector:
     matchLabels:
 {{ include "pinpoint-mysql.selectorLabels" . | indent 6 }}

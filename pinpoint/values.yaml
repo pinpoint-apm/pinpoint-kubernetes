@@ -1,39 +1,159 @@
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
 
-pinpoint-web:
-  affinity: {}
-  ### If you want to use external MySQL or other settings that are different from default values, fill these fields.
-  ### When the field is empty, it applies the default value.
-  ### Default Value
-  ###   mysql.host : pinpoint-mysql
-  ###   mysql.port : 3306
-  ###   mysql.user : admin
-  ###   mysql.password : admin
-  mysql:
-    host:
-    port:
-    user:
-    password:
-    database:
-
-  zookeeper: 
-    hostName:
-
-pinpoint-collector:
-  affinity: {}
-
-  zookeeper:
-    hostName:
+# The base hadoop image to use for all components.
+# See this repo for image build details: https://github.com/Comcast/kube-yarn/tree/master/image
 
 pinpoint-zookeeper-hbase:
+  profiles: release
+
   affinity: {}
 
   zookeeper:
-    hostName:
+    host:
+    image:
+      repository: registry.k8s.io/kubernetes-zookeeper
+      tag: 1.0-3.4.10
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+
+  hbase:
+    image:
+      repository: pinpointdocker/pinpoint-hbase
+      tag:
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "1"
+
+  persistence:
+    enabled: true
+    size: 2Gi
+
+pinpoint-collector:
+  image:
+    repository: pinpointdocker/pinpoint-collector
+    tag:
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+  receiver:
+    grpc:
+      agentPort: 9991
+      statPort: 9992
+      spanPort: 9993
+    thrift:
+      basePort: 9994
+      statPort: 9995
+      spanPort: 9996
+  loggingLevelRoot: INFO
+  clusterEnable: true
+  flink:
+    enabled: true
+
+pinpoint-web:
+  image:
+    repository: pinpointdocker/pinpoint-web
+    tag: 2.5.1
+    pullPolicy: IfNotPresent
+  serverPort: 8080
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+  clusterEnable: true
+
+  adminPassword: admin
+  sendUsage: false
+  loggingLevelRoot: INFO
+  showApplicationStat: true
+  mysql:
+    serviceName:
+    host:
+    port: 3306
+    user: admin
+    password: admin
+    database: pinpoint
+  zookeeper:
+    host:
 
 pinpoint-mysql:
+  image:
+    repository: pinpointdocker/pinpoint-mysql
+    tag: 2.5.1
+    pullPolicy: IfNotPresent
+
   rootPassword: root123
   user: admin
   password: admin
   database: pinpoint
-
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
   affinity: {}
+
+
+pinpoint-batch:
+  image:
+    repository: pinpointdocker/pinpoint-batch
+    tag: 2.5.1
+    pullPolicy: IfNotPresent
+  serverPort: 8079
+  affinity: { }
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+  showApplicationStat: true
+  sendUsage: true
+  profiles: release
+  loggingLevelRoot: INFO
+  clusterEnable: false
+  mysql:
+    serviceName:
+    host:
+    port: 3306
+    user: admin
+    password: admin
+    database: pinpoint
+  zookeeper:
+    host:
+  flink:
+    host:
+  mail:
+    server:
+      url: smtp.gmail.com
+      port: 587
+      username: username
+      password: password
+    sender: pinpoint_operator@pinpoint.com
+    transportProtocol: smtp
+    debug: false
+    smtp:
+      port: 25
+      auth: false
+      startTls:
+        enable: false
+        required: false
+
+pinpoint-flink:
+  image:
+    repository: pinpointdocker/pinpoint-flink
+    tag: 2.5.1
+    pullPolicy: IfNotPresent
+  serverPort: 8081
+  affinity: { }
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "256m"
+
+  zookeeper:
+    host:

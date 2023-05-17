@@ -40,5 +40,7 @@ receiver:
 profiles: release
 loggingLevelRoot: INFO
 clusterEnable: true
+zookeeper:
+  hostName:
 flink:
-  enable: false
+  enabled: true
