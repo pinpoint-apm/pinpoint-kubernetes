@@ -12,7 +12,7 @@ spec:
   ports:
   - name: batch
     port: {{ .Values.serverPort}}
-    targetPort: {{ .Values.serverPort}}
+    targetPort: 8080
   selector:
     app.kubernetes.io/name: {{ include "batch.name" . }}
     app.kubernetes.io/component: pinpoint-batch

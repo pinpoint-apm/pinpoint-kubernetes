@@ -54,3 +54,16 @@ app.kubernetes.io/part-of: {{ .Chart.Name }}
 {{- $database :=  default "pinpoint" .Values.mysql.database }}
 {{- printf "jdbc:mysql://%s:%d/%s?characterEncoding=UTF-8" $host $port $database }}
 {{- end }}
+
+Create Mysql Username
+*/}}
+{{- define "batch.mysql.username" -}}
+{{- default "admin" .Values.mysql.user -}}
+{{- end }}
+
+{{/*
+Create Mysql Password
+*/}}
+{{- define "batch.mysql.password" -}}
+{{- default "admin" .Values.mysql.password -}}
+{{- end }}

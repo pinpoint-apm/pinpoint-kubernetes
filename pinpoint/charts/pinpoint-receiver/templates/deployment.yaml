@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "batch.fullname" . }}
+  name: {{ include "receiver.fullname" . }}
   annotations:
     checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
   labels:
-    app.kubernetes.io/name: {{ include "batch.name" . }}
+    app.kubernetes.io/name: {{ include "receiver.name" . }}
     app.kubernetes.io/component: pinpoint-receiver
-    {{- include "batch.labels" . | nindent 4 }}
+    {{- include "receiver.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "batch.name" . }}
+      app.kubernetes.io/name: {{ include "receiver.name" . }}
       app.kubernetes.io/component: pinpoint-receiver
       app.kubernetes.io/instance: {{ .Release.Name | quote }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "batch.name" . }}
+        app.kubernetes.io/name: {{ include "receiver.name" . }}
         app.kubernetes.io/component: pinpoint-receiver
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
     spec:
@@ -29,37 +29,35 @@ spec:
       tolerations:
 {{- toYaml . | nindent 8 }}
 {{- end }}
-      initContainers:
-        - name: init-zookeeper
-          image: busybox:1.28
-          command: ['sh', '-c', "until nslookup {{ include "batch.zookeeper.fullname" . }}; do echo waiting for zookeeper; sleep 2; done"]
       containers:
-        - name: pinpoint-batch
+        - name: pinpoint-receiver
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           resources:
 {{- toYaml .Values.resources | nindent 12 }}
           ports:
-            - name: batch
-              containerPort: 8090
+            - name: receiver
+              containerPort: 8080
           envFrom:
             - configMapRef:
-                name: {{ template "batch.fullname" . }}
+                name: {{ template "receiver.fullname" . }}
             - secretRef:
-                name: {{ template "batch.fullname" . }}
+                name: {{ template "receiver.fullname" . }}
           livenessProbe:
             failureThreshold: 10
-            tcpSocket:
-              port: 8090
-            initialDelaySeconds: 45
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
             periodSeconds: 5
             successThreshold: 1
             timeoutSeconds: 2
           readinessProbe:
             failureThreshold: 10
-            tcpSocket:
-              port: 8090
-            initialDelaySeconds: 45
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
             periodSeconds: 5
             successThreshold: 1
             timeoutSeconds: 2

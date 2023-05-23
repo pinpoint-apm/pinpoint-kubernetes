@@ -6,6 +6,7 @@
 
 pinpoint-zookeeper-hbase:
   profiles: release
+  serviceType: NodePort
 
   affinity: {}
 
@@ -54,6 +55,9 @@ pinpoint-collector:
       spanPort: 9996
   loggingLevelRoot: INFO
   clusterEnable: true
+  zookeeper:
+    # headless service: pinpoint-zookeeper-hbase-headless
+    host: pinpoint-zookeeper-hbase
   flink:
     enabled: true
 
@@ -73,6 +77,7 @@ pinpoint-web:
   sendUsage: false
   loggingLevelRoot: INFO
   showApplicationStat: true
+  webhookEnable: true
   mysql:
     serviceName:
     host:
@@ -81,7 +86,8 @@ pinpoint-web:
     password: admin
     database: pinpoint
   zookeeper:
-    host:
+    # headless service: pinpoint-zookeeper-hbase-headless
+    host: pinpoint-zookeeper-hbase
 
 pinpoint-mysql:
   image:
@@ -98,6 +104,9 @@ pinpoint-mysql:
       memory: "512Mi"
       cpu: "250m"
   affinity: {}
+  persistence:
+    enabled: false
+    size: 2Gi
 
 
 pinpoint-batch:
@@ -116,6 +125,8 @@ pinpoint-batch:
   profiles: release
   loggingLevelRoot: INFO
   clusterEnable: false
+  webhookEnable: true
+  adminPassword: admin
   mysql:
     serviceName:
     host:
@@ -124,9 +135,10 @@ pinpoint-batch:
     password: admin
     database: pinpoint
   zookeeper:
-    host:
+    # headless service: pinpoint-zookeeper-hbase-headless
+    host: pinpoint-zookeeper-hbase
   flink:
-    host:
+    host: pinpoint-flink
   mail:
     server:
       url: smtp.gmail.com
@@ -156,4 +168,21 @@ pinpoint-flink:
       cpu: "256m"
 
   zookeeper:
-    host:
+    # headless service: pinpoint-zookeeper-hbase-headless
+    host: pinpoint-zookeeper-hbase
+
+pinpoint-receiver:
+  image:
+    repository: kaaskjh/pinpoint-receiver
+    tag: 1.0.0
+    pullPolicy: IfNotPresent
+  # add webhook url from receiver service name, ex) pinpoint-receiver/api/slack, https://pinpoint-apm.gitbook.io/pinpoint/documents/alarm#alarm
+  slack:
+    token:
+    channelId:
+    attachment:
+      title: Pinpoint alarm
+      color: "#ff0000"
+      titleLink: http://localhost:8080
+      # Variable list [pinpointUrl, batchEnv, applicationId, serviceType, userGroupId, userGroupMembers, unit, threshold, notes, sequenceCount, name, value]
+      value: "$applicationId, $name, $value"

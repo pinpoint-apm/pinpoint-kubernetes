@@ -29,6 +29,8 @@ sendUsage: true
 profiles: release
 loggingLevelRoot: INFO
 clusterEnable: false
+webhookEnable: true
+adminPassword: admin
 mysql:
   serviceName:
   host:
@@ -37,6 +39,7 @@ mysql:
   password: admin
   database: pinpoint
 zookeeper:
-  host:
+  # headless service: pinpoint-zookeeper-hbase-headless
+  host: pinpoint-zookeeper-hbase
 flink:
-  host:
+  host: pinpoint-flink

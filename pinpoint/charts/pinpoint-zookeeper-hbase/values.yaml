@@ -14,7 +14,7 @@ hbaseVersion: 1.2.6
 
 affinity: {}
 tolerations:
-
+serviceType: NodePort
 hbase:
   resources:
     requests:
@@ -30,4 +30,4 @@ zookeeper:
 
 persistence:
   enabled: true
-  size: 2Gi
+  size: 10Gi

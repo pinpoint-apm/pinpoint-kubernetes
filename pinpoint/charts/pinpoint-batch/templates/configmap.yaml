@@ -26,3 +26,4 @@ data:
   ALARM_MAIL_SMTP_STARTTLS_ENABLE: "{{ .Values.mail.smtp.startTls.enable }}"
   ALARM_MAIL_SMTP_STARTTLS_REQUIRED: "{{ .Values.mail.smtp.startTls.required }}"
   ALARM_MAIL_DEBUG: "{{ .Values.mail.debug }}"
+  WEBHOOK_ENABLE: "{{ .Values.webhookEnable }}"

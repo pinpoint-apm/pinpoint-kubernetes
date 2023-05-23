@@ -11,4 +11,5 @@ resources:
     cpu: "256m"
 
 zookeeper:
-  host:
+  # headless service: pinpoint-zookeeper-hbase-headless
+  host: pinpoint-zookeeper-hbase

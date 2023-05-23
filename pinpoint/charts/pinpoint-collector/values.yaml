@@ -41,6 +41,7 @@ profiles: release
 loggingLevelRoot: INFO
 clusterEnable: true
 zookeeper:
-  hostName:
+  # headless service: pinpoint-zookeeper-hbase-headless
+  host: pinpoint-zookeeper-hbase
 flink:
   enabled: true

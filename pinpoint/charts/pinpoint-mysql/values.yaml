@@ -18,3 +18,7 @@ resources:
 affinity: {}
 
 tolerations:
+
+persistence:
+  enabled: false
+  size: 2Gi
