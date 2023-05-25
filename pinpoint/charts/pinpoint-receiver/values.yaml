@@ -11,8 +11,8 @@ resources:
 
 # add webhook url from receiver service name, ex) pinpoint-receiver/api/slack, https://pinpoint-apm.gitbook.io/pinpoint/documents/alarm#alarm
 slack:
-  token:
-  channelId:
+  token: "xoxb-xxxxxxxxx"
+  channelId: "test"
   attachment:
     title: Pinpoint alarm
     color: "#ff0000"
