@@ -1,3 +1,4 @@
+{{- if .Values.global.batchEnabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -35,3 +36,4 @@ data:
     else
     exec /docker-entrypoint.sh $@
     fi
+{{- end }}

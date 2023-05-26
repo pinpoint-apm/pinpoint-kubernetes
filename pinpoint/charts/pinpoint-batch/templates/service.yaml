@@ -1,3 +1,4 @@
+{{- if .Values.global.batchEnabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -17,3 +18,4 @@ spec:
     app.kubernetes.io/name: {{ include "batch.name" . }}
     app.kubernetes.io/component: pinpoint-batch
     app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

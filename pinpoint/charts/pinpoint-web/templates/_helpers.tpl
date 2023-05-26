@@ -85,6 +85,6 @@ Create Mysql Database for Pinpoint
 {{- end }}
 
 {{- define "pinpoint-web.zookeeper.fullname" -}}
-{{- $name := default "pinpoint-zookeeper-hbase" .Values.zookeeper.host -}}
+{{- $name := default "pinpoint-zookeeper" .Values.zookeeper.host -}}
 {{- printf "%s-%s" .Release.Name $name | trunc 47 | trimSuffix "-" -}}
 {{- end -}}

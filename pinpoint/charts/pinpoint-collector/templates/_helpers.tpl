@@ -49,6 +49,6 @@ app.kubernetes.io/component: "pinpoint-collector"
 
 
 {{- define "pinpoint-collector.zookeeper.fullname" -}}
-{{- $name := default "pinpoint-zookeeper-hbase" .Values.zookeeper.host -}}
+{{- $name := default "pinpoint-zookeeper" .Values.zookeeper.host -}}
 {{- printf "%s-%s" .Release.Name $name | trunc 47 | trimSuffix "-" -}}
 {{- end -}}

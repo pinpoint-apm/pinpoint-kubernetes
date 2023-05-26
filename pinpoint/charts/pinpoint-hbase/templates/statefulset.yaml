@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "hbase.fullname" . }}
+  annotations:
+    checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+  labels:
+    app.kubernetes.io/name: {{ include "hbase.name" . }}
+    app.kubernetes.io/component: master
+    {{- include "hbase.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "hbase.name" . }}
+      app.kubernetes.io/component: master
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+  serviceName: {{ include "hbase.fullname" . }}-headless
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "hbase.name" . }}
+        app.kubernetes.io/component: master
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    spec:
+{{- with .Values.affinity }}
+      affinity:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.tolerations }}
+      tolerations:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+      volumes:
+        - name: hbase-config
+          configMap:
+            name: {{ include "hbase.fullname" . }}
+            items:
+              - key: hbase-site.xml
+                path: hbase-site.xml
+      initContainers:
+        - name: init-zookeeper
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup {{ include "hbase.zookeeper.fullname" . }}; do echo waiting for zookeeper; sleep 2; done"]
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /
+            port: 16010
+          periodSeconds: 5
+          successThreshold: 1
+          initialDelaySeconds: 30
+          timeoutSeconds: 2
+        livenessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /
+            port: 16010
+          periodSeconds: 5
+          successThreshold: 1
+          initialDelaySeconds: 30
+          timeoutSeconds: 2
+        volumeMounts:
+          - name: hbase-config
+            mountPath: /opt/hbase/hbase-1.2.6/conf/hbase-site.xml
+            subPath: hbase-site.xml
+          {{- if .Values.persistence.enabled }}
+          - name: data
+            mountPath: /home/pinpoint/hbase
+          - name: data
+            mountPath: /home/pinpoint/zookeeper
+          {{- end }}
+
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+        volumeMode: Filesystem
+  {{- end }}

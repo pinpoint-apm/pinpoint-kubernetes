@@ -1,0 +1,8 @@
+apiVersion: v2
+name: pinpoint-zookeeper
+description: A Helm chart for Pinpoint Hbase
+type: application
+# chart version. 
+version: 0.1.0
+# version number of the application being deployed. 
+appVersion: 2.5.1

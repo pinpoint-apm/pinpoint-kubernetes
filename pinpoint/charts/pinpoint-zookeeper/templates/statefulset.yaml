@@ -1,26 +1,21 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "hbase.fullname" . }}
-  annotations:
-    checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+  name: {{ include "zookeeper.fullname" . }}
   labels:
-    app.kubernetes.io/name: {{ include "hbase.name" . }}
-    app.kubernetes.io/component: master
-    {{- include "hbase.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "zookeeper.name" . }}
+    {{- include "zookeeper.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "hbase.name" . }}
-      app.kubernetes.io/component: master
+      app.kubernetes.io/name: {{ include "zookeeper.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name | quote }}
-  serviceName: {{ include "hbase.fullname" . }}-headless
-  replicas: 1
+  serviceName: {{ include "zookeeper.fullname" . }}-headless
+  replicas: {{ .Values.replicas }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "hbase.name" . }}
-        app.kubernetes.io/component: master
+        app.kubernetes.io/name: {{ include "zookeeper.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
     spec:
 {{- with .Values.affinity }}
@@ -31,47 +26,12 @@ spec:
       tolerations:
 {{- toYaml . | nindent 8 }}
 {{- end }}
-      volumes:
-        - name: hbase-config
-          configMap:
-            name: {{ include "hbase.fullname" . }}
-            items:
-              - key: hbase-site.xml
-                path: hbase-site.xml
       containers:
-      - name: pinpoint-hbase
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
-        resources:
-{{ toYaml .Values.hbase.resources | indent 10 }}
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 16010
-          initialDelaySeconds: 60
-          timeoutSeconds: 2
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 16010
-          initialDelaySeconds: 60
-          timeoutSeconds: 2
-        volumeMounts:
-          - name: hbase-config
-            mountPath: /opt/hbase/hbase-1.2.6/conf/hbase-site.xml
-            subPath: hbase-site.xml
-          {{- if .Values.persistence.enabled }}
-          - name: data
-            mountPath: /home/pinpoint/hbase
-          - name: data
-            mountPath: /home/pinpoint/zookeeper
-          {{- end }}
-
-      - name: pinpoint-zookeeper
+      - name: {{ .Chart.Name }}
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        image: registry.k8s.io/kubernetes-zookeeper:1.0-3.4.10
         resources:
-{{ toYaml .Values.zookeeper.resources | indent 10 }}
+{{ toYaml .Values.resources | indent 10 }}
         ports:
           - containerPort: 2181
             name: client
@@ -83,7 +43,7 @@ spec:
           - sh
           - -c
           - "start-zookeeper \
-      --servers=1 \
+      --servers={{ .Values.replicas }} \
       --data_dir=/var/lib/zookeeper/data \
       --data_log_dir=/var/lib/zookeeper/data/log \
       --conf_dir=/opt/zookeeper/conf \

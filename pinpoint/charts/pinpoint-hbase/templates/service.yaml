@@ -21,12 +21,6 @@ spec:
   - name: hbase-regionserver-ui
     port: 16030
     protocol: TCP
-  - port: 2181
-    name: client
-  - port: 2888
-    name: server
-  - port: 3888
-    name: leader-election
   selector:
     app.kubernetes.io/name: {{ include "hbase.name" . }}
     app.kubernetes.io/component: master

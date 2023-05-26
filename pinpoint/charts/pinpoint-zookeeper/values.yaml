@@ -5,29 +5,26 @@
 # The base hadoop image to use for all components.
 # See this repo for image build details: https://github.com/Comcast/kube-yarn/tree/master/image
 image:
-  repository: pinpointdocker/pinpoint-hbase
-  tag: 2.5.1
+  repository: registry.k8s.io/kubernetes-zookeeper
+  tag: 1.0-3.4.10
   pullPolicy: IfNotPresent
 
 # The version of the hadoop libraries being used in the image.
 hbaseVersion: 1.2.6
+serverPort: 2888
+leaderElectionPort: 3888
 
 affinity: {}
 tolerations:
-serviceType: NodePort
-hbase:
-  resources:
-    requests:
-      memory: "4Gi"
-      cpu: "1"
+serviceType: ClusterIP
 
-zookeeper:
-  host:
-  resources:
-    requests:
-      memory: "256Mi"
-      cpu: "100m"
+replicas: 3
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
 
 persistence:
   enabled: true
-  size: 10Gi
+  size: 2Gi

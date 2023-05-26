@@ -32,7 +32,6 @@ adminPassword: admin
 sendUsage: false
 loggingLevelRoot: INFO
 showApplicationStat: true
-webhookEnable: true
 
 mysql:
   serviceName:
@@ -49,5 +48,5 @@ resources:
     cpu: "100m"
 
 zookeeper:
-  # headless service: pinpoint-zookeeper-hbase-headless
-  host: pinpoint-zookeeper-hbase
+  # headless service: pinpoint-zookeeper-headless
+  host: pinpoint-zookeeper

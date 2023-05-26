@@ -1,3 +1,4 @@
+{{- if and (.Values.global.batchEnabled) (.Values.global.webhookEnabled) }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -10,3 +11,4 @@ data:
   SLACK_ATTACHMENT_TITLE: "{{ .Values.slack.attachment.title }}"
   SLACK_ATTACHMENT_TITLE_LINK: "{{ .Values.slack.attachment.titleLink }}"
   SLACK_ATTACHMENT_VALUE: "{{ .Values.slack.attachment.value }}"
+{{- end }}

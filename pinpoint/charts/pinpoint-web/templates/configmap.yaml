@@ -14,4 +14,4 @@ data:
   CONFIG_SHOW_APPLICATIONSTAT: "{{ .Values.showApplicationStat }}"
   JDBC_DRIVERCLASSNAME: "com.mysql.jdbc.Driver"
   JDBC_URL: "{{ include "pinpoint-web.mysql.url" .}}"
-  WEBHOOK_ENABLE: "{{ .Values.webhookEnable }}"
+  WEBHOOK_ENABLE: "{{ default false .Values.global.webhookEnabled }}"

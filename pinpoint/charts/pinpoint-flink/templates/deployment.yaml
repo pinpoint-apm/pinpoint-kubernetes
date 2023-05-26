@@ -1,3 +1,4 @@
+{{- if .Values.global.batchEnabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -86,3 +87,4 @@ spec:
             - name: docker-bin
               mountPath: /docker-bin/docker-entrypoint.sh
               subPath: docker-entrypoint.sh
+{{- end }}

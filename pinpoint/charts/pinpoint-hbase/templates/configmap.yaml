@@ -6,6 +6,7 @@ metadata:
     app.kubernetes.io/name: {{ include "hbase.name" . }}
     {{- include "hbase.labels" . | nindent 4 }}
 data:
+  HBASE_VERSION: "{{ .Values.hbaseVersion }}"
   hbase-site.xml: |
     <?xml version="1.0"?>
     <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
@@ -24,7 +25,7 @@ data:
         </property>
         <property>
             <name>hbase.zookeeper.quorum</name>
-            <value>{{ include "hbase.zookeeper.fullname" . }}-headless</value>
+            <value>{{ include "hbase.zookeeper.fullname" . }}</value>
         </property>
         <property>
           <name>hbase.zookeeper.property.clientPort</name>

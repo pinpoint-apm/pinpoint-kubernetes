@@ -1,3 +1,4 @@
+{{- if .Values.global.batchEnabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -63,3 +64,4 @@ spec:
             periodSeconds: 5
             successThreshold: 1
             timeoutSeconds: 2
+{{- end }}

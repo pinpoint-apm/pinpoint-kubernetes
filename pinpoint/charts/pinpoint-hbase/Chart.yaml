@@ -1,5 +1,5 @@
 apiVersion: v2
-name: pinpoint-zookeeper-hbase
+name: pinpoint-hbase
 description: A Helm chart for Pinpoint Hbase
 type: application
 # chart version. 
