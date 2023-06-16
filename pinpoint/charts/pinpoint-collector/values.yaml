@@ -19,7 +19,7 @@ tolerations: []
 # Configuration for Docker Image 
 image:
   repository: pinpointdocker/pinpoint-collector
-  tag: 2.5.1
+  tag: 2.5.2
   pullPolicy: IfNotPresent
 
 resources:

@@ -2,7 +2,7 @@ podAnnotations:
 
 image:
   repository: pinpointdocker/pinpoint-mysql
-  tag: 2.5.1
+  tag: 2.5.2
   pullPolicy: IfNotPresent
 
 rootPassword: root123

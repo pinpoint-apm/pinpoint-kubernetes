@@ -46,6 +46,9 @@ spec:
       - name: {{ .Chart.Name }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        envFrom:
+          - configMapRef:
+              name: {{ include "hbase.fullname" . }}
         resources:
 {{ toYaml .Values.resources | indent 10 }}
         readinessProbe:
@@ -68,7 +71,7 @@ spec:
           timeoutSeconds: 2
         volumeMounts:
           - name: hbase-config
-            mountPath: /opt/hbase/hbase-1.2.6/conf/hbase-site.xml
+            mountPath: /opt/hbase/hbase-{{ .Values.hbaseVersion }}/conf/hbase-site.xml
             subPath: hbase-site.xml
           {{- if .Values.persistence.enabled }}
           - name: data

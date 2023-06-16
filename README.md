@@ -2,4 +2,4 @@
 
 Pinpoint is an application monitoring platform.
 
-Supported 2.5.1
+Supported 2.5.2

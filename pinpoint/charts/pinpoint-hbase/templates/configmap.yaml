@@ -6,6 +6,7 @@ metadata:
     app.kubernetes.io/name: {{ include "hbase.name" . }}
     {{- include "hbase.labels" . | nindent 4 }}
 data:
+  BASE_DIR: "{{ .Values.baseDir }}"
   HBASE_VERSION: "{{ .Values.hbaseVersion }}"
   hbase-site.xml: |
     <?xml version="1.0"?>

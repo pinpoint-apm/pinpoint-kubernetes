@@ -37,7 +37,7 @@ pinpoint-hbase:
 
   image:
     repository: pinpointdocker/pinpoint-hbase
-    tag: 2.5.1
+    tag: 2.5.2
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -79,7 +79,7 @@ pinpoint-collector:
 pinpoint-web:
   image:
     repository: pinpointdocker/pinpoint-web
-    tag: 2.5.1
+    tag: 2.5.2
     pullPolicy: IfNotPresent
   serverPort: 8080
   resources:
@@ -106,7 +106,7 @@ pinpoint-web:
 pinpoint-mysql:
   image:
     repository: pinpointdocker/pinpoint-mysql
-    tag: 2.5.1
+    tag: 2.5.2
     pullPolicy: IfNotPresent
 
   rootPassword: root123
@@ -126,7 +126,7 @@ pinpoint-mysql:
 pinpoint-batch:
   image:
     repository: pinpointdocker/pinpoint-batch
-    tag: 2.5.1
+    tag: 2.5.2
     pullPolicy: IfNotPresent
   serverPort: 8079
   affinity: { }
@@ -171,7 +171,7 @@ pinpoint-batch:
 pinpoint-flink:
   image:
     repository: pinpointdocker/pinpoint-flink
-    tag: 2.5.1
+    tag: 2.5.2
     pullPolicy: IfNotPresent
   serverPort: 8081
   affinity: { }
