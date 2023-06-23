@@ -1,0 +1,30 @@
+{{- if .Values.global.batchEnabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "flink.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "flink.name" . }}
+    app.kubernetes.io/component: pinpoint-flink
+    {{- include "flink.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+  - name: flink-job
+    port: 6123
+    targetPort: 6123
+  - name: flink-task-1
+    port: 6121
+    targetPort: 6121
+  - name: flink-task-2
+    port: 6122
+    targetPort: 6122
+  - name: flink-task-clus
+    port: 19994
+    targetPort: 19994
+  selector:
+    app.kubernetes.io/name: {{ include "flink.name" . }}
+    app.kubernetes.io/component: pinpoint-flink
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

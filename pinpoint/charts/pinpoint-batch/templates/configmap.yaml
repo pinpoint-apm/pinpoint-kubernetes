@@ -1,0 +1,31 @@
+{{- if .Values.global.batchEnabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "batch.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "batch.name" . }}
+    {{- include "batch.labels" . | nindent 4 }}
+data:
+  CLUSTER_ENABLE: "{{ .Values.clusterEnable }}"
+  PINPOINT_ZOOKEEPER_ADDRESS: "{{ include "batch.zookeeper.fullname" . }}"
+  SPRING_PROFILES: "{{ .Values.profiles }}"
+  BATCH_FLINK_SERVER: "{{ include "batch.flink.fullname" . }}"
+  JAVA_OPTS: "-Dspring.profiles.active={{ .Values.profiles }}"
+  LOGGING_LEVEL_ROOT: "{{ .Values.loggingLevelRoot }}"
+  SPRING_PROFILES_ACTIVE: "{{ .Values.profiles }}"
+  CONFIG_SENDUSAGE: "{{ .Values.sendUsage }}"
+  CONFIG_SHOW_APPLICATIONSTAT: "{{ .Values.showApplicationStat }}"
+  JDBC_DRIVERCLASSNAME: "com.mysql.jdbc.Driver"
+  JDBC_URL: "{{ include "batch.mysql.url" .}}"
+  ALARM_MAIL_SERVER_URL: "{{ .Values.mail.server.url }}"
+  ALARM_MAIL_SERVER_PORT: "{{ .Values.mail.server.port }}"
+  ALARM_MAIL_SENDER_ADDRESS: "{{ .Values.mail.sender }}"
+  ALARM_MAIL_TRANSPORT_PROTOCOL: "{{ .Values.mail.transportProtocol }}"
+  ALARM_MAIL_SMTP_PORT: "{{ .Values.mail.smtp.port }}"
+  ALARM_MAIL_SMTP_AUTH: "{{ .Values.mail.smtp.auth }}"
+  ALARM_MAIL_SMTP_STARTTLS_ENABLE: "{{ .Values.mail.smtp.startTls.enable }}"
+  ALARM_MAIL_SMTP_STARTTLS_REQUIRED: "{{ .Values.mail.smtp.startTls.required }}"
+  ALARM_MAIL_DEBUG: "{{ .Values.mail.debug }}"
+  WEBHOOK_ENABLE: "{{ default false .Values.global.webhookEnabled }}"
+{{- end }}

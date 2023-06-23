@@ -1,0 +1,19 @@
+{{- if .Values.global.batchEnabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "flink.fullname" . }}-external
+  labels:
+    app.kubernetes.io/name: {{ include "flink.name" . }}
+    app.kubernetes.io/component: pinpoint-flink
+    {{- include "flink.labels" . | nindent 4 }}
+spec:
+  ports:
+  - name: flink-web
+    port: 8081
+    targetPort: {{ .Values.serverPort}}
+  selector:
+    app.kubernetes.io/name: {{ include "flink.name" . }}
+    app.kubernetes.io/component: pinpoint-flink
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

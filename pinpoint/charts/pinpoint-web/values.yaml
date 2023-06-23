@@ -1,6 +1,6 @@
 replicaCount: 1
 
-imagePullPolicy: Always
+imagePullPolicy: IfNotPresent
 ## Annotations to be added to Pinpoint Web pods
 ##
 podAnnotations: {}
@@ -18,21 +18,14 @@ tolerations: []
   #   value: "value"
   #   effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
 
-# Configuration for web UI service
-service:
-  ui:
-    type: "LoadBalancer"
-    nodePort:
-    clusterIP:
-    port: 8080
-
 # Configuration for Docker Image 
 image:
   repository: pinpointdocker/pinpoint-web
-  tag: 2.1.0
+  tag: 2.5.2
+  pullPolicy: IfNotPresent
 
-profiles: release, batch
-serverPort: 8079
+profiles: release
+serverPort: 8080
 clusterEnable: true
 
 adminPassword: admin
@@ -40,23 +33,20 @@ sendUsage: false
 loggingLevelRoot: INFO
 showApplicationStat: true
 
-batch:
-  enable: false
-  server: 127.0.0.1
-  flink: 127.0.0.1
+mysql:
+  serviceName:
+  host:
+  port:
+  user:
+  password:
+  database:
 
-mail:
-  server:
-    url: smtp.gmail.com
-    port: 587
-    username: username
-    password: password
-  sender: pinpoint_operator@pinpoint.com
-  transportProtocol: smtp
-  debug: false
-  smtp:
-    port: 25
-    auth: false
-    startTls:
-      enable: false
-      required: false
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+
+zookeeper:
+  # headless service: pinpoint-zookeeper-headless
+  host: pinpoint-zookeeper

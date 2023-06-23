@@ -1,0 +1,21 @@
+image:
+  repository: kaaskjh/pinpoint-receiver
+  tag: 1.0.0
+  pullPolicy: IfNotPresent
+affinity: {}
+tolerations:
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "125m"
+
+# add webhook url from receiver service name, ex) pinpoint-receiver/api/slack, https://pinpoint-apm.gitbook.io/pinpoint/documents/alarm#alarm
+slack:
+  token: "xoxb-xxxxxxxxx"
+  channelId: "test"
+  attachment:
+    title: Pinpoint alarm
+    color: "#ff0000"
+    titleLink: http://localhost:8080
+    # Variable list [pinpointUrl, batchEnv, applicationId, serviceType, userGroupId, userGroupMembers, unit, threshold, notes, sequenceCount, name, value]
+    value: "$applicationId, $name, $value"

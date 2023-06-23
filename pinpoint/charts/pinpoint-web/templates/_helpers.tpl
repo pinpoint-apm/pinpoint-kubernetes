@@ -71,18 +71,20 @@ Create Mysql Database for Pinpoint
 {{- default "pinpoint" .Values.mysql.database -}}
 {{- end }}
 
-{{/*
-Create a fully qualified mysql url
-*/}}
+
+{{- define "pinpoint-web.mysql.fullname" -}}
+{{- $name := default "pinpoint-mysql" .Values.mysql.serviceName -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+
 {{- define "pinpoint-web.mysql.url" -}}
-{{- $host :=  default "pinpoint-mysql" .Values.mysql.host }}
+{{- $host :=  default (include "pinpoint-web.mysql.fullname" .) .Values.mysql.host }}
 {{- $port :=  default 3306 .Values.mysql.port | int }}
 {{- printf "jdbc:mysql://%s:%d/%s?characterEncoding=UTF-8" $host $port (include "pinpoint-web.mysql.database" .) }}
 {{- end }}
 
-{{/*
-Create Zookeeper address
-*/}}
-{{- define "pinpoint-web.zookeeper.address" -}}
-{{- default "pinpoint-zookeeper" .Values.zookeeper.host -}}
-{{- end }}
+{{- define "pinpoint-web.zookeeper.fullname" -}}
+{{- $name := default "pinpoint-zookeeper" .Values.zookeeper.host -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 47 | trimSuffix "-" -}}
+{{- end -}}

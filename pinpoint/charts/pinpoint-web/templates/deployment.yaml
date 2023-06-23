@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "pinpoint-web.fullname" . }}
+  annotations:
+    checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
   labels:
 {{ include "pinpoint-web.labels" . | indent 4 }}
 spec:
@@ -19,17 +21,16 @@ spec:
       {{- end }}
     spec:
       initContainers:
-       - name: wait-mysql
-         image: alpine
-         command: ["sh", "-c", "for i in $(seq 1 300); do nc -zvw1 pinpoint-mysql 3306 && exit 0 || sleep 3; done; exit 1"]
+        - name: init-zookeeper
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup {{ include "pinpoint-web.zookeeper.fullname" . }}; do echo waiting for zookeeper; sleep 2; done"]
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: ui
               containerPort: {{ .Values.serverPort }}
-              protocol: TCP
           envFrom:
           - configMapRef:
               name: {{ template "pinpoint-web.fullname" . }}

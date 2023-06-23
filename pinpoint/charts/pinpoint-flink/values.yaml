@@ -1,0 +1,15 @@
+image:
+  repository: pinpointdocker/pinpoint-flink
+  tag: 2.5.2
+  pullPolicy: IfNotPresent
+serverPort: 8081
+affinity: {}
+tolerations:
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "256m"
+
+zookeeper:
+  # headless service: pinpoint-zookeeper-headless
+  host: pinpoint-zookeeper

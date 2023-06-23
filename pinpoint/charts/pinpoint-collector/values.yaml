@@ -1,5 +1,4 @@
 replicaCount: 1
-imagePullPolicy: Always
 ## Annotations to be added to Pinpoint Web pods
 ##
 podAnnotations: {}
@@ -20,12 +19,13 @@ tolerations: []
 # Configuration for Docker Image 
 image:
   repository: pinpointdocker/pinpoint-collector
-  tag: 2.1.0
+  tag: 2.5.2
+  pullPolicy: IfNotPresent
 
-service:
-  type: "LoadBalancer"
-  nodePort:
-  clusterIP:
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "256m"
 
 receiver:
   grpc:
@@ -40,6 +40,8 @@ receiver:
 profiles: release
 loggingLevelRoot: INFO
 clusterEnable: true
+zookeeper:
+  # headless service: pinpoint-zookeeper-headless
+  host: pinpoint-zookeeper
 flink:
-  enable: false
-
+  enabled: true

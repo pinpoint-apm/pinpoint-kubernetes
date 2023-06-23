@@ -1,0 +1,44 @@
+image:
+  repository: pinpointdocker/pinpoint-batch
+  tag: 2.5.2
+  pullPolicy: IfNotPresent
+serverPort: 8079
+affinity: {}
+tolerations:
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+mail:
+  server:
+    url: smtp.gmail.com
+    port: 587
+    username: username
+    password: password
+  sender: pinpoint_operator@pinpoint.com
+  transportProtocol: smtp
+  debug: false
+  smtp:
+    port: 25
+    auth: false
+    startTls:
+      enable: false
+      required: false
+showApplicationStat: true
+sendUsage: true
+profiles: release
+loggingLevelRoot: INFO
+clusterEnable: false
+adminPassword: admin
+mysql:
+  serviceName:
+  host:
+  port: 3306
+  user: admin
+  password: admin
+  database: pinpoint
+zookeeper:
+  # headless service: pinpoint-zookeeper-hbase-headless
+  host: pinpoint-zookeeper-hbase
+flink:
+  host: pinpoint-flink

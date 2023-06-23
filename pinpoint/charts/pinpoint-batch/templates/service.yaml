@@ -1,0 +1,21 @@
+{{- if .Values.global.batchEnabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "batch.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "batch.name" . }}
+    app.kubernetes.io/component: pinpoint-batch
+    {{- include "batch.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+  - name: batch
+    port: {{ .Values.serverPort}}
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: {{ include "batch.name" . }}
+    app.kubernetes.io/component: pinpoint-batch
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

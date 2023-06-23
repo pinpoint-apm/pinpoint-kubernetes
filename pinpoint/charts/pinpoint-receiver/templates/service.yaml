@@ -1,0 +1,20 @@
+{{- if and (.Values.global.batchEnabled) (.Values.global.webhookEnabled) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "receiver.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "receiver.name" . }}
+    app.kubernetes.io/component: pinpoint-receiver
+    {{- include "receiver.labels" . | nindent 4 }}
+spec:
+  type: NodePort
+  ports:
+  - name: receiver
+    port: 80
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: {{ include "receiver.name" . }}
+    app.kubernetes.io/component: pinpoint-receiver
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
