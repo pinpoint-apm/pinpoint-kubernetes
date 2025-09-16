@@ -34,7 +34,6 @@ A Helm chart for deploying [Pinpoint APM](https://github.com/pinpoint-apm/pinpoi
 - Persistent storage provisioner (for MySQL, HBase, Zookeeper)
 
 ---
-
 ## 🚀 Quick Start
 
 1. **Clone the repository:**
@@ -43,17 +42,20 @@ A Helm chart for deploying [Pinpoint APM](https://github.com/pinpoint-apm/pinpoi
     cd pinpoint-helm
     ```
 
-2. **Install the chart:**
+2. **Update chart dependencies:**
+    ```sh
+    helm dependency update
+    ```
+
+3. **Install the chart:**
     ```sh
     helm install pinpoint . -n pinpoint --create-namespace
     ```
 
-3. **Monitor pods:**
+4. **Monitor pods:**
     ```sh
     kubectl get pods -n pinpoint -w
     ```
-
-> **Note:** All required subcharts are already included in the `charts/` directory. You do not need to run `helm dependency update` after cloning this repository.
 
 ---
 
