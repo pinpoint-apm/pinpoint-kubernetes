@@ -20,7 +20,7 @@ metadata:
   name: {{ include "pinpoint.fullname" . }}-quickstart
   labels:
     {{- include "pinpoint.labels" . | nindent 4 }}
-    app.kubernetes.ioio/component: quickstart
+    app.kubernetes.io/component: quickstart
 spec:
   replicas: 1
   selector:
