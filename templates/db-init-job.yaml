@@ -1,0 +1,99 @@
+{{- if .Values.mysql.enabled }}
+# ConfigMap to store the database initialization scripts
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-db-init-scripts
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+  annotations:
+    # This annotation ensures the ConfigMap is created before the Job that uses it.
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-delete-policy": before-hook-creation
+    "helm.sh/hook-weight": "-5"
+data:
+  create-tables.sql: |-
+    # This will read the content of the chart's "sql/CreateTableStatement-mysql.sql" file
+{{ .Files.Get "sql/CreateTableStatement-mysql.sql" | indent 4 }}
+  create-batch-tables.sql: |-
+    # This will read the content of the chart's "sql/SpringBatchJobRepositorySchema-mysql.sql" file
+{{ .Files.Get "sql/SpringBatchJobRepositorySchema-mysql.sql" | indent 4 }}
+---
+# Job to run and VERIFY the database initialization
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-db-init-job
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+  annotations:
+    # This hook runs the Job ONLY after a fresh installation.
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": before-hook-creation
+    "helm.sh/hook-weight": "1"
+spec:
+  template:
+    metadata:
+      name: {{ .Release.Name }}-db-init
+      labels:
+        {{- include "pinpoint.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-mysql
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-mysql"
+                  key: mysql-root-password
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              until mysqladmin ping -h {{ .Release.Name }}-mysql --user=root -p$MYSQL_ROOT_PASSWORD --silent; do
+                echo "DB Init Job: Waiting for MySQL database..."
+                sleep 5
+              done
+      containers:
+        - name: db-schema-init
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-mysql"
+                  key: mysql-root-password
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              set -ex
+              echo "--- DB INIT JOB STARTED (running as root) ---"
+
+              echo "Applying CreateTableStatement-mysql.sql from ConfigMap..."
+              mysql -h {{ .Release.Name }}-mysql -u root -p$MYSQL_ROOT_PASSWORD {{ .Values.mysql.auth.database }} -e "source /sql-scripts/create-tables.sql"
+
+              echo "Applying SpringBatchJobRepositorySchema-mysql.sql from ConfigMap..."
+              mysql -h {{ .Release.Name }}-mysql -u root -p$MYSQL_ROOT_PASSWORD {{ .Values.mysql.auth.database }} -e "source /sql-scripts/create-batch-tables.sql"
+
+              echo "Verifying table creation..."
+              TABLE_COUNT=$(mysql -h {{ .Release.Name }}-mysql -u root -p$MYSQL_ROOT_PASSWORD -s -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '{{ .Values.mysql.auth.database }}';")
+              echo "Found $TABLE_COUNT tables in the '{{ .Values.mysql.auth.database }}' database."
+
+              if [ "$TABLE_COUNT" -lt 17 ]; then
+                echo "ERROR: Not enough tables were created. Expected at least 17, found $TABLE_COUNT."
+                exit 1
+              fi
+
+              echo "--- DB INIT JOB COMPLETED SUCCESSFULLY ---"
+          volumeMounts:
+            - name: sql-scripts
+              mountPath: /sql-scripts
+      volumes:
+        - name: sql-scripts
+          configMap:
+            name: {{ .Release.Name }}-db-init-scripts
+  backoffLimit: 1
+{{- end }}

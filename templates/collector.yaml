@@ -1,0 +1,117 @@
+{{- if .Values.collector.enabled }}
+# Collector Application Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-collector
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: collector
+spec:
+  replicas: {{ .Values.collector.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "pinpoint.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: collector
+  template:
+    metadata:
+      labels:
+        {{- include "pinpoint.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: collector
+    spec:
+      containers:
+        - name: collector
+          image: "{{ .Values.collector.image.repository }}:{{ .Values.global.pinpointVersion }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          ports:
+            - name: grpc-agent
+              containerPort: 9991
+            - name: grpc-stat
+              containerPort: 9992
+            - name: grpc-span
+              containerPort: 9993
+            - name: thrift-rcv
+              containerPort: 9994
+            - name: udp-stat
+              containerPort: 9995
+              protocol: UDP
+            - name: udp-span
+              containerPort: 9996
+              protocol: UDP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: {{ .Values.collector.config.springProfiles }}
+            - name: CLUSTER_ENABLE
+              value: {{ .Values.collector.config.cluster.enable | quote }}
+            - name: LOGGING_LEVEL_ROOT
+              value: {{ .Values.collector.config.loggingLevel }}
+            - name: FLINK_CLUSTER_ENABLE
+              value: {{ .Values.collector.config.flink.enable | quote }}
+            - name: PINPOINT_ZOOKEEPER_ADDRESS
+              value: "{{ .Release.Name }}-zookeeper"
+            - name: FLINK_CLUSTER_ZOOKEEPER_ADDRESS
+              value: "{{ .Release.Name }}-zookeeper"
+            # Redis Connection Settings - only added if Redis is enabled
+            {{- if .Values.redis.enabled }}
+            - name: SPRING_DATA_REDIS_HOST
+              value: "{{ .Release.Name }}-redis-master"
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+            - name: PINPOINT_MODULES_REALTIME_ENABLED
+              value: {{ .Values.collector.realtime.enabled | quote }}
+            {{- if .Values.redis.auth.enabled }}
+            - name: SPRING_DATA_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-redis"
+                  key: redis-password
+            {{- end }}
+            {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.collector.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.collector.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.collector.resources | nindent 12 }}
+{{- end }}
+---
+{{- if .Values.collector.enabled }}
+# Collector Application Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-collector
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: collector
+spec:
+  type: {{ .Values.collector.service.type }}
+  ports:
+    - name: grpc-agent
+      port: {{ .Values.collector.service.ports.grpcAgent }}
+      targetPort: grpc-agent
+      protocol: TCP
+    - name: grpc-stat
+      port: {{ .Values.collector.service.ports.grpcStat }}
+      targetPort: grpc-stat
+      protocol: TCP
+    - name: grpc-span
+      port: {{ .Values.collector.service.ports.grpcSpan }}
+      targetPort: grpc-span
+      protocol: TCP
+    - name: thrift-receiver
+      port: {{ .Values.collector.service.ports.thriftReceiver }}
+      targetPort: thrift-rcv
+      protocol: TCP
+    - name: udp-stat
+      port: {{ .Values.collector.service.ports.udpStat }}
+      targetPort: udp-stat
+      protocol: UDP
+    - name: udp-span
+      port: {{ .Values.collector.service.ports.udpSpan }}
+      targetPort: udp-span
+      protocol: UDP
+  selector:
+    {{- include "pinpoint.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: collector
+{{- end }}

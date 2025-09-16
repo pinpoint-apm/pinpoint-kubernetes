@@ -1,0 +1,72 @@
+{{- define "pinpoint.access.info" -}}
+#################################################################################
+######         Pinpoint Application Performance Management                 ######
+#################################################################################
+
+Pinpoint has been successfully deployed.
+
+1. Accessing the Pinpoint Web UI:
+{{- if .Values.web.ingress.enabled }}
+
+  Ingress is enabled. You can access the Pinpoint Web UI at the following address(es):
+  {{- range .Values.web.ingress.hosts }}
+    {{- $host := .host | default "YOUR_INGRESS_HOST" }}
+    {{- range .paths }}
+  => http{{ if $.Values.web.ingress.tls }}s{{ end }}://{{ $host }}{{ .path }}
+    {{- end }}
+  {{- end }}
+  {{- if not .Values.web.ingress.hosts }}
+  => NOTE: Ingress is enabled, but no hosts are defined in your values file. Please configure a host to access the UI.
+  {{- end }}
+
+{{- else if contains "LoadBalancer" .Values.web.service.type }}
+
+  The Web UI is exposed via a LoadBalancer service. It might take a few minutes for the external IP to be available.
+
+  Watch the status by running:
+    kubectl get svc --namespace {{ .Release.Namespace }} -w {{ include "pinpoint.fullname" . }}-web
+
+  Once the EXTERNAL-IP is assigned, you can access the UI at:
+  http://<EXTERNAL-IP>:{{ .Values.web.service.port }}
+
+{{- else if contains "NodePort" .Values.web.service.type }}
+
+  The Web UI is exposed via a NodePort service.
+
+  1. Get the IP address of one of your cluster nodes:
+     export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+
+  2. Get the NodePort for the service:
+     export NODE_PORT=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "pinpoint.fullname" . }}-web -o jsonpath="{.spec.ports[0].nodePort}")
+
+  3. Access the UI at:
+     http://$NODE_IP:$NODE_PORT
+
+{{- else }}
+
+  The Web UI is exposed via a ClusterIP service and is not accessible from outside the cluster by default.
+
+  To access it, you can use port-forwarding:
+
+  1. Get the name of the Web UI pod:
+     export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/component=web,app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+
+  2. Run the port-forward command:
+     kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:8080
+
+  3. Now, open the following URL in your browser:
+     http://127.0.0.1:8080
+
+{{- end }}
+
+2. Connecting Agents to Pinpoint Collector:
+
+   The Pinpoint Collector is running and available for your application agents to connect to.
+   Use the following internal Kubernetes DNS addresses in your agent configuration:
+
+   - gRPC Service: {{ include "pinpoint.fullname" . }}-collector:{{ .Values.collector.service.ports.grpcAgent }} [cite: 17]
+   - Thrift Service: {{ include "pinpoint.fullname" . }}-collector:{{ .Values.collector.service.ports.thriftReceiver }}
+
+{{- end -}}
+
+{{- template "pinpoint.access.info" . -}}
