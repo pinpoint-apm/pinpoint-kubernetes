@@ -1,0 +1,38 @@
+# pinpoint-helm-main/Chart.yaml
+
+apiVersion: v2
+name: pinpoint
+description: A Helm chart for deploying Pinpoint APM (Application Performance Management) on Kubernetes.
+type: application
+version: 1.0.0
+appVersion: "2.5.4"
+
+keywords:
+  - apm
+  - pinpoint
+  - monitoring
+  - performance
+
+home: https://github.com/ithesadson/pinpoint-helm
+sources:
+  - https://github.com/pinpoint-apm/pinpoint
+
+maintainers:
+  - name: Emircan Agac
+    email: thesadson@gmail.com
+
+dependencies:
+  - name: zookeeper
+    version: "13.8.7"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: zookeeper.enabled
+
+  - name: mysql
+    version: "14.0.3"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: mysql.enabled
+
+  - name: redis
+    version: "22.0.7"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled

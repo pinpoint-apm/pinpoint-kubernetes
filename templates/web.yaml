@@ -1,0 +1,180 @@
+{{- if .Values.web.enabled }}
+# Web Application Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-web
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  replicas: {{ .Values.web.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "pinpoint.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        {{- include "pinpoint.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: web
+    spec:
+      initContainers:
+        - name: wait-for-zookeeper
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-zookeeper 2181; do echo waiting for zookeeper; sleep 2; done;']
+
+        # This init container waits for the MySQL database to be fully ready by using mysqladmin ping.
+        - name: wait-for-mysql
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-mysql"
+                  key: mysql-root-password
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              until mysqladmin ping -h {{ .Release.Name }}-mysql --user=root -p$MYSQL_ROOT_PASSWORD --silent; do
+                echo "Web Pod: Waiting for MySQL database..."
+                sleep 2
+              done
+              echo "Web Pod: MySQL is ready."
+
+        - name: wait-for-hbase
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-hbase 16010; do echo waiting for hbase; sleep 2; done;']
+      containers:
+        - name: web
+          image: "{{ .Values.web.image.repository }}:{{ .Values.global.pinpointVersion }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: PINPOINT_ZOOKEEPER_ADDRESS
+              value: "{{ include "pinpoint.fullname" . }}-zookeeper"
+            - name: CLUSTER_ENABLE
+              value: "true"
+            # Set the Spring Boot profile dynamically from values.yaml
+            - name: SPRING_PROFILES_ACTIVE
+              value: {{ .Values.web.config.springProfiles | quote }}
+            # Use the correct environment variables that Pinpoint Web reads
+            - name: JDBC_URL
+              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
+            - name: JDBC_USERNAME
+              value: "{{ .Values.mysql.auth.username }}"
+            - name: JDBC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-mysql"
+                  key: mysql-password
+            # Redis Connection Settings - only added if Redis is enabled
+            {{- if .Values.redis.enabled }}
+            - name: SPRING_DATA_REDIS_HOST
+              value: "{{ .Release.Name }}-redis-master"
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+            - name: PINPOINT_MODULES_REALTIME_ENABLED
+              value: "true"
+            {{- if .Values.redis.auth.enabled }}
+            - name: SPRING_DATA_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-redis"
+                  key: redis-password
+            {{- end }}
+            {{- end }}
+            # Web UI Configurations
+            - name: ADMIN_PASSWORD
+              value: {{ .Values.web.config.adminPassword | quote }}
+            - name: CONFIG_SENDUSAGE
+              value: {{ .Values.web.config.sendUsage | quote }}
+            - name: CONFIG_SHOW_APPLICATIONSTAT
+              value: {{ .Values.web.config.showApplicationStat | quote }}
+            # Security Settings
+            {{- if .Values.web.config.security.enable }}
+            - name: PINPOINT_MODULES_WEB_LOGIN
+              value: "true"
+            - name: WEB_SECURITY_AUTH_USER
+              value: {{ .Values.web.config.security.authUser | quote }}
+            - name: WEB_SECURITY_AUTH_ADMIN
+              value: {{ .Values.web.config.security.authAdmin | quote }}
+            - name: WEB_SECURITY_AUTH_JWT_SECRETKEY
+              value: {{ .Values.web.config.security.jwtSecretKey | quote }}
+            {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.web.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.web.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}
+{{- end }}
+---
+{{- if .Values.web.enabled }}
+# Web Application Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-web
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  type: {{ .Values.web.service.type }}
+  ports:
+    - port: {{ .Values.web.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "pinpoint.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+{{- end }}
+---
+{{- if .Values.web.ingress.enabled -}}
+# Quickstart Application Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-web
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+  {{- with .Values.web.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.web.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.web.ingress.ingressClassName }}
+  {{- end }}
+  rules:
+    {{- range .Values.web.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "pinpoint.fullname" $ }}-web
+                port:
+                  name: http
+          {{- end }}
+    {{- end }}
+  {{- if .Values.web.ingress.tls }}
+  tls:
+    {{- range .Values.web.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+{{- end }}

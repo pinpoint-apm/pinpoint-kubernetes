@@ -1,0 +1,60 @@
+{{- if .Values.batch.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-batch
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: batch
+spec:
+  replicas: {{ .Values.batch.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "pinpoint.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: batch
+  template:
+    metadata:
+      labels:
+        {{- include "pinpoint.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: batch
+    spec:
+      containers:
+        - name: batch
+          image: "{{ .Values.batch.image.repository }}:{{ .Values.batch.image.tag | default .Values.global.pinpointVersion }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: {{ .Values.batch.config.springProfiles | quote }}
+            - name: PINPOINT_ZOOKEEPER_ADDRESS
+              value: "{{ include "pinpoint.fullname" . }}-zookeeper"
+            - name: CLUSTER_ENABLE
+              value: "true"
+            - name: LOGGING_LEVEL_ROOT
+              value: {{ .Values.batch.config.loggingLevel | quote }}
+            # JDBC Configuration
+            - name: JDBC_URL
+              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
+            - name: JDBC_USERNAME
+              value: "{{ .Values.mysql.auth.username }}"
+            - name: JDBC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-mysql"
+                  key: mysql-password
+            # Mail Configuration for Alarms
+            - name: SPRING_MAIL_PINPOINT-URL
+              value: {{ .Values.batch.config.pinpointWebUrl | quote }}
+            - name: SPRING_MAIL_HOST
+              value: {{ .Values.batch.config.mail.host | quote }}
+            - name: SPRING_MAIL_PORT
+              value: {{ .Values.batch.config.mail.port | quote }}
+            - name: SPRING_MAIL_USERNAME
+              value: {{ .Values.batch.config.mail.username | quote }}
+            - name: SPRING_MAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.batch.config.mail.existingSecret | default (printf "%s-mail" .Release.Name) }}
+                  key: {{ .Values.batch.config.mail.existingSecretKey | default "password" }}
+          resources:
+            {{- toYaml .Values.batch.resources | nindent 12 }}
+{{- end }}

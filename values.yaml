@@ -1,0 +1,230 @@
+# pinpoint-helm-main/values.yaml
+
+# ========================================================================
+# Global Settings
+# ========================================================================
+global:
+  # Update to the latest stable version from Docker Hub
+  pinpointVersion: "2.5.4"
+  image:
+    pullPolicy: IfNotPresent
+
+# ========================================================================
+# Subchart (Dependency) Configurations
+# ========================================================================
+
+# Bitnami Zookeeper Subchart Values
+zookeeper:
+  enabled: true
+  replicaCount: 3
+  auth:
+    enabled: false
+  persistence:
+    enabled: true
+    size: 2Gi
+
+# Bitnami MySQL Subchart Values
+mysql:
+  enabled: true
+  # Force the chart to use a specific MySQL 8.0.x image
+  image:
+    repository: "bitnami/mysql"
+    tag: "8.0.28-debian-10-r81"
+  auth:
+    database: "pinpoint"
+    username: "pinpoint_user"
+    password: "pinpoint"
+    rootPassword: "mysql"
+  primary:
+    persistence:
+      size: 10Gi
+
+# Bitnami Redis Subchart Values
+redis:
+  # Enabled only for Pinpoint v3.0.0+ with the realtime module activated.
+  enabled: false
+  architecture: standalone
+  auth:
+    enabled: true
+
+# ========================================================================
+# Pinpoint Component Configurations
+# ========================================================================
+
+# Pinpoint Web UI configuration
+web:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: "pinpointdocker/pinpoint-web"
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 60
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 6
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  config:
+    springProfiles: "release"
+    adminPassword: "admin"
+    sendUsage: false
+    showApplicationStat: true
+    security:
+      enable: false
+      authUser: "user"
+      authAdmin: "admin"
+      jwtSecretKey: ""
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+  service:
+    type: ClusterIP
+    port: 8080
+  ingress:
+    enabled: false
+    ingressClassName: ""
+    annotations: {}
+    hosts:
+      - host: pinpoint.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: []
+
+# Pinpoint HBase configuration
+hbase:
+  enabled: true
+  image:
+    repository: "pinpointdocker/pinpoint-hbase"
+  persistence:
+    enabled: true
+    size: 20Gi
+  config:
+    managesZk: false
+    ttl:
+      AGENTINFO_TTL: "86400"
+      AGENTSTATV2_TTL: "604800"
+      APPSTATAGGRE_TTL: "604800"
+      APPINDEX_TTL: "86400"
+      AGENTLIFECYCLE_TTL: "604800"
+      AGENTEVENT_TTL: "604800"
+      STRINGMETADATA_TTL: "2592000"
+      APIMETADATA_TTL: "2592000"
+      SQLMETADATA_TTL: "2592000"
+      TRACEV2_TTL: "604800"
+      APPTRACEINDEX_TTL: "604800"
+      APPMAPSTATCALLERV2_TTL: "604800"
+      APPMAPSTATCALLEV2_TTL: "604800"
+      APPMAPSTATSELFV2_TTL: "604800"
+      HOSTAPPMAPV2_TTL: "604800"
+
+
+# Pinpoint Collector configuration
+collector:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: "pinpointdocker/pinpoint-collector"
+  config:
+    springProfiles: "release"
+    loggingLevel: "INFO"
+    cluster:
+      enable: true
+    flink:
+      # Set this to true if deploying the Flink module
+      enable: false
+  # Enable this for Pinpoint v3.0.0+ to use the realtime module with Redis
+  realtime:
+    enabled: false
+  resources:
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
+  service:
+    type: ClusterIP
+    ports:
+      grpcAgent: 9991
+      grpcStat: 9992
+      grpcSpan: 9993
+      thriftReceiver: 9994
+      udpStat: 9995
+      udpSpan: 9996
+
+# Pinpoint Quickstart Test Application
+quickstart:
+  enabled: true
+  image:
+    repository: "pinpointdocker/pinpoint-quickstart"
+  agentImage:
+    repository: "pinpointdocker/pinpoint-agent"
+    tag: "" # Defaults to global.pinpointVersion
+  agentId: "quickstart-id"
+  applicationName: "QUICKSTART_APP"
+  service:
+    type: ClusterIP
+    port: 8080
+  resources: {}
+    # requests:
+    #   cpu: "100m"
+    #   memory: "256Mi"
+    # limits:
+    #   cpu: "500m"
+    #   memory: "512Mi"
+
+# Pinpoint Batch (Alarm) Module
+batch:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: "pinpointdocker/pinpoint-batch"
+    tag: "" # Defaults to global.pinpointVersion
+  config:
+    springProfiles: "release,batch"
+    loggingLevel: "INFO"
+    pinpointWebUrl: "http://{{ .Release.Name }}-web:8080"
+    mail:
+      host: ""
+      port: "587"
+      username: ""
+      # It's recommended to create a secret with the password and reference it here
+      # kubectl create secret generic my-mail-secret --from-literal=password='MY_PASSWORD'
+      existingSecret: "" # e.g., "my-mail-secret"
+      existingSecretKey: "password"
+  resources: {}
+    # requests:
+    #   cpu: "200m"
+    #   memory: "512Mi"
+
+# Pinpoint Flink (Inspector) Module
+flink:
+  enabled: false
+  image:
+    repository: "pinpointdocker/pinpoint-flink"
+    tag: "" # Defaults to global.pinpointVersion
+  jobmanager:
+    resources: {}
+      # requests:
+      #   cpu: "500m"
+      #   memory: "1Gi"
+  taskmanager:
+    replicaCount: 1
+    resources: {}
+      # requests:
+      #   cpu: "1"
+      #   memory: "2Gi"

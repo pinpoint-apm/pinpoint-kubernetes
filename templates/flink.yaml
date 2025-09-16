@@ -1,0 +1,87 @@
+{{- if .Values.flink.enabled }}
+# Flink JobManager Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-flink-jobmanager
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: flink-jobmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "pinpoint.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: flink-jobmanager
+  template:
+    metadata:
+      labels:
+        {{- include "pinpoint.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: flink-jobmanager
+    spec:
+      containers:
+        - name: flink-jobmanager
+          image: "{{ .Values.flink.image.repository }}:{{ .Values.flink.image.tag | default .Values.global.pinpointVersion }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          ports:
+            - name: rpc
+              containerPort: 6123
+            - name: webui
+              containerPort: 8081
+          env:
+            - name: JOB_MANAGER_RPC_ADDRESS
+              value: "{{ include "pinpoint.fullname" . }}-flink-jobmanager"
+            - name: PINPOINT_ZOOKEEPER_ADDRESS
+              value: "{{ include "pinpoint.fullname" . }}-zookeeper"
+          resources:
+            {{- toYaml .Values.flink.jobmanager.resources | nindent 12 }}
+---
+# Flink JobManager Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-flink-jobmanager
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: flink-jobmanager
+spec:
+  type: ClusterIP
+  ports:
+    - name: rpc
+      port: 6123
+    - name: webui
+      port: 8081
+  selector:
+    {{- include "pinpoint.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: flink-jobmanager
+---
+# Flink TaskManager Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-flink-taskmanager
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: flink-taskmanager
+spec:
+  replicas: {{ .Values.flink.taskmanager.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "pinpoint.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: flink-taskmanager
+  template:
+    metadata:
+      labels:
+        {{- include "pinpoint.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: flink-taskmanager
+    spec:
+      containers:
+        - name: flink-taskmanager
+          image: "{{ .Values.flink.image.repository }}:{{ .Values.flink.image.tag | default .Values.global.pinpointVersion }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          env:
+            - name: JOB_MANAGER_RPC_ADDRESS
+              value: "{{ include "pinpoint.fullname" . }}-flink-jobmanager"
+          resources:
+            {{- toYaml .Values.flink.taskmanager.resources | nindent 12 }}
+{{- end }}
