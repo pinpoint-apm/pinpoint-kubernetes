@@ -13,7 +13,7 @@ keywords:
   - monitoring
   - performance
 
-home: https://github.com/ithesadson/pinpoint-helm
+home: https://github.com/pinpoint-apm/pinpoint-kubernetes
 sources:
   - https://github.com/pinpoint-apm/pinpoint
 
