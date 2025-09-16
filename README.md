@@ -4,8 +4,6 @@
 
 A Helm chart for deploying [Pinpoint APM](https://github.com/pinpoint-apm/pinpoint) on Kubernetes.
 
-<img width="1918" height="942" alt="image" src="https://github.com/user-attachments/assets/da04fa9d-da28-4212-843d-27ea4fcda531" />
-
 ---
 
 ## ℹ️ Default Versions
