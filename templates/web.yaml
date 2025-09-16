@@ -136,7 +136,7 @@ spec:
 {{- end }}
 ---
 {{- if .Values.web.ingress.enabled -}}
-# Quickstart Application Ingress
+# Web Application Ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

@@ -64,7 +64,7 @@ Pinpoint has been successfully deployed.
    The Pinpoint Collector is running and available for your application agents to connect to.
    Use the following internal Kubernetes DNS addresses in your agent configuration:
 
-   - gRPC Service: {{ include "pinpoint.fullname" . }}-collector:{{ .Values.collector.service.ports.grpcAgent }} [cite: 17]
+   - gRPC Service: {{ include "pinpoint.fullname" . }}-collector:{{ .Values.collector.service.ports.grpcAgent }}
    - Thrift Service: {{ include "pinpoint.fullname" . }}-collector:{{ .Values.collector.service.ports.thriftReceiver }}
 
 {{- end -}}
