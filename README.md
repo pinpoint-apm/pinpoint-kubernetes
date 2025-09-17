@@ -6,14 +6,6 @@ A Helm chart for deploying [Pinpoint APM](https://github.com/pinpoint-apm/pinpoi
 
 ---
 
-## ℹ️ Default Versions
-
-- **Pinpoint Version (default):** 2.5.4
-- **Kubernetes:** 1.23+ (tested up to v1.33.1)
-- **Helm:** 3.2.0+ (tested up to v3.18.6)
-
----
-
 ## ✨ Features
 
 - Deploys Pinpoint Collector, Web, Agent, HBase, MySQL, Redis, and Zookeeper
@@ -21,13 +13,12 @@ A Helm chart for deploying [Pinpoint APM](https://github.com/pinpoint-apm/pinpoi
 - Quickstart test application for easy validation
 - Configurable resources, persistence, and service types
 - Flexible customization via `values.yaml` or CLI
-- Production-ready defaults and health checks
 
 ---
 
 ## 🛠 Prerequisites
 
-- Kubernetes **1.23+**
+- Kubernetes **1.21+**
 - Helm **3.2.0+**
 - Persistent storage provisioner (for MySQL, HBase, Zookeeper)
 
@@ -61,13 +52,27 @@ A Helm chart for deploying [Pinpoint APM](https://github.com/pinpoint-apm/pinpoi
 
 The most important parameters in `values.yaml`:
 
-- `web.enabled`, `collector.enabled`, `hbase.enabled`, `mysql.enabled`, `redis.enabled`, `zookeeper.enabled`: Enable/disable main components
-- `batch.enabled`, `flink.enabled`: Enable/disable optional modules (Alarm and Inspector)
-- `web.replicaCount`, `collector.replicaCount`: Number of replicas
-- `mysql.auth.rootPassword`, `mysql.auth.password`: MySQL passwords
-- `web.config.adminPassword`: Web admin password
-- `hbase.persistence.size`: HBase PVC size
-- `quickstart.enabled`: Enable test application
+- Global Settings:
+    - `global.pinpointVersion`: Sets the version for all Pinpoint components.
+- Component Toggles:
+    - `web.enabled`, `collector.enabled`, `hbase.enabled`: Enable or disable core components.
+    - `mysql.enabled`, `zookeeper.enabled`, `redis.enabled`: Enable or disable dependencies.
+    - `batch.enabled`, `flink.enabled`: Enable optional modules for alarms and inspection.
+    - `quickstart.enabled`: Deploy a test application to verify the installation.
+- Scaling & Performance:
+    - `web.replicaCount`, `collector.replicaCount`: Set the number of replicas for Web and Collector pods.
+    - `web.resources`,`collector.resources`: Configure CPU and memory requests/limits.
+- Security & Passwords:
+    - `mysql.auth.rootPassword`, `mysql.auth.password`: Set passwords for the MySQL database.
+    - `web.config.adminPassword`: Set the admin password for the Pinpoint Web UI.
+    - `web.config.security.enable`: Enable or disable the login screen for the Web UI.
+- Persistence & Storage:
+    - `hbase.persistence.size`: Set the PVC size for HBase data storage.
+    - `mysql.primary.persistence.size`: Set the PVC size for the MySQL database.
+    - `zookeeper.persistence.size`: Set the PVC size for Zookeeper data.
+Network & Access:
+    - `web.ingress.enabled`: Enable to create a Kubernetes Ingress for the Web UI.
+    - `web.ingress.hosts`: Configure the hostname(s) to access the UI.
 
 See `values.yaml` for all options.
 
