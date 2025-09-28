@@ -56,7 +56,7 @@ kubectl port-forward svc/pinpoint-web 8080:8080 -n pinpoint
 ```
 Then open http://localhost:8080 in your browser.
 
-**Pinot Controller UI (Analytics Dashboard):**
+**Pinot Controller UI (Real-time Data Management):**
 ```bash
 kubectl port-forward svc/pinpoint-pinot-controller 9000:9000 -n pinpoint
 ```
@@ -74,3 +74,13 @@ helm uninstall pinpoint -n pinpoint
 
 - [Pinpoint Documentation](https://pinpoint-apm.gitbook.io/pinpoint/)
 - [GitHub Issues](https://github.com/pinpoint-apm/pinpoint-kubernetes/issues)
+
+## Screenshots
+
+### Kubernetes Deployment
+![Kubernetes Pods](docs/screenshots/01-kubectl-get-pods.png)
+
+### Pinpoint Web Dashboard
+![Application Map](docs/screenshots/09-web-ui-servermap.png)
+![Performance Metrics](docs/screenshots/04-web-ui-inspector-metrics.png)
+![System Metrics](docs/screenshots/05-web-ui-system-metrics.png)
