@@ -1,0 +1,79 @@
+{{- if .Values.global.metric.enabled }}
+# Kafka Topics Initialization Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-kafka-init
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kafka-init
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "2"
+    # Production mode: Delete successful jobs, keep failed ones
+    # "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook-timeout": "600s"
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 180
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      name: {{ include "pinpoint.fullname" . }}-kafka-init
+      labels:
+        {{- include "pinpoint.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: kafka-init
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              echo "Waiting for Kafka to be ready..."
+              until nc -z -w3 {{ .Release.Name }}-kafka 9092; do
+                echo "Kafka init job waiting for Kafka..."
+                sleep 5
+              done
+              echo "Kafka is ready!"
+      containers:
+        - name: kafka-topics-creator
+          image: confluentinc/cp-kafka:7.4.0
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              echo "Setting up Kafka topics..."
+              BOOTSTRAP_SERVER="{{ .Release.Name }}-kafka:9092"
+
+              # Wait for Kafka to be ready
+              until kafka-topics --list --bootstrap-server "$BOOTSTRAP_SERVER" >/dev/null 2>&1; do
+                echo "Waiting for Kafka broker..."
+                sleep 10
+              done
+
+              # Check existing topics
+              EXISTING_TOPICS=$(kafka-topics --list --bootstrap-server "$BOOTSTRAP_SERVER" 2>/dev/null | grep -E "(url-stat|system-metric|exception-trace|inspector-stat)" | wc -l || echo "0")
+
+              if [ "$EXISTING_TOPICS" -ge 7 ]; then
+                echo "Topics already exist ($EXISTING_TOPICS found):"
+                kafka-topics --list --bootstrap-server "$BOOTSTRAP_SERVER" 2>/dev/null | grep -E "(url-stat|system-metric|exception-trace|inspector-stat)" | sort || echo "Could not list topics"
+                exit 0
+              fi
+
+              echo "Creating Kafka topics..."
+              kafka-topics --create --topic url-stat --partitions 64 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              kafka-topics --create --topic system-metric-data-type --partitions 3 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              kafka-topics --create --topic system-metric-tag --partitions 3 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              kafka-topics --create --topic system-metric-double --partitions 3 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              kafka-topics --create --topic exception-trace --partitions 3 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              kafka-topics --create --topic inspector-stat-app --partitions 64 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              kafka-topics --create --topic inspector-stat-agent-00 --partitions 32 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+
+              echo "Topics created successfully!"
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "{{ .Release.Name }}-kafka:9092"
+{{- end }}

@@ -1,0 +1,153 @@
+{{- if .Values.global.metric.enabled }}
+# Pinot Tables and Schemas Initialization Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-pinot-init
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pinot-init
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "3"
+    # Production mode: Delete successful jobs, keep failed ones
+    # "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook-timeout": "600s"
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 180
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      name: {{ include "pinpoint.fullname" . }}-pinot-init
+      labels:
+        {{- include "pinpoint.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: pinot-init
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-pinot
+          image: busybox:1.36
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              echo "Waiting for Pinot Controller to be ready..."
+              until nc -z -w3 {{ .Release.Name }}-pinot-controller 9000; do
+                echo "Pinot init job is waiting for Pinot Controller..."
+                sleep 5
+              done
+              echo "Pinot Controller is ready!"
+
+              echo "Waiting for Pinot Broker to be ready..."
+              until nc -z -w3 {{ .Release.Name }}-pinot-broker 8099; do
+                echo "Pinot init job is waiting for Pinot Broker..."
+                sleep 5
+              done
+              echo "Pinot Broker is ready!"
+
+              echo "Waiting for Kafka to be ready..."
+              until nc -z -w3 {{ .Release.Name }}-kafka 9092; do
+                echo "Pinot init job is waiting for Kafka..."
+                sleep 5
+              done
+              echo "Kafka is ready!"
+
+              # Wait for Kafka topics to be created
+              echo "Waiting for Kafka topics to be ready..."
+              until kubectl get job {{ include "pinpoint.fullname" . }}-kafka-init -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' 2>/dev/null | grep -q "True"; do
+                echo "Pinot init job is waiting for Kafka topics to be created..."
+                sleep 10
+              done
+              echo "Kafka topics are ready!"
+      containers:
+        - name: pinot-tables-creator
+          image: apachepinot/pinot:1.0.0-11-amazoncorretto
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              echo "Setting up Pinot schemas and tables..."
+
+              # Download and validate configuration files
+              echo "Downloading configuration files..."
+
+              # Download each file with validation
+              echo "Downloading uriStat files..."
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/uristat/uristat-common/src/main/pinot/pinot-uriStat-realtime-table.json" > uriStatTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/uristat/uristat-common/src/main/pinot/pinot-uriStat-schema.json" > uriStatSchema.json
+
+              echo "Downloading metric files..."
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/metric-module/metric/src/main/pinot/pinot-tag-realtime-table.json" > tagTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/metric-module/metric/src/main/pinot/pinot-tag-schema.json" > tagSchema.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/metric-module/metric/src/main/pinot/pinot-double-realtime-table.json" > doubleTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/metric-module/metric/src/main/pinot/pinot-double-schema.json" > doubleSchema.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/metric-module/metric/src/main/pinot/pinot-dataType-realtime-table.json" > dataTypeTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/metric-module/metric/src/main/pinot/pinot-dataType-schema.json" > dataTypeSchema.json
+
+              echo "Downloading exception trace files..."
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/exceptiontrace/exceptiontrace-common/src/main/pinot/pinot-exceptionTrace-offline-table.json" > exceptionTraceTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/exceptiontrace/exceptiontrace-common/src/main/pinot/pinot-exceptionTrace-schema.json" > exceptionTraceSchema.json
+
+              echo "Downloading inspector files..."
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-agent-realtime-table.json" > inspectorAgentTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-agent-schema.json" > inspectorAgentSchema.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-application-realtime-table.json" > inspectorApplicationTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-application-schema.json" > inspectorApplicationSchema.json
+
+              # Validate all files exist and are JSON
+              echo "Validating downloaded files..."
+              for file in *.json; do
+                if [ ! -f "$file" ]; then
+                  echo "Error: $file was not downloaded"
+                  exit 1
+                fi
+                if ! head -1 "$file" | grep -q '^{'; then
+                  echo "Error: $file is not valid JSON"
+                  head -3 "$file"
+                  exit 1
+                fi
+              done
+              echo "All files validated successfully"
+
+              # Update Kafka bootstrap servers in table configurations
+              sed -i 's/localhost:19092/{{ .Release.Name }}-kafka:9092/g' *.json
+              sed -i 's/.*replicasPerPartition.*/    "replicasPerPartition": "1",/g' *.json
+
+              # Check if tables already exist
+              EXISTING_TABLES=$(curl -s http://{{ .Release.Name }}-pinot-controller:9000/tables 2>/dev/null | grep -o '"tableName"' | wc -l || echo "0")
+
+              if [ "$EXISTING_TABLES" -ge 7 ]; then
+                echo "Tables already exist ($EXISTING_TABLES found):"
+                curl -s http://{{ .Release.Name }}-pinot-controller:9000/tables 2>/dev/null | grep -o '"tableName":"[^"]*"' | sed 's/"tableName":"//g' | sed 's/"//g' | sort || echo "Could not list tables"
+                exit 0
+              fi
+
+              echo "Creating Pinot tables..."
+
+              # Create tables with error handling
+              TABLES="uriStat:uriStatSchema.json:uriStatTable.json tag:tagSchema.json:tagTable.json double:doubleSchema.json:doubleTable.json dataType:dataTypeSchema.json:dataTypeTable.json exceptionTrace:exceptionTraceSchema.json:exceptionTraceTable.json inspectorAgent:inspectorAgentSchema.json:inspectorAgentTable.json inspectorApplication:inspectorApplicationSchema.json:inspectorApplicationTable.json"
+
+              for table_info in $TABLES; do
+                table_name=$(echo "$table_info" | cut -d: -f1)
+                schema_file=$(echo "$table_info" | cut -d: -f2)
+                table_file=$(echo "$table_info" | cut -d: -f3)
+
+                echo "Creating $table_name table..."
+                if ! /opt/pinot/bin/pinot-admin.sh AddTable -schemaFile "$schema_file" -tableConfigFile "$table_file" -controllerHost {{ .Release.Name }}-pinot-controller -controllerPort 9000 -exec; then
+                  echo "Failed to create $table_name table"
+                  echo "Schema file content:"
+                  head -5 "$schema_file"
+                  echo "Table file content:"
+                  head -5 "$table_file"
+                  exit 1
+                fi
+              done
+
+              echo "All tables created successfully!"
+          env:
+            - name: PINOT_CONTROLLER_HOST
+              value: "{{ .Release.Name }}-pinot-controller"
+            - name: PINOT_CONTROLLER_PORT
+              value: "9000"
+{{- end }}

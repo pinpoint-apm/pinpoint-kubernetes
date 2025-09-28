@@ -1,4 +1,4 @@
-{{- if .Values.batch.enabled }}
+{{- if and .Values.batch.enabled (not .Values.global.metric.enabled) }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,20 +18,59 @@ spec:
         {{- include "pinpoint.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: batch
     spec:
+      initContainers:
+        # Wait for Zookeeper to be ready
+        - name: wait-for-zookeeper
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-zookeeper 2181; do echo "Batch is waiting for Zookeeper..."; sleep 2; done;']
+
+        # Wait for HBase to be ready
+        {{- if .Values.hbase.enabled }}
+        - name: wait-for-hbase
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-hbase 60000; do echo "Batch is waiting for HBase..."; sleep 2; done;']
+        {{- end }}
+
+        # Wait for MySQL to be ready
+        {{- if .Values.mysql.enabled }}
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-mysql 3306; do echo "Batch is waiting for MySQL..."; sleep 2; done;']
+        {{- end }}
+
+        # Wait for Flink JobManager to be ready (needed for health checks)
+        {{- if .Values.flink.enabled }}
+        - name: wait-for-flink-jobmanager
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-flink-jobmanager 8081; do echo "Batch is waiting for Flink JobManager..."; sleep 2; done;']
+        {{- end }}
       containers:
         - name: batch
           image: "{{ .Values.batch.image.repository }}:{{ .Values.batch.image.tag | default .Values.global.pinpointVersion }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.batch.config.springProfiles | quote }}
+            - name: BATCH_SERVER_PORT
+              value: "8080"
             - name: PINPOINT_ZOOKEEPER_ADDRESS
-              value: "{{ include "pinpoint.fullname" . }}-zookeeper"
+              value: "{{ .Release.Name }}-zookeeper"
             - name: CLUSTER_ENABLE
               value: "true"
             - name: LOGGING_LEVEL_ROOT
               value: {{ .Values.batch.config.loggingLevel | quote }}
-            # JDBC Configuration
+            - name: CONFIG_SENDUSAGE
+              value: "true"
+            - name: CONFIG_SHOW_APPLICATIONSTAT
+              value: "true"
+            - name: BATCH_FLINK_SERVER
+              value: "{{ .Release.Name }}-flink-jobmanager:8081"
+            # JDBC Configuration - Primary Datasource
+            - name: JDBC_DRIVERCLASSNAME
+              value: "com.mysql.cj.jdbc.Driver"
             - name: JDBC_URL
               value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
             - name: JDBC_USERNAME
@@ -41,20 +80,84 @@ spec:
                 secretKeyRef:
                   name: "{{ .Release.Name }}-mysql"
                   key: mysql-password
+            # Spring Datasource Configuration
+            - name: SPRING_DATASOURCE_HIKARI_JDBCURL
+              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
+            - name: SPRING_DATASOURCE_HIKARI_USERNAME
+              value: "{{ .Values.mysql.auth.username }}"
+            - name: SPRING_DATASOURCE_HIKARI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-mysql"
+                  key: mysql-password
+            # Spring Metadata Datasource Configuration
+            - name: SPRING_METADATASOURCE_HIKARI_JDBCURL
+              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
+            - name: SPRING_METADATASOURCE_HIKARI_USERNAME
+              value: "{{ .Values.mysql.auth.username }}"
+            - name: SPRING_METADATASOURCE_HIKARI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-mysql"
+                  key: mysql-password
             # Mail Configuration for Alarms
-            - name: SPRING_MAIL_PINPOINT-URL
-              value: {{ .Values.batch.config.pinpointWebUrl | quote }}
+            {{- if and .Values.batch.mail.enabled .Values.batch.mail.host }}
+            - name: ALARM_MAIL_SERVER_URL
+              value: {{ .Values.batch.mail.host | quote }}
+            - name: ALARM_MAIL_SERVER_PORT
+              value: {{ .Values.batch.mail.port | quote }}
+            - name: ALARM_MAIL_SERVER_USERNAME
+              value: {{ .Values.batch.mail.username | quote }}
+            - name: ALARM_MAIL_SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.batch.mail.existingSecret | default (printf "%s-mail" .Release.Name) }}
+                  key: {{ .Values.batch.mail.existingSecretKey | default "password" }}
+            - name: ALARM_MAIL_SENDER_ADDRESS
+              value: {{ .Values.batch.mail.username | quote }}
+            - name: ALARM_MAIL_TRANSPORT_PROTOCOL
+              value: "smtp"
+            - name: ALARM_MAIL_SMTP_PORT
+              value: {{ .Values.batch.mail.port | quote }}
+            - name: ALARM_MAIL_SMTP_AUTH
+              value: "true"
+            - name: ALARM_MAIL_SMTP_STARTTLS_ENABLE
+              value: "true"
+            - name: ALARM_MAIL_SMTP_STARTTLS_REQUIRED
+              value: "false"
+            - name: ALARM_MAIL_DEBUG
+              value: "false"
+            # Spring Mail Configuration (Alternative naming)
             - name: SPRING_MAIL_HOST
-              value: {{ .Values.batch.config.mail.host | quote }}
+              value: {{ .Values.batch.mail.host | quote }}
             - name: SPRING_MAIL_PORT
-              value: {{ .Values.batch.config.mail.port | quote }}
+              value: {{ .Values.batch.mail.port | quote }}
             - name: SPRING_MAIL_USERNAME
-              value: {{ .Values.batch.config.mail.username | quote }}
+              value: {{ .Values.batch.mail.username | quote }}
             - name: SPRING_MAIL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.batch.config.mail.existingSecret | default (printf "%s-mail" .Release.Name) }}
-                  key: {{ .Values.batch.config.mail.existingSecretKey | default "password" }}
+                  name: {{ .Values.batch.mail.existingSecret | default (printf "%s-mail" .Release.Name) }}
+                  key: {{ .Values.batch.mail.existingSecretKey | default "password" }}
+            {{- end }}
+            # Admin Configuration
+            - name: ADMIN_PASSWORD
+              value: {{ .Values.batch.config.adminPassword | default "admin" | quote }}
+            # Pinpoint Web URL for batch operations
+            - name: SPRING_MAIL_PINPOINT-URL
+              value: {{ tpl .Values.batch.config.pinpointWebUrl . | quote }}
+            # Disable Pinot datasource when metrics are disabled
+            {{- if not .Values.global.metric.enabled }}
+            - name: SPRING_PINOT-DATASOURCE_PINOT_JDBC-URL
+              value: ""
+            - name: SPRING_PINOTDATASOURCE_PINOT_JDBCURL
+              value: ""
+            - name: PINPOINT_PINOT_JDBC_URL
+              value: ""
+            {{- end }}
+            # JVM Memory Settings
+            - name: JAVA_OPTS
+              value: "-Xms256m -Xmx768m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
           resources:
             {{- toYaml .Values.batch.resources | nindent 12 }}
 {{- end }}

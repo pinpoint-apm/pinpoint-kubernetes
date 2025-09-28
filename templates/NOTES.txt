@@ -7,32 +7,24 @@ Pinpoint has been successfully deployed.
 
 1. Accessing the Pinpoint Web UI:
 {{- if .Values.web.ingress.enabled }}
-
-  Ingress is enabled. You can access the Pinpoint Web UI at the following address(es):
+  Ingress is enabled.
+  You can access the Pinpoint Web UI at the following address(es):
   {{- range .Values.web.ingress.hosts }}
     {{- $host := .host | default "YOUR_INGRESS_HOST" }}
     {{- range .paths }}
   => http{{ if $.Values.web.ingress.tls }}s{{ end }}://{{ $host }}{{ .path }}
     {{- end }}
   {{- end }}
-  {{- if not .Values.web.ingress.hosts }}
-  => NOTE: Ingress is enabled, but no hosts are defined in your values file. Please configure a host to access the UI.
-  {{- end }}
-
 {{- else if contains "LoadBalancer" .Values.web.service.type }}
-
-  The Web UI is exposed via a LoadBalancer service. It might take a few minutes for the external IP to be available.
-
+  The Web UI is exposed via a LoadBalancer service.
+  It might take a few minutes for the external IP to be available.
   Watch the status by running:
     kubectl get svc --namespace {{ .Release.Namespace }} -w {{ include "pinpoint.fullname" . }}-web
 
   Once the EXTERNAL-IP is assigned, you can access the UI at:
   http://<EXTERNAL-IP>:{{ .Values.web.service.port }}
-
 {{- else if contains "NodePort" .Values.web.service.type }}
-
   The Web UI is exposed via a NodePort service.
-
   1. Get the IP address of one of your cluster nodes:
      export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
 
@@ -41,32 +33,50 @@ Pinpoint has been successfully deployed.
 
   3. Access the UI at:
      http://$NODE_IP:$NODE_PORT
-
 {{- else }}
-
   The Web UI is exposed via a ClusterIP service and is not accessible from outside the cluster by default.
-
   To access it, you can use port-forwarding:
 
-  1. Get the name of the Web UI pod:
-     export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/component=web,app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  1. Run the port-forward command in a separate terminal:
+     kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "pinpoint.fullname" . }}-web 8080:8080
 
-  2. Run the port-forward command:
-     kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:8080
-
-  3. Now, open the following URL in your browser:
+  2. Now, open the following URL in your browser:
      http://127.0.0.1:8080
-
 {{- end }}
 
 2. Connecting Agents to Pinpoint Collector:
+{{- if .Values.agent.enabled }}
+   A Pinpoint Agent is deployed as part of this chart.
+   Agent status: kubectl get pods -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=agent"
+   Agent logs: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=agent" --tail=100 -f
 
-   The Pinpoint Collector is running and available for your application agents to connect to.
-   Use the following internal Kubernetes DNS addresses in your agent configuration:
-
+   For external applications, use the following internal Kubernetes DNS address:
+{{- else }}
+   The Pinpoint Collector is running. Use the following internal Kubernetes DNS address in your agent configuration:
+{{- end }}
    - gRPC Service: {{ include "pinpoint.fullname" . }}-collector:{{ .Values.collector.service.ports.grpcAgent }}
-   - Thrift Service: {{ include "pinpoint.fullname" . }}-collector:{{ .Values.collector.service.ports.thriftReceiver }}
 
+3. Checking the Installation Status:
+{{- if .Values.global.metric.enabled }}
+   The "metric" profile is enabled. You should see pods for Kafka and Pinot running.
+{{- else }}
+   The "metric" profile is disabled. Kafka and Pinot are not deployed.
+   To use URI statistics, OTLP metrics, and exception traces,
+   reinstall the chart with the `--set global.metric.enabled=true` flag.
+{{- end }}
+
+   Check all components status with:
+   kubectl get pods -n {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }}"
+
+   Verify component-specific logs:
+   - Collector: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=collector" --tail=100 -f
+   - Web UI: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=web" --tail=100 -f
+{{- if .Values.agent.enabled }}
+   - Agent: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=agent" --tail=100 -f
+{{- end }}
+{{- if .Values.global.metric.enabled }}
+   - Telegraf: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=telegraf" --tail=100 -f
+{{- end }}
 {{- end -}}
 
 {{- template "pinpoint.access.info" . -}}

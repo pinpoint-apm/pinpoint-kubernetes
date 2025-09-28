@@ -1,121 +1,76 @@
 # Pinpoint Helm Chart
 
-![Version: 1.0.0](https://img.shields.io/badge/Version-1.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.5.4](https://img.shields.io/badge/AppVersion-2.5.4-informational?style=flat-square)
+![Version: 2.0.0](https://img.shields.io/badge/Version-2.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.0.3](https://img.shields.io/badge/AppVersion-3.0.3-informational?style=flat-square)
 
-A Helm chart for deploying [Pinpoint APM](https://github.com/pinpoint-apm/pinpoint) on Kubernetes.
+A Helm chart for deploying Pinpoint APM on Kubernetes.
 
----
+## Introduction
 
-## ✨ Features
+This chart bootstraps a [Pinpoint APM](https://pinpoint-apm.github.io/pinpoint/) deployment on a Kubernetes cluster using the Helm package manager.
 
-- Deploys Pinpoint Collector, Web, Agent, HBase, MySQL, Redis, and Zookeeper
-- Optional: Deploys Pinpoint Batch (for alarms) and Flink (for inspection) modules.
-- Quickstart test application for easy validation
-- Configurable resources, persistence, and service types
-- Flexible customization via `values.yaml` or CLI
+## Installing the Chart
 
----
+To install the chart with the release name `pinpoint`:
 
-## 🛠 Prerequisites
-
-- Kubernetes **1.21+**
-- Helm **3.2.0+**
-- Persistent storage provisioner (for MySQL, HBase, Zookeeper)
-
----
-## 🚀 Quick Start
-
-1. **Clone the repository:**
-    ```sh
-    git clone https://github.com/pinpoint-apm/pinpoint-kubernetes.git
-    cd pinpoint-helm
-    ```
-
-2. **Update chart dependencies:**
-    ```sh
-    helm dependency update
-    ```
-
-3. **Install the chart:**
-    ```sh
-    helm install pinpoint . -n pinpoint --create-namespace
-    ```
-
-4. **Monitor pods:**
-    ```sh
-    kubectl get pods -n pinpoint -w
-    ```
-
----
-
-## 🛠️ Configuration
-
-The most important parameters in `values.yaml`:
-
-- Global Settings:
-    - `global.pinpointVersion`: Sets the version for all Pinpoint components.
-- Component Toggles:
-    - `web.enabled`, `collector.enabled`, `hbase.enabled`: Enable or disable core components.
-    - `mysql.enabled`, `zookeeper.enabled`, `redis.enabled`: Enable or disable dependencies.
-    - `batch.enabled`, `flink.enabled`: Enable optional modules for alarms and inspection.
-    - `quickstart.enabled`: Deploy a test application to verify the installation.
-- Scaling & Performance:
-    - `web.replicaCount`, `collector.replicaCount`: Set the number of replicas for Web and Collector pods.
-    - `web.resources`,`collector.resources`: Configure CPU and memory requests/limits.
-- Security & Passwords:
-    - `mysql.auth.rootPassword`, `mysql.auth.password`: Set passwords for the MySQL database.
-    - `web.config.adminPassword`: Set the admin password for the Pinpoint Web UI.
-    - `web.config.security.enable`: Enable or disable the login screen for the Web UI.
-- Persistence & Storage:
-    - `hbase.persistence.size`: Set the PVC size for HBase data storage.
-    - `mysql.primary.persistence.size`: Set the PVC size for the MySQL database.
-    - `zookeeper.persistence.size`: Set the PVC size for Zookeeper data.
-Network & Access:
-    - `web.ingress.enabled`: Enable to create a Kubernetes Ingress for the Web UI.
-    - `web.ingress.hosts`: Configure the hostname(s) to access the UI.
-
-See `values.yaml` for all options.
-
----
-
-## 🛠️ Customize Values
-
-You can customize the deployment by editing `values.yaml` or using `--set` on the command line. Example:
-
-```sh
-helm install pinpoint . -n pinpoint \
-  --set mysql.auth.rootPassword=MyRootPass \
-  --set web.replicaCount=2 \
-  --set collector.resources.limits.cpu=500m
+```bash
+git clone https://github.com/pinpoint-apm/pinpoint-kubernetes.git
+cd pinpoint-kubernetes
+helm dependency update
 ```
 
-Or create your own values file:
+### Deployment modes
 
-```sh
-cp values.yaml my-values.yaml
-# Edit my-values.yaml as needed
-helm install pinpoint . -n pinpoint -f my-values.yaml
+This chart supports two deployment modes:
+
+**Metric Profile (default):**
+```bash
+helm install pinpoint . -n pinpoint --create-namespace
 ```
+Deploys Kafka, Pinot, and Telegraf for advanced metrics collection.
 
----
+**Classic Mode:**
+```bash
+helm install pinpoint . -n pinpoint --create-namespace --set global.metric.enabled=false
+```
+Deploys Batch and Flink modules for traditional APM processing.
 
-## 🧹 Uninstallation
+> **Note:** You may see warnings about `SessionAffinity is ignored for headless services`. These are harmless warnings and do not affect functionality.
 
-Remove the pinpoint release:
+## Parameters
 
-```sh
+### Global parameters
+
+| Name | Description | Value |
+|------|-------------|-------|
+| `global.metric.enabled` | Enable metric profile deployment | `true` |
+| `global.pinpointVersion` | Pinpoint version | `"3.0.3"` |
+| `global.image.pullPolicy` | Image pull policy | `IfNotPresent` |
+
+## Accessing Pinpoint
+
+After installation, you can access the Pinpoint services:
+
+**Web UI:**
+```bash
+kubectl port-forward svc/pinpoint-web 8080:8080 -n pinpoint
+```
+Then open http://localhost:8080 in your browser.
+
+**Pinot Controller UI (Analytics Dashboard):**
+```bash
+kubectl port-forward svc/pinpoint-pinot-controller 9000:9000 -n pinpoint
+```
+Then open http://localhost:9000 in your browser.
+
+## Uninstalling the Chart
+
+To uninstall the `pinpoint` deployment:
+
+```bash
 helm uninstall pinpoint -n pinpoint
 ```
 
----
+## Resources
 
-## 📄 License
-
-This project is licensed under the Apache 2.0 License.
-
----
-
-## 📚 References
-
-- [Pinpoint Documentation](https://github.com/pinpoint-apm/pinpoint)
-- [Helm Documentation](https://helm.sh/docs/)
+- [Pinpoint Documentation](https://pinpoint-apm.gitbook.io/pinpoint/)
+- [GitHub Issues](https://github.com/pinpoint-apm/pinpoint-kubernetes/issues)

@@ -22,9 +22,8 @@ spec:
       initContainers:
         - name: wait-for-zookeeper
           image: busybox:1.36
-          command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-zookeeper 2181; do echo waiting for zookeeper; sleep 2; done;']
+          command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-zookeeper 2181; do echo "Web is waiting for Zookeeper..."; sleep 2; done;']
 
-        # This init container waits for the MySQL database to be fully ready by using mysqladmin ping.
         - name: wait-for-mysql
           image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
           env:
@@ -38,17 +37,38 @@ spec:
             - '-c'
             - |
               until mysqladmin ping -h {{ .Release.Name }}-mysql --user=root -p$MYSQL_ROOT_PASSWORD --silent; do
-                echo "Web Pod: Waiting for MySQL database..."
+                echo "Web is waiting for MySQL..."
                 sleep 2
               done
               echo "Web Pod: MySQL is ready."
 
+        {{- if .Values.hbase.enabled }}
         - name: wait-for-hbase
           image: busybox:1.36
-          command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-hbase 16010; do echo waiting for hbase; sleep 2; done;']
+          command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-hbase 16010; do echo "Web is waiting for HBase..."; sleep 2; done;']
+        {{- end }}
+
+        {{- if .Values.redis.enabled }}
+        - name: wait-for-redis
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-redis-master 6379; do echo "Web is waiting for Redis..."; sleep 2; done;']
+        {{- end }}
+
+        {{- if .Values.global.metric.enabled }}
+        # Wait for the Pinot Controller only when metric profile is enabled.
+        - name: wait-for-pinot-controller
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-pinot-controller 9000; do echo "Web is waiting for Pinot Controller..."; sleep 2; done;']
+        {{- end }}
+
       containers:
         - name: web
-          image: "{{ .Values.web.image.repository }}:{{ .Values.global.pinpointVersion }}"
+          # Dynamically set the image tag based on the metric profile
+          {{- $imageTag := .Values.web.image.tag | default .Values.global.pinpointVersion }}
+          {{- if .Values.global.metric.enabled }}
+            {{- $imageTag = printf "%s-metric" ($imageTag | default .Values.global.pinpointVersion) }}
+          {{- end }}
+          image: "{{ .Values.web.image.repository }}:{{ $imageTag }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           ports:
             - name: http
@@ -59,10 +79,83 @@ spec:
               value: "{{ include "pinpoint.fullname" . }}-zookeeper"
             - name: CLUSTER_ENABLE
               value: "true"
-            # Set the Spring Boot profile dynamically from values.yaml
+            # Dynamically set the Spring profile
             - name: SPRING_PROFILES_ACTIVE
+              {{- if .Values.global.metric.enabled }}
+              value: "{{ .Values.web.config.springProfiles }},metric"
+              {{- else }}
               value: {{ .Values.web.config.springProfiles | quote }}
-            # Use the correct environment variables that Pinpoint Web reads
+              {{- end }}
+
+            - name: SPRING_DATASOURCE_HIKARI_JDBC_URL
+              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
+            - name: SPRING_DATASOURCE_HIKARI_USERNAME
+              value: "{{ .Values.mysql.auth.username }}"
+            - name: SPRING_DATASOURCE_HIKARI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-mysql"
+                  key: mysql-password
+
+            # HBase Connection Settings
+            {{- if .Values.hbase.enabled }}
+            - name: HBASE_HOST
+              value: "{{ include "pinpoint.fullname" . }}-hbase"
+            - name: HBASE_PORT
+              value: "60000"
+            - name: HBASE_ZOOKEEPER_QUORUM
+              value: "{{ .Release.Name }}-zookeeper"
+            {{- end }}
+
+            # Add Pinot JDBC configurations only when metric profile is enabled
+            {{- if .Values.global.metric.enabled }}
+            - name: SPRING_PINOT_DATASOURCE_PINOT_JDBC_URL
+              value: "jdbc:pinot://{{ .Release.Name }}-pinot-controller:9000"
+            - name: SPRING_PINOTDATASOURCE_PINOT_JDBCURL
+              value: "jdbc:pinot://{{ .Release.Name }}-pinot-controller:9000"
+            - name: PINPOINT_PINOT_JDBC_URL
+              value: "jdbc:pinot://{{ .Release.Name }}-pinot-controller:9000"
+            # Remove empty username and password as Pinot driver doesn't accept empty strings
+            {{- else }}
+            # Disable Pinot datasource when metrics are disabled
+            - name: SPRING_PINOT_DATASOURCE_PINOT_JDBC_URL
+              value: ""
+            - name: SPRING_PINOTDATASOURCE_PINOT_JDBCURL
+              value: ""
+            - name: PINPOINT_PINOT_JDBC_URL
+              value: ""
+            {{- end }}
+
+            {{- if .Values.redis.enabled }}
+            - name: SPRING_DATA_REDIS_HOST
+              value: "{{ .Release.Name }}-redis-master"
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+            - name: SPRING_DATA_REDIS_USERNAME
+              value: ""
+            {{- if .Values.redis.auth.enabled }}
+            - name: SPRING_DATA_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-redis"
+                  key: redis-password
+            {{- else }}
+            - name: SPRING_DATA_REDIS_PASSWORD
+              value: ""
+            {{- end }}
+            {{- end }}
+
+            # Additional Web Configuration (matching Docker Compose)
+            - name: WEB_SERVER_PORT
+              value: "8080"
+            - name: ADMIN_PASSWORD
+              value: "admin"
+            - name: CONFIG_SENDUSAGE
+              value: "true"
+            - name: CONFIG_SHOW_APPLICATIONSTAT
+              value: "true"
+            - name: JDBC_DRIVERCLASSNAME
+              value: "com.mysql.cj.jdbc.Driver"
             - name: JDBC_URL
               value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
             - name: JDBC_USERNAME
@@ -72,49 +165,31 @@ spec:
                 secretKeyRef:
                   name: "{{ .Release.Name }}-mysql"
                   key: mysql-password
-            # Redis Connection Settings - only added if Redis is enabled
-            {{- if .Values.redis.enabled }}
-            - name: SPRING_DATA_REDIS_HOST
-              value: "{{ .Release.Name }}-redis-master"
-            - name: SPRING_DATA_REDIS_PORT
-              value: "6379"
-            - name: PINPOINT_MODULES_REALTIME_ENABLED
-              value: "true"
-            {{- if .Values.redis.auth.enabled }}
-            - name: SPRING_DATA_REDIS_PASSWORD
+
+            # Metadata Source Configuration
+            - name: SPRING_METADATASOURCE_HIKARI_JDBCURL
+              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
+            - name: SPRING_METADATASOURCE_HIKARI_USERNAME
+              value: "{{ .Values.mysql.auth.username }}"
+            - name: SPRING_METADATASOURCE_HIKARI_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: "{{ .Release.Name }}-redis"
-                  key: redis-password
-            {{- end }}
-            {{- end }}
-            # Web UI Configurations
-            - name: ADMIN_PASSWORD
-              value: {{ .Values.web.config.adminPassword | quote }}
-            - name: CONFIG_SENDUSAGE
-              value: {{ .Values.web.config.sendUsage | quote }}
-            - name: CONFIG_SHOW_APPLICATIONSTAT
-              value: {{ .Values.web.config.showApplicationStat | quote }}
-            # Security Settings
-            {{- if .Values.web.config.security.enable }}
+                  name: "{{ .Release.Name }}-mysql"
+                  key: mysql-password
+
+            # Security Configuration
             - name: PINPOINT_MODULES_WEB_LOGIN
-              value: "true"
+              value: "false"
             - name: WEB_SECURITY_AUTH_USER
-              value: {{ .Values.web.config.security.authUser | quote }}
+              value: ""
             - name: WEB_SECURITY_AUTH_ADMIN
-              value: {{ .Values.web.config.security.authAdmin | quote }}
+              value: ""
             - name: WEB_SECURITY_AUTH_JWT_SECRETKEY
-              value: {{ .Values.web.config.security.jwtSecretKey | quote }}
-            {{- end }}
-          livenessProbe:
-            {{- toYaml .Values.web.livenessProbe | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.web.readinessProbe | nindent 12 }}
+              value: ""
+
           resources:
             {{- toYaml .Values.web.resources | nindent 12 }}
-{{- end }}
 ---
-{{- if .Values.web.enabled }}
 # Web Application Service
 apiVersion: v1
 kind: Service
@@ -133,7 +208,6 @@ spec:
   selector:
     {{- include "pinpoint.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: web
-{{- end }}
 ---
 {{- if .Values.web.ingress.enabled -}}
 # Web Application Ingress
@@ -143,38 +217,17 @@ metadata:
   name: {{ include "pinpoint.fullname" . }}-web
   labels:
     {{- include "pinpoint.labels" . | nindent 4 }}
-    app.kubernetes.io/component: web
-  {{- with .Values.web.ingress.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
 spec:
-  {{- if .Values.web.ingress.ingressClassName }}
-  ingressClassName: {{ .Values.web.ingress.ingressClassName }}
-  {{- end }}
   rules:
-    {{- range .Values.web.ingress.hosts }}
-    - host: {{ .host | quote }}
+    - host: {{ .Values.web.ingress.host }}
       http:
         paths:
-          {{- range .paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
+          - path: {{ .Values.web.ingress.path }}
+            pathType: ImplementationSpecific
             backend:
               service:
-                name: {{ include "pinpoint.fullname" $ }}-web
+                name: {{ include "pinpoint.fullname" . }}-web
                 port:
                   name: http
-          {{- end }}
-    {{- end }}
-  {{- if .Values.web.ingress.tls }}
-  tls:
-    {{- range .Values.web.ingress.tls }}
-    - hosts:
-        {{- range .hosts }}
-        - {{ . | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
-  {{- end }}
+{{- end }}
 {{- end }}
