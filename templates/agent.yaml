@@ -1,0 +1,148 @@
+{{- if .Values.agent.enabled }}
+# Pinpoint Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-agent
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+spec:
+  replicas: {{ .Values.agent.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "pinpoint.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: agent
+  template:
+    metadata:
+      labels:
+        {{- include "pinpoint.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: agent
+    spec:
+      initContainers:
+        - name: wait-for-collector
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-collector {{ .Values.agent.config.transport.agentCollectorPort }}; do echo "Agent is waiting for Collector..."; sleep 2; done;']
+      containers:
+        - name: agent
+          image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag | default .Values.global.pinpointVersion }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          env:
+            # Spring Configuration
+            - name: SPRING_PROFILES
+              value: "{{ .Values.agent.config.springProfiles }}"
+
+            # Collector Configuration
+            - name: COLLECTOR_IP
+              value: "{{ .Values.agent.config.collectorIp | default (printf "%s-collector" (include "pinpoint.fullname" .)) }}"
+
+            # Agent Configuration
+            - name: AGENT_ID
+              value: "{{ .Values.agent.config.agentId }}"
+            - name: APPLICATION_NAME
+              value: "{{ .Values.agent.config.applicationName }}"
+
+            # Transport Configuration
+            - name: PROFILER_TRANSPORT_MODULE
+              value: "{{ .Values.agent.config.transport.module }}"
+            - name: PROFILER_TRANSPORT_AGENT_COLLECTOR_PORT
+              value: "{{ .Values.agent.config.transport.agentCollectorPort }}"
+            - name: PROFILER_TRANSPORT_METADATA_COLLECTOR_PORT
+              value: "{{ .Values.agent.config.transport.metadataCollectorPort }}"
+            - name: PROFILER_TRANSPORT_STAT_COLLECTOR_PORT
+              value: "{{ .Values.agent.config.transport.statCollectorPort }}"
+            - name: PROFILER_TRANSPORT_SPAN_COLLECTOR_PORT
+              value: "{{ .Values.agent.config.transport.spanCollectorPort }}"
+
+            # Sampling Configuration
+            - name: PROFILER_SAMPLING_TYPE
+              value: "{{ .Values.agent.config.sampling.type }}"
+            - name: PROFILER_SAMPLING_COUNTING_SAMPLING_RATE
+              value: "{{ .Values.agent.config.sampling.countingSamplingRate }}"
+            - name: PROFILER_SAMPLING_PERCENT_SAMPLING_RATE
+              value: "{{ .Values.agent.config.sampling.percentSamplingRate }}"
+            - name: PROFILER_SAMPLING_NEW_THROUGHPUT
+              value: "{{ .Values.agent.config.sampling.newThroughput }}"
+            - name: PROFILER_SAMPLING_CONTINUE_THROUGHPUT
+              value: "{{ .Values.agent.config.sampling.continueThroughput }}"
+
+            # Debug Level
+            - name: DEBUG_LEVEL
+              value: "{{ .Values.agent.config.debugLevel }}"
+
+          volumeMounts:
+            - name: agent-data
+              mountPath: /pinpoint-agent
+
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "ps aux | grep -q '[j]ava.*pinpoint' || exit 1"
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "test -f /pinpoint-agent/pinpoint-bootstrap.jar"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+      volumes:
+        - name: agent-data
+          {{- if .Values.agent.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "pinpoint.fullname" . }}-agent-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+
+---
+{{- if .Values.agent.persistence.enabled }}
+# Agent Data PersistentVolumeClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-agent-data
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+spec:
+  accessModes:
+    - {{ .Values.agent.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.agent.persistence.size }}
+{{- end }}
+
+---
+# Agent Service (for potential sidecar usage)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-agent
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "pinpoint.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+{{- end }}

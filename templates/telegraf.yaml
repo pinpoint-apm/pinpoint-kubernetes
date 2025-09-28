@@ -1,0 +1,105 @@
+{{- if and .Values.global.metric.enabled .Values.telegraf.enabled -}}
+# Telegraf Deployment for System Metrics
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-telegraf
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: telegraf
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "pinpoint.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: telegraf
+  template:
+    metadata:
+      labels:
+        {{- include "pinpoint.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: telegraf
+    spec:
+      initContainers:
+        - name: wait-for-collector
+          image: busybox:1.36
+          env:
+            - name: COLLECTOR_SERVICE_NAME
+              value: "{{ include "pinpoint.fullname" . }}-collector.{{ .Release.Namespace }}.svc.cluster.local"
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              echo "Waiting for Collector service to be ready..."
+              echo "Target: ${COLLECTOR_SERVICE_NAME}:9994"
+
+              # Wait for Collector thrift receiver port 9994
+              until nc -z -w5 ${COLLECTOR_SERVICE_NAME} 9994; do
+                echo "Telegraf is waiting for Collector..."
+                sleep 5
+              done
+
+              echo "✓ Collector is ready!"        - name: download-telegraf-config
+          image: curlimages/curl:7.85.0
+          env:
+            - name: COLLECTOR_SERVICE_NAME
+              value: "{{ include "pinpoint.fullname" . }}-collector"
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              echo "Downloading Pinpoint Telegraf configuration..."
+              curl -L -f "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.0.3/metric-module/metric/src/main/telegraf/pinpoint-telegraf.conf" > /shared/telegraf.conf
+
+              if [ ! -s /shared/telegraf.conf ]; then
+                echo "Failed to download config"
+                exit 1
+              fi
+
+              sed -i "s/127.0.0.1/${COLLECTOR_SERVICE_NAME}/g" /shared/telegraf.conf
+              echo "Telegraf configuration ready"
+          volumeMounts:
+            - name: telegraf-shared-config
+              mountPath: /shared
+      containers:
+        - name: telegraf
+          image: telegraf:1.25.0
+          command:
+            - 'telegraf'
+            - '-config'
+            - '/etc/telegraf/telegraf.conf'
+          volumeMounts:
+            - name: telegraf-shared-config
+              mountPath: /etc/telegraf
+              readOnly: true
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+            - name: etc
+              mountPath: /host/etc
+              readOnly: true
+          env:
+            - name: HOST_PROC
+              value: "/host/proc"
+            - name: HOST_SYS
+              value: "/host/sys"
+            - name: HOST_ETC
+              value: "/host/etc"
+          resources:
+            {{- toYaml .Values.telegraf.resources | nindent 12 }}
+      restartPolicy: Always
+      volumes:
+        - name: telegraf-shared-config
+          emptyDir: {}
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: etc
+          hostPath:
+            path: /etc
+{{- end }}

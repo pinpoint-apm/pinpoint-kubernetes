@@ -1,17 +1,16 @@
-# pinpoint-helm-main/Chart.yaml
-
 apiVersion: v2
 name: pinpoint
 description: A Helm chart for deploying Pinpoint APM (Application Performance Management) on Kubernetes.
 type: application
-version: 1.0.0
-appVersion: "2.5.4"
+version: 2.0.0
+appVersion: "3.0.3"
 
 keywords:
   - apm
   - pinpoint
   - monitoring
   - performance
+  - metrics
 
 home: https://github.com/pinpoint-apm/pinpoint-kubernetes
 sources:
@@ -22,17 +21,32 @@ maintainers:
     email: thesadson@gmail.com
 
 dependencies:
+  # Shared and central Zookeeper for Kafka and Pinot
   - name: zookeeper
     version: "13.8.7"
     repository: "https://charts.bitnami.com/bitnami"
     condition: zookeeper.enabled
 
+  # Database required by Pinpoint Web/Batch modules
   - name: mysql
     version: "14.0.3"
     repository: "https://charts.bitnami.com/bitnami"
     condition: mysql.enabled
 
+  # Required for Pinpoint 3.x functionalities
   - name: redis
     version: "22.0.7"
     repository: "https://charts.bitnami.com/bitnami"
     condition: redis.enabled
+
+  # CORRECT: Condition points directly to the boolean value in values.yaml
+  - name: kafka
+    version: "32.4.3"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: global.metric.enabled
+
+  # CORRECT: Condition points directly to the boolean value in values.yaml
+  - name: pinot
+    version: "0.3.4"
+    repository: "https://raw.githubusercontent.com/apache/pinot/master/helm"
+    condition: global.metric.enabled

@@ -1,18 +1,4 @@
 {{- if .Values.quickstart.enabled }}
-# ConfigMap for Quickstart Agent's custom configuration
-# This ConfigMap provides the correct collector IP to the agent.
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "pinpoint.fullname" . }}-quickstart-agent-config
-  labels:
-    {{- include "pinpoint.labels" . | nindent 4 }}
-data:
-  custom-agent.config: |-
-    profiler.transport.grpc.collector.ip={{ include "pinpoint.fullname" . }}-collector
-    profiler.collector.ip={{ include "pinpoint.fullname" . }}-collector
-
----
 # Quickstart Application Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -33,20 +19,17 @@ spec:
         {{- include "pinpoint.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: quickstart
     spec:
-      # This initContainer ONLY copies the pinpoint-agent files.
-      # Configuration is now handled by the ConfigMap.
       initContainers:
         - name: pinpoint-agent-init
           image: "{{ .Values.quickstart.agentImage.repository }}:{{ .Values.quickstart.agentImage.tag | default .Values.global.pinpointVersion }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
-          command: ['sh', '-c', 'echo "Copying pinpoint-agent files..."; cp -r /pinpoint-agent/. /agent; echo "Copy complete."']
+          command: ['sh', '-c', 'cp -r /pinpoint-agent/. /agent']
           volumeMounts:
             - name: agent-volume
               mountPath: /agent
-        # This initContainer waits for the Pinpoint Collector to be ready before starting the app.
         - name: wait-for-collector
           image: busybox:1.36
-          command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-collector {{ .Values.collector.service.ports.grpcAgent }}; do echo "Waiting for pinpoint-collector..."; sleep 2; done;']
+          command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-collector {{ .Values.collector.service.ports.grpcAgent }}; do echo "Quickstart is waiting for pinpoint-collector..."; sleep 2; done;']
       containers:
         - name: quickstart
           image: "{{ .Values.quickstart.image.repository }}:{{ .Values.quickstart.image.tag | default .Values.global.pinpointVersion }}"
@@ -56,27 +39,25 @@ spec:
               containerPort: 8080
               protocol: TCP
           env:
-            # JAVA_OPTS now includes a pointer to the custom config file.
-            - name: JAVA_OPTS
+            # Inject all parameters directly into the JVM using system properties (-D flags).
+            # This is the most reliable method and bypasses config file issues.
+            - name: JAVA_TOOL_OPTIONS
               value: >-
                 -javaagent:/agent/pinpoint-bootstrap.jar
                 -Dpinpoint.agentId={{ .Values.quickstart.agentId }}
                 -Dpinpoint.applicationName={{ .Values.quickstart.applicationName }}
-                -Dpinpoint.profiler.profiles.active={{ .Values.collector.config.springProfiles }}
-                -Dpinpoint.config=/agent-config/custom-agent.config
+                -Dprofiler.transport.grpc.collector.ip={{ include "pinpoint.fullname" . }}-collector
+                -Dprofiler.transport.grpc.agent.port={{ .Values.collector.service.ports.grpcAgent }}
+                -Dprofiler.transport.grpc.stat.port={{ .Values.collector.service.ports.grpcStat }}
+                -Dprofiler.transport.grpc.span.port={{ .Values.collector.service.ports.grpcSpan }}
           volumeMounts:
             - name: agent-volume
               mountPath: /agent
-            - name: agent-config-volume
-              mountPath: /agent-config
           resources:
             {{- toYaml .Values.quickstart.resources | nindent 12 }}
       volumes:
         - name: agent-volume
           emptyDir: {}
-        - name: agent-config-volume
-          configMap:
-            name: {{ include "pinpoint.fullname" . }}-quickstart-agent-config
 ---
 # Quickstart Application Service
 apiVersion: v1

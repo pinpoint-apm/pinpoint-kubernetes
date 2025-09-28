@@ -21,6 +21,11 @@ spec:
         app.kubernetes.io/component: hbase
     spec:
       terminationGracePeriodSeconds: 10
+      initContainers:
+        # Wait for Zookeeper to be ready
+        - name: wait-for-zookeeper
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-zookeeper 2181; do echo "HBase is waiting for Zookeeper..."; sleep 2; done;']
       volumes:
         - name: hbase-config-volume
           configMap:
@@ -28,7 +33,7 @@ spec:
             defaultMode: 0755
       containers:
         - name: hbase
-          image: "{{ .Values.hbase.image.repository }}:{{ .Values.global.pinpointVersion }}"
+          image: "{{ .Values.hbase.image.repository }}:{{ .Values.hbase.image.tag | default .Values.global.pinpointVersion }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           ports:
             - containerPort: 60000
@@ -42,6 +47,11 @@ spec:
           env:
             - name: HBASE_MANAGES_ZK
               value: {{ .Values.hbase.config.managesZk | quote }}
+            # ZooKeeper Configuration (external ZooKeeper)
+            - name: HBASE_ZOOKEEPER_QUORUM
+              value: "{{ .Release.Name }}-zookeeper"
+            - name: HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT
+              value: "2181"
             {{- range $key, $val := .Values.hbase.config.ttl }}
             - name: {{ $key }}
               value: {{ $val | quote }}
@@ -50,7 +60,7 @@ spec:
             - name: hbase-data
               mountPath: /home/pinpoint/hbase
             - name: hbase-config-volume
-              mountPath: /opt/hbase/hbase-1.2.6/conf/hbase-site.xml
+              mountPath: /opt/hbase/hbase-2.2.6/conf/hbase-site.xml
               subPath: hbase-site.xml
           livenessProbe:
             {{- toYaml .Values.hbase.livenessProbe | nindent 12 }}
@@ -125,7 +135,7 @@ data:
             <value>{{- $zkHeadless := printf "%s-zookeeper-headless" .Release.Name -}}
                    {{- $zkReplicaCount := .Values.zookeeper.replicaCount | int -}}
                    {{- range $i, $e := until $zkReplicaCount -}}
-                     {{- printf "%s-zookeeper-%d.%s" $.Release.Name $i $zkHeadless -}}
+                     {{- printf "%s-zookeeper-%d.%s.%s.svc.cluster.local" $.Release.Name $i $zkHeadless $.Release.Namespace -}}
                      {{- if (lt $i (sub $zkReplicaCount 1)) -}},{{- end -}}
                    {{- end -}}
             </value>

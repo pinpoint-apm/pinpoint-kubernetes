@@ -19,9 +19,46 @@ spec:
         {{- include "pinpoint.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: collector
     spec:
+      initContainers:
+        # Wait for HBase - always required
+        {{- if .Values.hbase.enabled }}
+        - name: wait-for-hbase
+          image: busybox:1.36
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              HBASE_POD_DNS="{{ include "pinpoint.fullname" . }}-hbase-0.{{ include "pinpoint.fullname" . }}-hbase.{{ .Release.Namespace }}.svc.cluster.local"
+
+              # Wait for HBase to be ready
+              until nc -z -w5 $HBASE_POD_DNS 16010; do
+                echo "Collector is waiting for HBase..."
+                sleep 5
+              done
+
+              echo "HBase is ready!"
+        {{- end }}
+
+        {{- if .Values.global.metric.enabled }}
+        # Wait for Kafka only when metric profile is enabled.
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-kafka 9092; do echo "Collector is waiting for Kafka..."; sleep 2; done;']
+
+        # Wait for Pinot Controller only when metric profile is enabled.
+        - name: wait-for-pinot-controller
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-pinot-controller 9000; do echo "Collector is waiting for Pinot Controller..."; sleep 2; done;']
+        {{- end }}
+
       containers:
         - name: collector
-          image: "{{ .Values.collector.image.repository }}:{{ .Values.global.pinpointVersion }}"
+          # Dynamically set the image tag based on the metric profile
+          {{- $imageTag := .Values.collector.image.tag | default .Values.global.pinpointVersion }}
+          {{- if .Values.global.metric.enabled }}
+            {{- $imageTag = printf "%s-metric" ($imageTag | default .Values.global.pinpointVersion) }}
+          {{- end }}
+          image: "{{ .Values.collector.image.repository }}:{{ $imageTag }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           ports:
             - name: grpc-agent
@@ -38,44 +75,80 @@ spec:
             - name: udp-span
               containerPort: 9996
               protocol: UDP
+            {{- if .Values.global.metric.enabled }}
+            - name: metric-port
+              containerPort: 15200
+            {{- end }}
           env:
+            # Dynamically set the Spring profile
             - name: SPRING_PROFILES_ACTIVE
-              value: {{ .Values.collector.config.springProfiles }}
+              {{- if .Values.global.metric.enabled }}
+              value: "{{ .Values.collector.config.springProfiles }},metric"
+              {{- else }}
+              value: {{ .Values.collector.config.springProfiles | quote }}
+              {{- end }}
             - name: CLUSTER_ENABLE
               value: {{ .Values.collector.config.cluster.enable | quote }}
             - name: LOGGING_LEVEL_ROOT
               value: {{ .Values.collector.config.loggingLevel }}
-            - name: FLINK_CLUSTER_ENABLE
-              value: {{ .Values.collector.config.flink.enable | quote }}
             - name: PINPOINT_ZOOKEEPER_ADDRESS
               value: "{{ .Release.Name }}-zookeeper"
-            - name: FLINK_CLUSTER_ZOOKEEPER_ADDRESS
+            # HBase Connection Settings
+            {{- if .Values.hbase.enabled }}
+            - name: HBASE_HOST
+              value: "{{ .Release.Name }}-hbase"
+            - name: HBASE_PORT
+              value: "60000"
+            - name: HBASE_ZOOKEEPER_QUORUM
               value: "{{ .Release.Name }}-zookeeper"
-            # Redis Connection Settings - only added if Redis is enabled
+            {{- end }}
+            # Add Kafka and Pinot configurations only when metric profile is active
+            {{- if .Values.global.metric.enabled }}
+            - name: PINPOINT_METRIC_KAFKA_BOOTSTRAP_SERVERS
+              value: "{{ .Release.Name }}-kafka:9092"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "{{ .Release.Name }}-kafka:9092"
+            - name: SPRING_PINOTDATASOURCE_PINOT_JDBCURL
+              value: "jdbc:pinot://{{ .Release.Name }}-pinot-controller:9000"
+            - name: PINPOINT_PINOT_JDBC_URL
+              value: "jdbc:pinot://{{ .Release.Name }}-pinot-controller:9000"
+            # Remove empty username and password as Pinot driver doesn't accept empty strings
+            {{- end }}
+            # Disable OTLP metrics in both metric enabled and disabled modes
+            - name: MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED
+              value: "false"
+            - name: MANAGEMENT_METRICS_EXPORT_OTLP_ENABLED
+              value: "false"
+            # Redis Connection Settings
             {{- if .Values.redis.enabled }}
             - name: SPRING_DATA_REDIS_HOST
               value: "{{ .Release.Name }}-redis-master"
             - name: SPRING_DATA_REDIS_PORT
               value: "6379"
-            - name: PINPOINT_MODULES_REALTIME_ENABLED
-              value: {{ .Values.collector.realtime.enabled | quote }}
+            - name: SPRING_DATA_REDIS_USERNAME
+              value: ""
             {{- if .Values.redis.auth.enabled }}
             - name: SPRING_DATA_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: "{{ .Release.Name }}-redis"
                   key: redis-password
+            {{- else }}
+            - name: SPRING_DATA_REDIS_PASSWORD
+              value: ""
             {{- end }}
             {{- end }}
-          livenessProbe:
-            {{- toYaml .Values.collector.livenessProbe | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.collector.readinessProbe | nindent 12 }}
+
+            # Additional Collector Configuration (matching Docker Compose)
+            {{- if not .Values.global.metric.enabled }}
+            - name: FLINK_CLUSTER_ENABLE
+              value: "true"
+            - name: FLINK_CLUSTER_ZOOKEEPER_ADDRESS
+              value: "{{ .Release.Name }}-zookeeper"
+            {{- end }}
           resources:
             {{- toYaml .Values.collector.resources | nindent 12 }}
-{{- end }}
 ---
-{{- if .Values.collector.enabled }}
 # Collector Application Service
 apiVersion: v1
 kind: Service
@@ -100,17 +173,23 @@ spec:
       targetPort: grpc-span
       protocol: TCP
     - name: thrift-receiver
-      port: {{ .Values.collector.service.ports.thriftReceiver }}
+      port: 9994
       targetPort: thrift-rcv
       protocol: TCP
     - name: udp-stat
-      port: {{ .Values.collector.service.ports.udpStat }}
+      port: 9995
       targetPort: udp-stat
       protocol: UDP
     - name: udp-span
-      port: {{ .Values.collector.service.ports.udpSpan }}
+      port: 9996
       targetPort: udp-span
       protocol: UDP
+    {{- if .Values.global.metric.enabled }}
+    - name: metric-port
+      port: 15200
+      targetPort: metric-port
+      protocol: TCP
+    {{- end }}
   selector:
     {{- include "pinpoint.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: collector

@@ -1,230 +1,449 @@
-# pinpoint-helm-main/values.yaml
+# ========================================================================
+# PINPOINT APM HELM CHART CONFIGURATION
+# ========================================================================
+# Production-ready configuration for Pinpoint Application Performance Monitoring
+#
+# This chart supports two deployment modes:
+# - Classic Mode (metric.enabled: false): Traditional APM with Batch + Flink processing
+# - Modern Mode (metric.enabled: true): Real-time analytics with Kafka + Pinot + Telegraf
+#
+# For production deployments, review resource limits, persistence, and security settings.
+# ========================================================================
 
 # ========================================================================
-# Global Settings
+# Global Configuration
 # ========================================================================
 global:
-  # Update to the latest stable version from Docker Hub
-  pinpointVersion: "2.5.4"
+  # Pinpoint version - ensure all components use the same version
+  pinpointVersion: "3.0.3"
   image:
+    # Image pull policy - use IfNotPresent for production to reduce registry load
     pullPolicy: IfNotPresent
-
-# ========================================================================
-# Subchart (Dependency) Configurations
-# ========================================================================
-
-# Bitnami Zookeeper Subchart Values
-zookeeper:
-  enabled: true
-  replicaCount: 3
-  auth:
-    enabled: false
-  persistence:
-    enabled: true
-    size: 2Gi
-
-# Bitnami MySQL Subchart Values
-mysql:
-  enabled: true
-  # Force the chart to use a specific MySQL 8.0.x image
-  image:
-    repository: "bitnami/mysql"
-    tag: "8.0.28-debian-10-r81"
-  auth:
-    database: "pinpoint"
-    username: "pinpoint_user"
-    password: "pinpoint"
-    rootPassword: "mysql"
-  primary:
-    persistence:
-      size: 10Gi
-
-# Bitnami Redis Subchart Values
-redis:
-  # Enabled only for Pinpoint v3.0.0+ with the realtime module activated.
-  enabled: false
-  architecture: standalone
-  auth:
-    enabled: true
+  # Deployment mode selector
+  # metric.enabled: true  = Modern stack (Kafka + Pinot + real-time analytics)
+  # metric.enabled: false = Classic stack (Batch + Flink + traditional processing)
+  metric:
+    enabled: true  # DEFAULT: Modern mode for new deployments
 
 # ========================================================================
 # Pinpoint Component Configurations
 # ========================================================================
 
-# Pinpoint Web UI configuration
+# ========================================================================
+# PINPOINT CORE COMPONENTS
+# ========================================================================
+
+# Pinpoint Web UI - Management dashboard and application monitoring interface
 web:
   enabled: true
-  replicaCount: 1
+  replicaCount: 1  # Scale horizontally for high availability
   image:
     repository: "pinpointdocker/pinpoint-web"
+    tag: ""  # Defaults to global.pinpointVersion, automatically adds "-metric" suffix when needed
+  config:
+    # Spring profiles - additional profiles can be added (e.g., "release,custom")
+    springProfiles: "release"
+  # Resource limits - IMPORTANT: Set appropriate limits for production
+  resources: {}
+  # Example production resources:
+  # resources:
+  #   limits:
+  #     cpu: 2
+  #     memory: 2Gi
+  #   requests:
+  #     cpu: 1
+  #     memory: 1Gi
+  service:
+    type: ClusterIP  # Use LoadBalancer or NodePort for external access
+    port: 8080
+  # Ingress configuration for external access
+  ingress:
+    enabled: false  # Enable for production external access
+    ingressClassName: "nginx"
+    hosts:
+      - host: "pinpoint.localdev.me"  # CHANGE: Use your production domain
+        paths:
+          - path: "/"
+            pathType: "ImplementationSpecific"
+    # Add TLS configuration for production:
+    # tls:
+    #   - secretName: pinpoint-tls
+    #     hosts:
+    #       - pinpoint.yourdomain.com
+
+# HBase - Primary data storage for trace and performance data
+hbase:
+  enabled: true  # Required for both classic and metric modes
+  image:
+    repository: "pinpointdocker/pinpoint-hbase"
+    tag: ""  # Defaults to global.pinpointVersion
+  # Persistent storage - CRITICAL for production data retention
+  persistence:
+    enabled: true
+    size: 10Gi  # PRODUCTION: Increase based on data retention requirements (50Gi+ recommended)
+    # storageClass: "fast-ssd"  # Use high-performance storage class
+  config:
+    # External ZooKeeper recommended for production
+    managesZk: false  # Uses external ZooKeeper cluster
+    # Data retention policies (seconds) - tune based on requirements
+    ttl:
+      AGENTINFO_TTL: "86400"        # 1 day - agent information
+      AGENTSTATV2_TTL: "604800"     # 7 days - agent statistics
+      APPSTATAGGRE_TTL: "604800"    # 7 days - application stats aggregation
+      APPINDEX_TTL: "86400"         # 1 day - application index
+      AGENTLIFECYCLE_TTL: "604800"  # 7 days - agent lifecycle events
+      AGENTEVENT_TTL: "604800"      # 7 days - agent events
+      STRINGMETADATA_TTL: "2592000" # 30 days - string metadata
+      APIMETADATA_TTL: "2592000"    # 30 days - API metadata
+      SQLMETADATA_TTL: "2592000"    # 30 days - SQL metadata
+      TRACEV2_TTL: "604800"         # 7 days - trace data
+      APPTRACEINDEX_TTL: "604800"   # 7 days - trace index
+      APPMAPSTATCALLERV2_TTL: "604800"  # 7 days - application map caller stats
+      APPMAPSTATCALLEV2_TTL: "604800"   # 7 days - application map callee stats
+      APPMAPSTATSELFV2_TTL: "604800"    # 7 days - application map self stats
+      HOSTAPPMAPV2_TTL: "604800"        # 7 days - host application map
+  # Health checks - fine-tuned for HBase startup time
   livenessProbe:
     httpGet:
       path: /
-      port: http
-    initialDelaySeconds: 60
-    periodSeconds: 15
-    timeoutSeconds: 5
-    failureThreshold: 6
+      port: 16010
+    initialDelaySeconds: 180  # HBase takes time to initialize
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
   readinessProbe:
     httpGet:
       path: /
-      port: http
-    initialDelaySeconds: 15
-    periodSeconds: 15
+      port: 16010
+    initialDelaySeconds: 60
+    periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
-  config:
-    springProfiles: "release"
-    adminPassword: "admin"
-    sendUsage: false
-    showApplicationStat: true
-    security:
-      enable: false
-      authUser: "user"
-      authAdmin: "admin"
-      jwtSecretKey: ""
-  resources:
-    requests:
-      cpu: "500m"
-      memory: "1Gi"
-    limits:
-      cpu: "2"
-      memory: "4Gi"
-  service:
-    type: ClusterIP
-    port: 8080
-  ingress:
-    enabled: false
-    ingressClassName: ""
-    annotations: {}
-    hosts:
-      - host: pinpoint.local
-        paths:
-          - path: /
-            pathType: ImplementationSpecific
-    tls: []
+  # Resource allocation - IMPORTANT for HBase performance
+  resources: {}
+  # Production example:
+  # resources:
+  #   limits:
+  #     cpu: 4
+  #     memory: 8Gi
+  #   requests:
+  #     cpu: 2
+  #     memory: 4Gi
 
-# Pinpoint HBase configuration
-hbase:
-  enabled: true
-  image:
-    repository: "pinpointdocker/pinpoint-hbase"
-  persistence:
-    enabled: true
-    size: 20Gi
-  config:
-    managesZk: false
-    ttl:
-      AGENTINFO_TTL: "86400"
-      AGENTSTATV2_TTL: "604800"
-      APPSTATAGGRE_TTL: "604800"
-      APPINDEX_TTL: "86400"
-      AGENTLIFECYCLE_TTL: "604800"
-      AGENTEVENT_TTL: "604800"
-      STRINGMETADATA_TTL: "2592000"
-      APIMETADATA_TTL: "2592000"
-      SQLMETADATA_TTL: "2592000"
-      TRACEV2_TTL: "604800"
-      APPTRACEINDEX_TTL: "604800"
-      APPMAPSTATCALLERV2_TTL: "604800"
-      APPMAPSTATCALLEV2_TTL: "604800"
-      APPMAPSTATSELFV2_TTL: "604800"
-      HOSTAPPMAPV2_TTL: "604800"
-
-
-# Pinpoint Collector configuration
+# Pinpoint Collector - Receives and processes data from agents
 collector:
   enabled: true
-  replicaCount: 2
+  replicaCount: 1  # Scale based on agent load - typically 1 collector per 100-500 agents
   image:
     repository: "pinpointdocker/pinpoint-collector"
+    tag: ""  # Auto-adds "-metric" suffix when metric mode enabled
   config:
-    springProfiles: "release"
-    loggingLevel: "INFO"
+    springProfiles: "release"  # Environment-specific profiles
+    loggingLevel: "INFO"       # Use WARN or ERROR for production to reduce log volume
     cluster:
-      enable: true
-    flink:
-      # Set this to true if deploying the Flink module
-      enable: false
-  # Enable this for Pinpoint v3.0.0+ to use the realtime module with Redis
-  realtime:
-    enabled: false
-  resources:
-    requests:
-      cpu: "1"
-      memory: "2Gi"
-    limits:
-      cpu: "2"
-      memory: "2Gi"
+      enable: true  # Enable clustering for multiple collector instances
+  # Resource allocation - scale based on expected agent connections
+  resources: {}
+  # Production sizing guide:
+  # - Small (< 100 agents): cpu: 1, memory: 2Gi
+  # - Medium (< 500 agents): cpu: 2, memory: 4Gi
+  # - Large (> 500 agents): cpu: 4, memory: 8Gi
   service:
     type: ClusterIP
     ports:
-      grpcAgent: 9991
-      grpcStat: 9992
-      grpcSpan: 9993
-      thriftReceiver: 9994
-      udpStat: 9995
-      udpSpan: 9996
+      grpcAgent: 9991  # Primary agent connection port
+      grpcStat: 9992   # Statistics collection
+      grpcSpan: 9993   # Span/trace data
 
-# Pinpoint Quickstart Test Application
+# Demo application - provides sample data for testing and demonstration
 quickstart:
-  enabled: true
+  enabled: true   # Enable to see Pinpoint in action with sample application data
+  # Configuration kept for development/testing environments
   image:
     repository: "pinpointdocker/pinpoint-quickstart"
+    tag: "2.5.4"
   agentImage:
     repository: "pinpointdocker/pinpoint-agent"
-    tag: "" # Defaults to global.pinpointVersion
-  agentId: "quickstart-id"
-  applicationName: "QUICKSTART_APP"
+    tag: ""
+  agentId: "demo-app-agent"
+  applicationName: "PINPOINT_DEMO_APP"
   service:
     type: ClusterIP
     port: 8080
   resources: {}
-    # requests:
-    #   cpu: "100m"
-    #   memory: "256Mi"
-    # limits:
-    #   cpu: "500m"
-    #   memory: "512Mi"
 
-# Pinpoint Batch (Alarm) Module
+# System metrics collection - only active in metric mode
+telegraf:
+  enabled: true  # Automatically controlled by global.metric.enabled
+  resources: {}
+  # Production resources:
+  # resources:
+  #   limits:
+  #     cpu: 200m
+  #     memory: 256Mi
+  #   requests:
+  #     cpu: 100m
+  #     memory: 128Mi
+
+# Batch processing - only active in classic mode (metric.enabled: false)
 batch:
-  enabled: false
+  enabled: true  # Automatically disabled when global.metric.enabled: true
   replicaCount: 1
   image:
     repository: "pinpointdocker/pinpoint-batch"
-    tag: "" # Defaults to global.pinpointVersion
+    tag: ""
   config:
     springProfiles: "release,batch"
     loggingLevel: "INFO"
+    adminPassword: "admin"  # PRODUCTION: Change default password
     pinpointWebUrl: "http://{{ .Release.Name }}-web:8080"
-    mail:
-      host: ""
-      port: "587"
-      username: ""
-      # It's recommended to create a secret with the password and reference it here
-      # kubectl create secret generic my-mail-secret --from-literal=password='MY_PASSWORD'
-      existingSecret: "" # e.g., "my-mail-secret"
-      existingSecretKey: "password"
+  # Email alerting configuration - configure for production notifications
+  mail:
+    enabled: false  # Enable for production alerting
+    host: "smtp.gmail.com"      # CHANGE: Use your SMTP server
+    port: "587"
+    username: "your-email@gmail.com"  # CHANGE: Service account email
+    existingSecret: "pinpoint-mail-secret"  # Create secret with SMTP credentials
+    existingSecretKey: "password"
   resources: {}
-    # requests:
-    #   cpu: "200m"
-    #   memory: "512Mi"
 
-# Pinpoint Flink (Inspector) Module
+# Stream processing - only active in classic mode
 flink:
-  enabled: false
+  enabled: true  # Automatically disabled when global.metric.enabled: true
   image:
     repository: "pinpointdocker/pinpoint-flink"
-    tag: "" # Defaults to global.pinpointVersion
+    tag: ""
   jobmanager:
     resources: {}
-      # requests:
-      #   cpu: "500m"
-      #   memory: "1Gi"
+    # Production JobManager resources:
+    # resources:
+    #   limits:
+    #     cpu: 1
+    #     memory: 2Gi
+    #   requests:
+    #     cpu: 500m
+    #     memory: 1Gi
   taskmanager:
-    replicaCount: 1
+    replicaCount: 1  # Scale based on processing requirements
     resources: {}
-      # requests:
-      #   cpu: "1"
-      #   memory: "2Gi"
+    # Production TaskManager resources:
+    # resources:
+    #   limits:
+    #     cpu: 2
+    #     memory: 4Gi
+    #   requests:
+    #     cpu: 1
+    #     memory: 2Gi
+
+# Pinpoint Agent - Usually deployed as sidecar with applications
+# Disabled by default for production - deploy with your applications instead
+agent:
+  enabled: false  # PRODUCTION: Deploy agents as sidecars with your applications
+  replicaCount: 1
+  image:
+    repository: "pinpointdocker/pinpoint-agent"
+    tag: ""  # Defaults to global.pinpointVersion
+  config:
+    springProfiles: "release"
+    collectorIp: ""  # Auto-detects collector service if empty
+    agentId: "pinpoint-agent"        # CHANGE: Use unique agent ID per application
+    applicationName: "pinpoint-app"  # CHANGE: Use your application name
+    # Sampling configuration - tune for performance vs accuracy
+    sampling:
+      type: "PERCENT"           # PERCENT or COUNTING
+      countingSamplingRate: 1   # Every Nth request (when type=COUNTING)
+      percentSamplingRate: 100  # Percentage of requests (when type=PERCENT) - reduce for high-traffic apps
+      newThroughput: 0          # New trace sampling throughput
+      continueThroughput: 0     # Continue trace sampling throughput
+    # Transport configuration - matches collector service ports
+    transport:
+      module: "GRPC"              # GRPC recommended for production
+      agentCollectorPort: 9991    # Must match collector service port
+      metadataCollectorPort: 9992
+      statCollectorPort: 9993
+      spanCollectorPort: 9994
+    debugLevel: "INFO"  # Use WARN or ERROR for production
+  # Persistent storage for agent data
+  persistence:
+    enabled: true
+    size: 1Gi  # Increase for high-traffic applications
+    accessMode: ReadWriteOnce
+  resources: {}
+  # Agent resource sizing (per agent instance):
+  # resources:
+  #   limits:
+  #     cpu: 200m
+  #     memory: 512Mi
+  #   requests:
+  #     cpu: 100m
+  #     memory: 256Mi
+
+# ========================================================================
+# EXTERNAL DEPENDENCIES & INFRASTRUCTURE
+# ========================================================================
+
+# MySQL - Primary database for web interface and batch jobs
+mysql:
+  enabled: true
+  image:
+    repository: "bitnami/mysql"
+    tag: "8.0.35-debian-11-r0"  # Use stable, tested version
+  # Database credentials - PRODUCTION: Use strong passwords and external secrets
+  auth:
+    database: "pinpoint"          # Database name
+    username: "pinpoint_user"     # Application user
+    password: "pinpoint"          # CHANGE: Use strong password
+    rootPassword: "mysql"        # CHANGE: Use strong root password
+    # For production, create secret externally:
+    # existingSecret: "mysql-credentials"
+  primary:
+    # Persistent storage - CRITICAL for production
+    persistence:
+      size: 10Gi  # PRODUCTION: Size based on expected data volume (100Gi+ recommended)
+      # storageClass: "fast-ssd"  # Use high-performance storage
+    resources: {}
+    # Production MySQL resources:
+    # resources:
+    #   limits:
+    #     cpu: 2
+    #     memory: 4Gi
+    #   requests:
+    #     cpu: 1
+    #     memory: 2Gi
+
+# ZooKeeper - Coordination service for Kafka, Pinot, and HBase
+zookeeper:
+  enabled: true
+  replicaCount: 3  # High availability cluster - do not reduce for production
+  # Authentication - enable for production security
+  auth:
+    enabled: false  # PRODUCTION: Enable with proper credentials
+    # serverUsers: "pinpoint"
+    # serverPasswords: "pinpoint123"
+    # clientUser: "pinpoint"
+    # clientPassword: "pinpoint123"
+  # Persistent storage - ESSENTIAL for ZooKeeper reliability
+  persistence:
+    enabled: true
+    size: 2Gi  # ZooKeeper has minimal storage needs
+  resources: {}
+  # Production ZooKeeper resources (per instance):
+  # resources:
+  #   limits:
+  #     cpu: 500m
+  #     memory: 1Gi
+  #   requests:
+  #     cpu: 250m
+  #     memory: 512Mi
+
+# Redis - Caching and session storage for Pinpoint 3.x
+redis:
+  enabled: true
+  architecture: standalone  # Use sentinel for production HA
+  # Authentication - PRODUCTION: Always enable
+  auth:
+    enabled: true  # PRODUCTION: Keep enabled
+    # password: "redis123"  # CHANGE: Use strong password
+    # existingSecret: "redis-credentials"
+  master:
+    # Persistent storage for Redis data
+    persistence:
+      size: 10Gi  # Size based on cache requirements
+    resources: {}
+    # Production Redis resources:
+    # resources:
+    #   limits:
+    #     cpu: 1
+    #     memory: 2Gi
+    #   requests:
+    #     cpu: 500m
+    #     memory: 1Gi
+
+# Kafka - Message streaming platform (only deployed when global.metric.enabled: true)
+# Controlled by global.metric.enabled in Chart.yaml
+kafka:
+  # Security configuration - PRODUCTION: Enable authentication
+  auth:
+    clientProtocol: "PLAINTEXT"      # CHANGE: Use SASL_SSL for production
+    interBrokerProtocol: "PLAINTEXT" # CHANGE: Use SASL_SSL for production
+    sasl:
+      enabled: false  # PRODUCTION: Enable SASL authentication
+      # mechanisms: ["PLAIN"]
+      # users:
+      #   - pinpoint
+      # passwords:
+      #   - pinpoint123
+  listeners:
+    client:
+      protocol: "PLAINTEXT"      # CHANGE: Use SASL_SSL for production
+    interbroker:
+      protocol: "PLAINTEXT"      # CHANGE: Use SASL_SSL for production
+  # Kafka Controller configuration
+  controller:
+    replicaCount: 3  # High availability - maintain 3 controllers
+    resources: {}
+    persistence:
+      enabled: true
+      size: 5Gi  # Controller metadata storage
+  # Kafka Broker configuration
+  broker:
+    replicaCount: 1  # PRODUCTION: Scale to 3+ for high availability
+    resources: {}
+    # Production broker resources (per broker):
+    # resources:
+    #   limits:
+    #     cpu: 2
+    #     memory: 4Gi
+    #   requests:
+    #     cpu: 1
+    #     memory: 2Gi
+    persistence:
+      enabled: true
+      size: 5Gi  # PRODUCTION: Size based on message retention requirements (50Gi+ recommended)
+  # ZooKeeper integration - using external shared ZooKeeper
+  zookeeper:
+    enabled: false  # Using shared ZooKeeper instance
+  externalZookeeper:
+    servers:
+      - "pinpoint-zookeeper"  # Shared ZooKeeper service
+  resources: {}
+
+# Apache Pinot - Real-time analytics database (only deployed when global.metric.enabled: true)
+# Controlled by global.metric.enabled in Chart.yaml
+pinot:
+  cluster:
+    name: "pinpoint-cluster"
+  # ZooKeeper integration - using shared ZooKeeper
+  zookeeper:
+    enabled: false  # Using shared ZooKeeper instance
+    urlOverride: "pinpoint-zookeeper:2181"
+  # Pinot Server - data storage and processing
+  server:
+    replicas: 1  # PRODUCTION: Scale based on data volume
+    resources: {}
+    # Production server resources (per instance):
+    # resources:
+    #   limits:
+    #     cpu: 4
+    #     memory: 8Gi
+    #   requests:
+    #     cpu: 2
+    #     memory: 4Gi
+    persistence:
+      enabled: true
+      size: 10Gi  # PRODUCTION: Size based on analytics data retention (100Gi+ recommended)
+  # Pinot Controller - cluster management
+  controller:
+    replicas: 1  # PRODUCTION: Scale to 2+ for high availability
+    resources: {}
+    persistence:
+      enabled: true
+      size: 5Gi  # Controller metadata
+  # Pinot Broker - query processing
+  broker:
+    replicas: 1  # PRODUCTION: Scale based on query load
+    resources: {}
+  # Pinot Minion - task execution
+  minion:
+    replicas: 1  # Scale based on background task requirements
+    resources: {}

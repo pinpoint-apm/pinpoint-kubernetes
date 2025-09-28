@@ -1,0 +1,151 @@
+{{- if .Values.mysql.enabled }}
+# Job to run and VERIFY the database initialization
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-mysql-init
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+  annotations:
+    # This hook runs the Job ONLY after a fresh installation.
+    "helm.sh/hook": post-install
+    # Production mode: Delete successful jobs, keep failed ones
+    # "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-timeout": "600s"
+spec:
+  # Increase backoff limit and add active deadline
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 180
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      name: {{ .Release.Name }}-mysql-init
+      labels:
+        {{- include "pinpoint.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: download-sql-scripts
+          image: busybox:1.36
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              set -e
+              echo "Downloading SQL scripts from GitHub..."
+
+              # Download SQL files from Pinpoint GitHub repository
+              echo "Downloading CreateTableStatement-mysql.sql..."
+              if ! wget -q -O /shared/create-tables.sql "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/web/src/main/resources/sql/CreateTableStatement-mysql.sql"; then
+                echo "❌ Failed to download CreateTableStatement-mysql.sql"
+                exit 1
+              fi
+
+              echo "Downloading SpringBatchJobRepositorySchema-mysql.sql..."
+              if ! wget -q -O /shared/create-batch-tables.sql "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/web/src/main/resources/sql/SpringBatchJobRepositorySchema-mysql.sql"; then
+                echo "❌ Failed to download SpringBatchJobRepositorySchema-mysql.sql"
+                exit 1
+              fi
+
+              # Validate downloaded files
+              if [ ! -s /shared/create-tables.sql ] || [ ! -s /shared/create-batch-tables.sql ]; then
+                echo "❌ Downloaded SQL files are empty"
+                exit 1
+              fi
+
+              echo "✅ SQL scripts downloaded successfully"
+          volumeMounts:
+            - name: sql-scripts
+              mountPath: /shared
+
+        - name: wait-for-mysql
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-mysql"
+                  key: mysql-root-password
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              echo "MYSQL Init Job: Waiting for MySQL database to be ready..."
+
+              # Wait for MySQL to respond to ping
+              until mysqladmin ping -h {{ .Release.Name }}-mysql --user=root -p$MYSQL_ROOT_PASSWORD --silent; do
+                echo "MYSQL Init Job: Waiting for MySQL..."
+                sleep 5
+              done
+
+              # Ensure the target database exists and is ready
+              until mysql -h {{ .Release.Name }}-mysql -u root -p$MYSQL_ROOT_PASSWORD -e "USE {{ .Values.mysql.auth.database }};" > /dev/null 2>&1; do
+                echo "MYSQL Init Job: Waiting for database '{{ .Values.mysql.auth.database }}'..."
+                sleep 3
+              done
+
+              echo "MYSQL Init Job: MySQL and database are ready!"
+      containers:
+        - name: mysql-schema-init
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-mysql"
+                  key: mysql-root-password
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              set -e
+              echo "--- MYSQL INIT JOB STARTED ---"
+
+              # Check if tables already exist
+              TABLE_COUNT=$(mysql -h {{ .Release.Name }}-mysql -u root -p$MYSQL_ROOT_PASSWORD -s -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '{{ .Values.mysql.auth.database }}';")
+              echo "Found $TABLE_COUNT existing tables"
+
+              if [ "$TABLE_COUNT" -ge 17 ]; then
+                echo "✅ Tables already exist ($TABLE_COUNT tables). Skipping table creation."
+                echo "--- MYSQL INIT JOB COMPLETED (TABLES EXIST) ---"
+                exit 0
+              fi
+
+              echo "📝 Creating tables..."
+
+              # Verify downloaded SQL files exist
+              if [ ! -f /shared/create-tables.sql ] || [ ! -f /shared/create-batch-tables.sql ]; then
+                echo "❌ SQL files not found in shared volume"
+                exit 1
+              fi
+
+              echo "Applying CreateTableStatement-mysql.sql..."
+              if ! mysql -h {{ .Release.Name }}-mysql -u root -p$MYSQL_ROOT_PASSWORD {{ .Values.mysql.auth.database }} < /shared/create-tables.sql; then
+                echo "❌ Failed to apply CreateTableStatement-mysql.sql"
+                exit 1
+              fi
+
+              echo "Applying SpringBatchJobRepositorySchema-mysql.sql..."
+              if ! mysql -h {{ .Release.Name }}-mysql -u root -p$MYSQL_ROOT_PASSWORD {{ .Values.mysql.auth.database }} < /shared/create-batch-tables.sql; then
+                echo "❌ Failed to apply SpringBatchJobRepositorySchema-mysql.sql"
+                exit 1
+              fi
+
+              # Verify final table count
+              FINAL_TABLE_COUNT=$(mysql -h {{ .Release.Name }}-mysql -u root -p$MYSQL_ROOT_PASSWORD -s -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '{{ .Values.mysql.auth.database }}';")
+              echo "Final table count: $FINAL_TABLE_COUNT tables"
+
+              if [ "$FINAL_TABLE_COUNT" -lt 17 ]; then
+                echo "❌ ERROR: Not enough tables created (expected ≥17, found $FINAL_TABLE_COUNT)"
+                exit 1
+              fi
+
+              echo "✅ MYSQL INIT JOB COMPLETED SUCCESSFULLY"
+          volumeMounts:
+            - name: sql-scripts
+              mountPath: /shared
+      volumes:
+        - name: sql-scripts
+          emptyDir: {}
+{{- end }}
