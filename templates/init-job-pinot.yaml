@@ -52,14 +52,6 @@ spec:
                 sleep 5
               done
               echo "Kafka is ready!"
-
-              # Wait for Kafka topics to be created
-              echo "Waiting for Kafka topics to be ready..."
-              until kubectl get job {{ include "pinpoint.fullname" . }}-kafka-init -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' 2>/dev/null | grep -q "True"; do
-                echo "Pinot init job is waiting for Kafka topics to be created..."
-                sleep 10
-              done
-              echo "Kafka topics are ready!"
       containers:
         - name: pinot-tables-creator
           image: apachepinot/pinot:1.0.0-11-amazoncorretto
