@@ -81,6 +81,6 @@ helm uninstall pinpoint -n pinpoint
 ![Kubernetes Pods](docs/screenshots/01-kubectl-get-pods.png)
 
 ### Pinpoint Web Dashboard
-![Application Map](docs/screenshots/09-web-ui-servermap.png)
-![Performance Metrics](docs/screenshots/04-web-ui-inspector-metrics.png)
+![Application Map](docs/screenshots/02-web-ui-servermap.png)
+![Performance Metrics](docs/screenshots/03-web-ui-inspector-metrics.png)
 ![System Metrics](docs/screenshots/05-web-ui-system-metrics.png)
