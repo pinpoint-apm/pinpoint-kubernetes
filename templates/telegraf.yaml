@@ -39,6 +39,7 @@ spec:
               done
 
               echo "✓ Collector is ready!"        - name: download-telegraf-config
+        - name: download-pinpoint-telegraf-configuration
           image: curlimages/curl:7.85.0
           env:
             - name: COLLECTOR_SERVICE_NAME
