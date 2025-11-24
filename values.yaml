@@ -17,6 +17,8 @@ global:
   # Pinpoint version - ensure all components use the same version
   pinpointVersion: "3.0.3"
   image:
+    # Global registry address
+    registry: ""
     # Image pull policy - use IfNotPresent for production to reduce registry load
     pullPolicy: IfNotPresent
   # Deployment mode selector
@@ -175,6 +177,9 @@ quickstart:
 # System metrics collection - only active in metric mode
 telegraf:
   enabled: true  # Automatically controlled by global.metric.enabled
+  image:
+    repository: telegraf
+    tag: 1.25.0
   resources: {}
   # Production resources:
   # resources:

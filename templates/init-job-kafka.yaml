@@ -27,7 +27,7 @@ spec:
       restartPolicy: Never
       initContainers:
         - name: wait-for-kafka
-          image: busybox:1.36
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command:
             - 'sh'
             - '-c'
@@ -40,7 +40,7 @@ spec:
               echo "Kafka is ready!"
       containers:
         - name: kafka-topics-creator
-          image: confluentinc/cp-kafka:7.4.0
+          image: {{ include "pinpoint.imageRegistry" . }}confluentinc/cp-kafka:7.4.0
           command:
             - 'sh'
             - '-c'

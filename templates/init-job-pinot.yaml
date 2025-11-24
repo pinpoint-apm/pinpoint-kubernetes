@@ -27,7 +27,7 @@ spec:
       restartPolicy: Never
       initContainers:
         - name: wait-for-pinot
-          image: busybox:1.36
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command:
             - 'sh'
             - '-c'
@@ -54,7 +54,7 @@ spec:
               echo "Kafka is ready!"
       containers:
         - name: pinot-tables-creator
-          image: apachepinot/pinot:1.0.0-11-amazoncorretto
+          image: {{ include "pinpoint.imageRegistry" . }}apachepinot/pinot:1.0.0-11-amazoncorretto
           command:
             - 'sh'
             - '-c'

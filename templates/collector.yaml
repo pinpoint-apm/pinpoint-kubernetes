@@ -23,7 +23,7 @@ spec:
         # Wait for HBase - always required
         {{- if .Values.hbase.enabled }}
         - name: wait-for-hbase
-          image: busybox:1.36
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command:
             - 'sh'
             - '-c'
@@ -42,12 +42,12 @@ spec:
         {{- if .Values.global.metric.enabled }}
         # Wait for Kafka only when metric profile is enabled.
         - name: wait-for-kafka
-          image: busybox:1.36
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-kafka 9092; do echo "Collector is waiting for Kafka..."; sleep 2; done;']
 
         # Wait for Pinot Controller only when metric profile is enabled.
         - name: wait-for-pinot-controller
-          image: busybox:1.36
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-pinot-controller 9000; do echo "Collector is waiting for Pinot Controller..."; sleep 2; done;']
         {{- end }}
 

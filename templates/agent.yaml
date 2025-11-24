@@ -21,7 +21,7 @@ spec:
     spec:
       initContainers:
         - name: wait-for-collector
-          image: busybox:1.36
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-collector {{ .Values.agent.config.transport.agentCollectorPort }}; do echo "Agent is waiting for Collector..."; sleep 2; done;']
       containers:
         - name: agent
