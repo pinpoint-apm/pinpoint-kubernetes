@@ -21,7 +21,7 @@ spec:
     spec:
       initContainers:
         - name: wait-for-collector
-          image: busybox:1.36
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           env:
             - name: COLLECTOR_SERVICE_NAME
               value: "{{ include "pinpoint.fullname" . }}-collector.{{ .Release.Namespace }}.svc.cluster.local"
@@ -40,7 +40,7 @@ spec:
 
               echo "✓ Collector is ready!"        - name: download-telegraf-config
         - name: download-pinpoint-telegraf-configuration
-          image: curlimages/curl:7.85.0
+          image: {{ include "pinpoint.imageRegistry" . }}curlimages/curl:7.85.0
           env:
             - name: COLLECTOR_SERVICE_NAME
               value: "{{ include "pinpoint.fullname" . }}-collector"
@@ -63,7 +63,7 @@ spec:
               mountPath: /shared
       containers:
         - name: telegraf
-          image: telegraf:1.25.0
+          image: "{{ .Values.telegraf.image.repository }}:{{ .Values.telegraf.image.tag }}"
           command:
             - 'telegraf'
             - '-config'

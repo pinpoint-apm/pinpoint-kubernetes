@@ -21,11 +21,11 @@ spec:
     spec:
       initContainers:
         - name: wait-for-zookeeper
-          image: busybox:1.36
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-zookeeper 2181; do echo "Web is waiting for Zookeeper..."; sleep 2; done;']
 
         - name: wait-for-mysql
-          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -44,20 +44,20 @@ spec:
 
         {{- if .Values.hbase.enabled }}
         - name: wait-for-hbase
-          image: busybox:1.36
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-hbase 16010; do echo "Web is waiting for HBase..."; sleep 2; done;']
         {{- end }}
 
         {{- if .Values.redis.enabled }}
         - name: wait-for-redis
-          image: busybox:1.36
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-redis-master 6379; do echo "Web is waiting for Redis..."; sleep 2; done;']
         {{- end }}
 
         {{- if .Values.global.metric.enabled }}
         # Wait for the Pinot Controller only when metric profile is enabled.
         - name: wait-for-pinot-controller
-          image: busybox:1.36
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-pinot-controller 9000; do echo "Web is waiting for Pinot Controller..."; sleep 2; done;']
         {{- end }}
 

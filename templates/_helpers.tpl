@@ -49,3 +49,12 @@ Selector labels
 app.kubernetes.io/name: {{ include "pinpoint.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Image registry
+*/}}
+{{- define "pinpoint.imageRegistry" -}}
+{{- if .Values.global.image.registry }}
+{{- printf "%s/" .Values.global.image.registry }}
+{{- end }}
+{{- end }}

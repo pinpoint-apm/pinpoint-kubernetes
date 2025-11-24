@@ -24,7 +24,7 @@ spec:
       initContainers:
         # Wait for Zookeeper to be ready
         - name: wait-for-zookeeper
-          image: busybox:1.36
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-zookeeper 2181; do echo "HBase is waiting for Zookeeper..."; sleep 2; done;']
       volumes:
         - name: hbase-config-volume
