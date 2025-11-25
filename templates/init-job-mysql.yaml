@@ -27,7 +27,7 @@ spec:
       restartPolicy: OnFailure
       initContainers:
         - name: download-sql-scripts
-          image: "{{ include "pinpoint.imageRegistry" . }}busybox:1.36"
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command:
             - 'sh'
             - '-c'
