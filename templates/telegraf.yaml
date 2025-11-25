@@ -63,7 +63,7 @@ spec:
               mountPath: /shared
       containers:
         - name: telegraf
-          image: "{{ .Values.telegraf.image.repository }}:{{ .Values.telegraf.image.tag }}"
+          image: {{ include "pinpoint.imageRegistry" . }}{{ .Values.telegraf.image.repository }}:{{ .Values.telegraf.image.tag }}
           command:
             - 'telegraf'
             - '-config'
