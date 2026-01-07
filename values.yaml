@@ -291,7 +291,7 @@ agent:
 mysql:
   enabled: true
   image:
-    repository: "bitnami/mysql"
+    repository: "bitnamilegacy/mysql"
     tag: "8.0.35-debian-11-r0"  # Use stable, tested version
   # Database credentials - PRODUCTION: Use strong passwords and external secrets
   auth:
@@ -319,6 +319,9 @@ mysql:
 # ZooKeeper - Coordination service for Kafka, Pinot, and HBase
 zookeeper:
   enabled: true
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/zookeeper
   replicaCount: 3  # High availability cluster - do not reduce for production
   # Authentication - enable for production security
   auth:
@@ -344,6 +347,9 @@ zookeeper:
 # Redis - Caching and session storage for Pinpoint 3.x
 redis:
   enabled: true
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/redis
   architecture: standalone  # Use sentinel for production HA
   # Authentication - PRODUCTION: Always enable
   auth:
@@ -367,6 +373,9 @@ redis:
 # Kafka - Message streaming platform (only deployed when global.metric.enabled: true)
 # Controlled by global.metric.enabled in Chart.yaml
 kafka:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/kafka
   # Security configuration - PRODUCTION: Enable authentication
   auth:
     clientProtocol: "PLAINTEXT"      # CHANGE: Use SASL_SSL for production
