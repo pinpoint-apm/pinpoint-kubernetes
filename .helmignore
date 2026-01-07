@@ -1,0 +1,15 @@
+# Files and folders that will not be included when creating the Helm package
+
+# Exclude the folder containing the images
+docs/
+
+# Unnecessary system and IDE files
+.git/
+.gitignore
+.idea/
+.vscode/
+.DS_Store
+
+# To lighten the package, documentation files (Optional but recommended)
+README.md
+LICENSE
