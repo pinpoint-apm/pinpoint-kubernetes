@@ -30,10 +30,10 @@ spec:
             - '-c'
             - |
               echo "Waiting for Collector service to be ready..."
-              echo "Target: ${COLLECTOR_SERVICE_NAME}:9994"
+              echo "Target: ${COLLECTOR_SERVICE_NAME}:9991"
 
-              # Wait for Collector thrift receiver port 9994
-              until nc -z -w5 ${COLLECTOR_SERVICE_NAME} 9994; do
+              # Wait for Collector thrift receiver port 9991
+              until nc -z -w5 ${COLLECTOR_SERVICE_NAME} 9991; do
                 echo "Telegraf is waiting for Collector..."
                 sleep 5
               done
