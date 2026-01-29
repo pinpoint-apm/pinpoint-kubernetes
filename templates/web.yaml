@@ -23,7 +23,7 @@ spec:
         - name: wait-for-zookeeper
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
           command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-zookeeper 2181; do echo "Web is waiting for Zookeeper..."; sleep 2; done;']
-
+        {{- if .Values.mysql.enabled }}
         - name: wait-for-mysql
           image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
           env:
@@ -41,6 +41,7 @@ spec:
                 sleep 2
               done
               echo "Web Pod: MySQL is ready."
+        {{- end }}
 
         {{- if .Values.hbase.enabled }}
         - name: wait-for-hbase
@@ -87,15 +88,15 @@ spec:
               value: {{ .Values.web.config.springProfiles | quote }}
               {{- end }}
 
+            # MySQL Connection Settings
+            {{- if .Values.web.datasource.enabled }}
             - name: SPRING_DATASOURCE_HIKARI_JDBC_URL
-              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
+              value: {{ include "pinpoint.web.datasource.jdbcUrl" . | quote }}
             - name: SPRING_DATASOURCE_HIKARI_USERNAME
-              value: "{{ .Values.mysql.auth.username }}"
+              value: {{ include "pinpoint.web.datasource.username" . | quote }}
             - name: SPRING_DATASOURCE_HIKARI_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: "{{ .Release.Name }}-mysql"
-                  key: mysql-password
+              {{ include "pinpoint.web.datasource.password" . | nindent 14 }}
+            {{- end }}
 
             # HBase Connection Settings
             {{- if .Values.hbase.enabled }}
@@ -154,28 +155,26 @@ spec:
               value: "true"
             - name: CONFIG_SHOW_APPLICATIONSTAT
               value: "true"
+            {{- if .Values.web.datasource.enabled }}
             - name: JDBC_DRIVERCLASSNAME
-              value: "com.mysql.cj.jdbc.Driver"
+              value: {{ include "pinpoint.web.datasource.driverClassName" . | quote }}
             - name: JDBC_URL
-              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
+              value: {{ include "pinpoint.web.datasource.jdbcUrl" . | quote }}
             - name: JDBC_USERNAME
-              value: "{{ .Values.mysql.auth.username }}"
+              value: {{ include "pinpoint.web.datasource.username" . | quote }}
             - name: JDBC_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: "{{ .Release.Name }}-mysql"
-                  key: mysql-password
+              {{ include "pinpoint.web.datasource.password" . | nindent 14 }}
+            {{- end }}
 
             # Metadata Source Configuration
+            {{- if .Values.web.datasource.enabled }}
             - name: SPRING_METADATASOURCE_HIKARI_JDBCURL
-              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
+              value: {{ include "pinpoint.web.datasource.jdbcUrl" . | quote }}
             - name: SPRING_METADATASOURCE_HIKARI_USERNAME
-              value: "{{ .Values.mysql.auth.username }}"
+              value: {{ include "pinpoint.web.datasource.username" . | quote }}
             - name: SPRING_METADATASOURCE_HIKARI_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: "{{ .Release.Name }}-mysql"
-                  key: mysql-password
+              {{ include "pinpoint.web.datasource.password" . | nindent 14 }}
+            {{- end }}
 
             # Security Configuration
             - name: PINPOINT_MODULES_WEB_LOGIN

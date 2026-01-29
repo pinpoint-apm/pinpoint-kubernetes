@@ -72,6 +72,23 @@ web:
     #   - secretName: pinpoint-tls
     #     hosts:
     #       - pinpoint.yourdomain.com
+  datasource:
+    # Set to false if Web component should not use any datasource
+    # When mysql.enabled is false, you must provide custom jdbcUrl/username/password or passwordSecret
+    enabled: true
+    # Leave empty to use bundled MySQL settings from mysql.auth
+    # Override these values when using external database
+    driverClassName: ""  # Defaults to "com.mysql.cj.jdbc.Driver"
+    jdbcUrl: ""  # Defaults to bundled MySQL: "jdbc:mysql://<release-name>-mysql:3306/<database>?..."
+    username: ""  # Defaults to mysql.auth.username
+    
+    # Password configuration (choose one):
+    # Option 1 (RECOMMENDED): Reference existing Secret
+    # passwordSecret: 
+    #   name: "my-external-db-secret"
+    #   key: "password"
+    # Option 2: Plain text password (NOT RECOMMENDED for production)
+    password: ""  # Defaults to mysql.auth.password (from secret)
 
 # HBase - Primary data storage for trace and performance data
 hbase:
