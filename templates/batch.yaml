@@ -1,4 +1,4 @@
-{{- if and .Values.batch.enabled (not .Values.global.metric.enabled) }}
+{{- if and .Values.batch.enabled (not .Values.global.metric.enabled) .Values.global.datasource.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -70,36 +70,27 @@ spec:
               value: "{{ .Release.Name }}-flink-jobmanager:8081"
             # JDBC Configuration - Primary Datasource
             - name: JDBC_DRIVERCLASSNAME
-              value: "com.mysql.cj.jdbc.Driver"
+              value: {{ include "pinpoint.datasource.driverClassName" . | quote }}
             - name: JDBC_URL
-              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
+              value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}
             - name: JDBC_USERNAME
-              value: "{{ .Values.mysql.auth.username }}"
+              value: {{ include "pinpoint.datasource.username" . | quote }}
             - name: JDBC_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: "{{ .Release.Name }}-mysql"
-                  key: mysql-password
+              {{ include "pinpoint.datasource.password" . | nindent 14 }}
             # Spring Datasource Configuration
             - name: SPRING_DATASOURCE_HIKARI_JDBCURL
-              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
+              value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}
             - name: SPRING_DATASOURCE_HIKARI_USERNAME
-              value: "{{ .Values.mysql.auth.username }}"
+              value: {{ include "pinpoint.datasource.username" . | quote }}
             - name: SPRING_DATASOURCE_HIKARI_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: "{{ .Release.Name }}-mysql"
-                  key: mysql-password
+              {{ include "pinpoint.datasource.password" . | nindent 14 }}
             # Spring Metadata Datasource Configuration
             - name: SPRING_METADATASOURCE_HIKARI_JDBCURL
-              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.auth.database }}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
+              value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}
             - name: SPRING_METADATASOURCE_HIKARI_USERNAME
-              value: "{{ .Values.mysql.auth.username }}"
+              value: {{ include "pinpoint.datasource.username" . | quote }}
             - name: SPRING_METADATASOURCE_HIKARI_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: "{{ .Release.Name }}-mysql"
-                  key: mysql-password
+              {{ include "pinpoint.datasource.password" . | nindent 14 }}
             # Mail Configuration for Alarms
             {{- if and .Values.batch.mail.enabled .Values.batch.mail.host }}
             - name: ALARM_MAIL_SERVER_URL

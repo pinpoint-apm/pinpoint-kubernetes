@@ -89,13 +89,13 @@ spec:
               {{- end }}
 
             # MySQL Connection Settings
-            {{- if .Values.web.datasource.enabled }}
+            {{- if .Values.global.datasource.enabled }}
             - name: SPRING_DATASOURCE_HIKARI_JDBC_URL
-              value: {{ include "pinpoint.web.datasource.jdbcUrl" . | quote }}
+              value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}
             - name: SPRING_DATASOURCE_HIKARI_USERNAME
-              value: {{ include "pinpoint.web.datasource.username" . | quote }}
+              value: {{ include "pinpoint.datasource.username" . | quote }}
             - name: SPRING_DATASOURCE_HIKARI_PASSWORD
-              {{ include "pinpoint.web.datasource.password" . | nindent 14 }}
+              {{ include "pinpoint.datasource.password" . | nindent 14 }}
             {{- end }}
 
             # HBase Connection Settings
@@ -155,25 +155,23 @@ spec:
               value: "true"
             - name: CONFIG_SHOW_APPLICATIONSTAT
               value: "true"
-            {{- if .Values.web.datasource.enabled }}
+            {{- if .Values.global.datasource.enabled }}
             - name: JDBC_DRIVERCLASSNAME
-              value: {{ include "pinpoint.web.datasource.driverClassName" . | quote }}
+              value: {{ include "pinpoint.datasource.driverClassName" . | quote }}
             - name: JDBC_URL
-              value: {{ include "pinpoint.web.datasource.jdbcUrl" . | quote }}
+              value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}
             - name: JDBC_USERNAME
-              value: {{ include "pinpoint.web.datasource.username" . | quote }}
+              value: {{ include "pinpoint.datasource.username" . | quote }}
             - name: JDBC_PASSWORD
-              {{ include "pinpoint.web.datasource.password" . | nindent 14 }}
-            {{- end }}
+              {{ include "pinpoint.datasource.password" . | nindent 14 }}
 
             # Metadata Source Configuration
-            {{- if .Values.web.datasource.enabled }}
             - name: SPRING_METADATASOURCE_HIKARI_JDBCURL
-              value: {{ include "pinpoint.web.datasource.jdbcUrl" . | quote }}
+              value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}
             - name: SPRING_METADATASOURCE_HIKARI_USERNAME
-              value: {{ include "pinpoint.web.datasource.username" . | quote }}
+              value: {{ include "pinpoint.datasource.username" . | quote }}
             - name: SPRING_METADATASOURCE_HIKARI_PASSWORD
-              {{ include "pinpoint.web.datasource.password" . | nindent 14 }}
+              {{ include "pinpoint.datasource.password" . | nindent 14 }}
             {{- end }}
 
             # Security Configuration

@@ -60,68 +60,72 @@ Image registry
 {{- end }}
 
 {{/*
-Web datasource JDBC URL
-When mysql.enabled is false, you must provide web.datasource.jdbcUrl
+datasource JDBC URL
+- used by Web and Batch components
+- When mysql.enabled is false, you must provide global.datasource.jdbcUrl
 */}}
-{{- define "pinpoint.web.datasource.jdbcUrl" -}}
-{{- if .Values.web.datasource.jdbcUrl -}}
-{{- .Values.web.datasource.jdbcUrl -}}
+{{- define "pinpoint.datasource.jdbcUrl" -}}
+{{- if .Values.global.datasource.jdbcUrl -}}
+{{- .Values.global.datasource.jdbcUrl -}}
 {{- else if .Values.mysql.enabled -}}
 {{- printf "jdbc:mysql://%s-mysql:3306/%s?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true" .Release.Name .Values.mysql.auth.database -}}
 {{- else -}}
-{{- fail "web.datasource.jdbcUrl is required when mysql.enabled is false" -}}
+{{- fail "global.datasource.jdbcUrl is required when mysql.enabled is false" -}}
 {{- end -}}
 {{- end -}}
 
 {{/*
-Web datasource username
-When mysql.enabled is false, you must provide web.datasource.username
+datasource username
+- used by Web and Batch components
+- When mysql.enabled is false, you must provide global.datasource.username
 */}}
-{{- define "pinpoint.web.datasource.username" -}}
-{{- if .Values.web.datasource.username -}}
-{{- .Values.web.datasource.username -}}
+{{- define "pinpoint.datasource.username" -}}
+{{- if .Values.global.datasource.username -}}
+{{- .Values.global.datasource.username -}}
 {{- else if .Values.mysql.enabled -}}
 {{- .Values.mysql.auth.username -}}
 {{- else -}}
-{{- fail "web.datasource.username is required when mysql.enabled is false" -}}
+{{- fail "global.datasource.username is required when mysql.enabled is false" -}}
 {{- end -}}
 {{- end -}}
 
 {{/*
-Web datasource driver class name
+datasource driver class name
+- used by Web and Batch components
 */}}
-{{- define "pinpoint.web.datasource.driverClassName" -}}
-{{- if .Values.web.datasource.driverClassName -}}
-{{- .Values.web.datasource.driverClassName -}}
+{{- define "pinpoint.datasource.driverClassName" -}}
+{{- if .Values.global.datasource.driverClassName -}}
+{{- .Values.global.datasource.driverClassName -}}
 {{- else -}}
 com.mysql.cj.jdbc.Driver
 {{- end -}}
 {{- end -}}
 
 {{/*
-Web datasource password - returns either custom value or secret reference
-When mysql.enabled is false, you must provide either web.datasource.passwordSecret or web.datasource.password
+datasource password - returns either custom value or secret reference
+- used by Web and Batch components
+- When mysql.enabled is false, you must provide either global.datasource.passwordSecret or global.datasource.password
 */}}
-{{- define "pinpoint.web.datasource.password" -}}
-{{- if .Values.web.datasource.passwordSecret -}}
-{{- if not .Values.web.datasource.passwordSecret.name -}}
-{{- fail "web.datasource.passwordSecret.name is required when passwordSecret is provided" -}}
+{{- define "pinpoint.datasource.password" -}}
+{{- if .Values.global.datasource.passwordSecret -}}
+{{- if not .Values.global.datasource.passwordSecret.name -}}
+{{- fail "global.datasource.passwordSecret.name is required when passwordSecret is provided" -}}
 {{- end -}}
-{{- if not .Values.web.datasource.passwordSecret.key -}}
-{{- fail "web.datasource.passwordSecret.key is required when passwordSecret is provided" -}}
+{{- if not .Values.global.datasource.passwordSecret.key -}}
+{{- fail "global.datasource.passwordSecret.key is required when passwordSecret is provided" -}}
 {{- end -}}
 valueFrom:
   secretKeyRef:
-    name: {{ .Values.web.datasource.passwordSecret.name }}
-    key: {{ .Values.web.datasource.passwordSecret.key }}
-{{- else if .Values.web.datasource.password -}}
-value: {{ .Values.web.datasource.password | quote }}
+    name: {{ .Values.global.datasource.passwordSecret.name }}
+    key: {{ .Values.global.datasource.passwordSecret.key }}
+{{- else if .Values.global.datasource.password -}}
+value: {{ .Values.global.datasource.password | quote }}
 {{- else if .Values.mysql.enabled -}}
 valueFrom:
   secretKeyRef:
     name: {{ .Release.Name }}-mysql
     key: mysql-password
 {{- else -}}
-{{- fail "web.datasource.password or web.datasource.passwordSecret is required when mysql.enabled is false" -}}
+{{- fail "global.datasource.password or global.datasource.passwordSecret is required when mysql.enabled is false" -}}
 {{- end -}}
 {{- end -}}

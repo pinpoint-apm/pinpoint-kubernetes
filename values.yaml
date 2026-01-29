@@ -26,6 +26,27 @@ global:
   # metric.enabled: false = Classic stack (Batch + Flink + traditional processing)
   metric:
     enabled: true  # DEFAULT: Modern mode for new deployments
+  # Global Datasource Configuration (Shared by Web and Batch)
+  # When `mysql.enabled` is false but you want to use the external database, you must provide these settings
+  # (used by Web and Batch components when `datasource.enabled` is true)
+  datasource:
+    # Set to false if Web and Batch components should not use any datasource
+    enabled: true
+    # Defaults to "com.mysql.cj.jdbc.Driver"
+    driverClassName: ""
+    # Required if mysql.enabled is false but you want to use the external database
+    jdbcUrl: ""
+    # Required if mysql.enabled is false but you want to use the external database
+    username: ""
+    # Option 1: Reference existing Secret
+    # (RECOMMENDED for production)
+    # passwordSecret:
+    #   name: ""
+    #   key: ""
+    # Option 2: Plain text password
+    # (NOT RECOMMENDED for production)
+    password: ""
+
 
 # ========================================================================
 # Pinpoint Component Configurations
@@ -72,23 +93,6 @@ web:
     #   - secretName: pinpoint-tls
     #     hosts:
     #       - pinpoint.yourdomain.com
-  datasource:
-    # Set to false if Web component should not use any datasource
-    # When datasource.enabled is true and mysql.enabled is false, you must provide custom jdbcUrl/username/password or passwordSecret
-    enabled: true
-    # Leave empty to use bundled MySQL settings from mysql.auth
-    # Override these values when using external database
-    driverClassName: ""  # Defaults to "com.mysql.cj.jdbc.Driver"
-    jdbcUrl: ""  # Defaults to bundled MySQL: "jdbc:mysql://<release-name>-mysql:3306/<database>?..."
-    username: ""  # Defaults to mysql.auth.username
-    
-    # Password configuration (choose one):
-    # Option 1 (RECOMMENDED): Reference existing Secret
-    # passwordSecret: 
-    #   name: "my-external-db-secret"
-    #   key: "password"
-    # Option 2: Plain text password (NOT RECOMMENDED for production)
-    password: ""  # Defaults to mysql.auth.password (from secret)
 
 # HBase - Primary data storage for trace and performance data
 hbase:
@@ -305,6 +309,10 @@ agent:
 # ========================================================================
 
 # MySQL - Primary database for web interface and batch jobs
+# NOTE: When mysql.enabled is false (using external database):
+#   1. You must configure global.datasource.* settings with your external DB connection info
+#   2. The init-job-mysql will NOT run, so you must manually initialize the database schema
+#   3. Schema SQL files can be found at: https://github.com/pinpoint-apm/pinpoint/tree/master/web/src/main/resources/sql
 mysql:
   enabled: true
   image:
