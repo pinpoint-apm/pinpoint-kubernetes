@@ -107,12 +107,9 @@ datasource password - returns either custom value or secret reference
 - When mysql.enabled is false, you must provide either global.datasource.passwordSecret or global.datasource.password
 */}}
 {{- define "pinpoint.datasource.password" -}}
-{{- if .Values.global.datasource.passwordSecret -}}
-{{- if not .Values.global.datasource.passwordSecret.name -}}
-{{- fail "global.datasource.passwordSecret.name is required when passwordSecret is provided" -}}
-{{- end -}}
+{{- if and .Values.global.datasource.passwordSecret .Values.global.datasource.passwordSecret.name -}}
 {{- if not .Values.global.datasource.passwordSecret.key -}}
-{{- fail "global.datasource.passwordSecret.key is required when passwordSecret is provided" -}}
+{{- fail "global.datasource.passwordSecret.key is required when passwordSecret.name is provided" -}}
 {{- end -}}
 valueFrom:
   secretKeyRef:
