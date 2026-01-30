@@ -67,8 +67,10 @@ datasource JDBC URL
 {{- define "pinpoint.datasource.jdbcUrl" -}}
 {{- if .Values.global.datasource.jdbcUrl -}}
 {{- .Values.global.datasource.jdbcUrl -}}
-{{- else if .Values.mysql.enabled -}}
+{{- else if and .Values.mysql.enabled .Values.mysql.auth.database -}}
 {{- printf "jdbc:mysql://%s-mysql:3306/%s?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true" .Release.Name .Values.mysql.auth.database -}}
+{{- else if .Values.mysql.enabled -}}
+{{- fail "mysql.auth.database is required when mysql.enabled is true and global.datasource.jdbcUrl is not set" -}}
 {{- else -}}
 {{- fail "global.datasource.jdbcUrl is required when mysql.enabled is false" -}}
 {{- end -}}
