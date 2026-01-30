@@ -45,6 +45,13 @@ Deploys Batch and Flink modules for traditional APM processing.
 | `global.metric.enabled` | Enable metric profile deployment | `true` |
 | `global.pinpointVersion` | Pinpoint version | `"3.0.3"` |
 | `global.image.pullPolicy` | Image pull policy | `IfNotPresent` |
+| `global.datasource.enabled` | Enable global datasource configuration<br/>- Defaults to the MySQL chart dependency | `true` |
+| `global.datasource.driverClassName` | JDBC driver class name<br/>- Defaults to the MySQL driver from the chart dependency | `""` |
+| `global.datasource.jdbcUrl` | JDBC URL for external database<br/>- Defaults to the MySQL service from the chart dependency | `""` |
+| `global.datasource.username` | Database username<br/>- Defaults to the MySQL username from the chart dependency | `""` |
+| `global.datasource.passwordSecret.name` | Secret name containing password | `""` |
+| `global.datasource.passwordSecret.key` | Key in the Secret containing the password | `""` |
+| `global.datasource.password` | Database password (Not RECOMMENDED for production)<br/>- Defaults to the MySQL password from the chart dependency | `""` |
 
 ## Accessing Pinpoint
 
