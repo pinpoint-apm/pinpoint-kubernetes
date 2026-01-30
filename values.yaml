@@ -27,10 +27,14 @@ global:
   metric:
     enabled: true  # DEFAULT: Modern mode for new deployments
   # Global Datasource Configuration (Shared by Web and Batch)
-  # When `mysql.enabled` is false but you want to use the external database, you must provide these settings
-  # (used by Web and Batch components when `datasource.enabled` is true)
+  # This configuration controls how Web and Batch components connect to the MySQL database.
   datasource:
-    # Set to false if Web and Batch components should not use any datasource
+    # Enable datasource configuration injection for Web and Batch components.
+    # - true (default): Injects datasource environment variables (JDBC URL, username, password).
+    #   If `mysql.enabled` is true, it automatically connects to the bundled MySQL service.
+    #   If `mysql.enabled` is false, it uses the external configuration provided below.
+    # - false: Does NOT inject any datasource environment variables. Use this only if you do not need
+    #   a relational database connection or are configuring it via custom means.
     enabled: true
     # Defaults to "com.mysql.cj.jdbc.Driver"
     driverClassName: ""
