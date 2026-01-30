@@ -40,11 +40,13 @@ global:
     username: ""
     # Option 1: Reference existing Secret
     # (RECOMMENDED for production)
+    # NOTE: Mutually exclusive with `password` below. If both are configured,
+    # the chart templates will use `passwordSecret` and ignore `password`.
     # passwordSecret:
     #   name: ""
     #   key: ""
     # Option 2: Plain text password
-    # (NOT RECOMMENDED for production)
+    # (NOT RECOMMENDED for production; do not set this if using `passwordSecret`)
     password: ""
 
 
