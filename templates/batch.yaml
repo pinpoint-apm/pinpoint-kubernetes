@@ -1,4 +1,4 @@
-{{- if and .Values.batch.enabled (not .Values.global.metric.enabled) .Values.global.datasource.enabled }}
+{{- if and .Values.batch.enabled (not .Values.global.metric.enabled) }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -69,6 +69,7 @@ spec:
             - name: BATCH_FLINK_SERVER
               value: "{{ .Release.Name }}-flink-jobmanager:8081"
             # JDBC Configuration - Primary Datasource
+            {{- if .Values.global.datasource.enabled }}
             - name: JDBC_DRIVERCLASSNAME
               value: {{ include "pinpoint.datasource.driverClassName" . | quote }}
             - name: JDBC_URL
@@ -91,6 +92,7 @@ spec:
               value: {{ include "pinpoint.datasource.username" . | quote }}
             - name: SPRING_METADATASOURCE_HIKARI_PASSWORD
               {{ include "pinpoint.datasource.password" . | nindent 14 }}
+            {{- end }}
             # Mail Configuration for Alarms
             {{- if and .Values.batch.mail.enabled .Values.batch.mail.host }}
             - name: ALARM_MAIL_SERVER_URL
