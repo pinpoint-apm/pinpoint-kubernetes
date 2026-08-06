@@ -31,6 +31,10 @@ spec:
           configMap:
             name: {{ include "pinpoint.fullname" . }}-hbase-config
             defaultMode: 0755
+        {{- if not .Values.hbase.persistence.enabled }}
+        - name: hbase-data
+          emptyDir: {}
+        {{- end }}
       containers:
         - name: hbase
           image: "{{ .Values.hbase.image.repository }}:{{ .Values.hbase.image.tag | default .Values.global.pinpointVersion }}"
@@ -68,6 +72,7 @@ spec:
             {{- toYaml .Values.hbase.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.hbase.resources | nindent 12 }}
+  {{- if .Values.hbase.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
         name: hbase-data
@@ -76,9 +81,10 @@ spec:
         resources:
           requests:
             storage: {{ .Values.hbase.persistence.size }}
-        {{- if .Values.hbase.persistence.storageClassName }}
-        storageClassName: {{ .Values.hbase.persistence.storageClassName }}
+        {{- with .Values.hbase.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
         {{- end }}
+  {{- end }}
 {{- end }}
 ---
 {{- if .Values.hbase.enabled }}
