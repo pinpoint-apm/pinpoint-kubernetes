@@ -33,6 +33,16 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      - name: Ensure GitHub Pages branch exists
+        shell: bash
+        run: |
+          if ! git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            empty_tree=$(git mktree </dev/null)
+            bootstrap_commit=$(git commit-tree "$empty_tree" -m "chore: initialize Helm chart repository")
+            git push origin "$bootstrap_commit:refs/heads/gh-pages"
+          fi
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
+
       - name: Validate chart
         run: bash scripts/helm-validate.sh
 
@@ -46,5 +56,6 @@ jobs:
         with:
           skip_packaging: true
           skip_existing: true
+          pages_branch: gh-pages
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
