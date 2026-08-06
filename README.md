@@ -1,6 +1,6 @@
 # Pinpoint Helm Chart
 
-![Version: 2.0.0](https://img.shields.io/badge/Version-2.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.0.3](https://img.shields.io/badge/AppVersion-3.0.3-informational?style=flat-square)
+![Version: 2.1.0](https://img.shields.io/badge/Version-2.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.0.3](https://img.shields.io/badge/AppVersion-3.0.3-informational?style=flat-square)
 
 A Helm chart for deploying Pinpoint APM on Kubernetes.
 
@@ -10,13 +10,16 @@ This chart bootstraps a [Pinpoint APM](https://pinpoint-apm.github.io/pinpoint/)
 
 ## Installing the Chart
 
-To install the chart with the release name `pinpoint`:
+Add the Pinpoint chart repository and install the chart with the release name `pinpoint`:
 
 ```bash
-git clone https://github.com/pinpoint-apm/pinpoint-kubernetes.git
-cd pinpoint-kubernetes
-helm dependency update
+helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
+helm repo update
+helm install pinpoint pinpoint/pinpoint -n pinpoint --create-namespace
 ```
+
+To install directly from source instead, clone the repository, run
+`helm dependency build`, and use `helm install pinpoint .`.
 
 ### Deployment modes
 
@@ -24,13 +27,13 @@ This chart supports two deployment modes:
 
 **Metric Profile (default):**
 ```bash
-helm install pinpoint . -n pinpoint --create-namespace
+helm install pinpoint pinpoint/pinpoint -n pinpoint --create-namespace
 ```
 Deploys Kafka, Pinot, and Telegraf for advanced metrics collection.
 
 **Classic Mode:**
 ```bash
-helm install pinpoint . -n pinpoint --create-namespace --set global.metric.enabled=false
+helm install pinpoint pinpoint/pinpoint -n pinpoint --create-namespace --set global.metric.enabled=false
 ```
 Deploys Batch and Flink modules for traditional APM processing.
 

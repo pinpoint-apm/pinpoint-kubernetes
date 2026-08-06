@@ -1,6 +1,27 @@
-#Chart
-**/Chart.lock
-**/charts/*.tgz
+# Helm build and release artifacts
+charts/
+*.tgz
+*.prov
 
-#Docker
+# Graph analysis artifacts
+graphify-out/
+.graphify_*.json
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+!.env.template
+/values.local.yaml
+/values.*.local.yaml
+/secrets*.yaml
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Docker artifacts
 docker-compose*
