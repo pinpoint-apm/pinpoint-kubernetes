@@ -89,6 +89,10 @@ web:
   ingress:
     enabled: false  # Enable for production external access
     ingressClassName: "nginx"
+    annotations: {}
+    # Example annotations:
+    # annotations:
+    #   nginx.ingress.kubernetes.io/ssl-redirect: "true"
     hosts:
       - host: "pinpoint.localdev.me"  # CHANGE: Use your production domain
         paths:
