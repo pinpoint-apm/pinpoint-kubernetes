@@ -49,6 +49,11 @@ jobs:
         with:
           version: v3.21.2
 
+      - name: Add Helm repositories
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami --force-update
+          helm repo add pinot https://raw.githubusercontent.com/apache/pinot/master/helm --force-update
+
       - name: Build and package chart
         run: |
           helm dependency build .
