@@ -114,7 +114,7 @@ hbase:
   persistence:
     enabled: true
     size: 10Gi  # PRODUCTION: Increase based on data retention requirements (50Gi+ recommended)
-    # storageClass: "fast-ssd"  # Use high-performance storage class
+    storageClass: ""  # Set to a high-performance StorageClass, e.g. "fast-ssd"
   config:
     # External ZooKeeper recommended for production
     managesZk: false  # Uses external ZooKeeper cluster
