@@ -39,11 +39,40 @@ spec:
               echo "HBase is ready!"
         {{- end }}
 
+        - name: wait-for-redis
+          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          env:
+            - name: REDIS_HOST
+              value: {{ include "pinpoint.redis.host" . | quote }}
+            - name: REDIS_PORT
+              value: {{ include "pinpoint.redis.port" . | quote }}
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              until nc -z -w3 "$REDIS_HOST" "$REDIS_PORT"; do
+                echo "Collector is waiting for Redis..."
+                sleep 2
+              done
+
         {{- if .Values.global.metric.enabled }}
         # Wait for Kafka only when metric profile is enabled.
         - name: wait-for-kafka
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
-          command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-kafka 9092; do echo "Collector is waiting for Kafka..."; sleep 2; done;']
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ include "pinpoint.kafka.bootstrapServers" . | quote }}
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              KAFKA_ENDPOINT="${KAFKA_BOOTSTRAP_SERVERS%%,*}"
+              KAFKA_HOST="${KAFKA_ENDPOINT%:*}"
+              KAFKA_PORT="${KAFKA_ENDPOINT##*:}"
+              until nc -z -w3 "$KAFKA_HOST" "$KAFKA_PORT"; do
+                echo "Collector is waiting for Kafka..."
+                sleep 2
+              done
 
         # Wait for Pinot Controller only when metric profile is enabled.
         - name: wait-for-pinot-controller
@@ -105,9 +134,9 @@ spec:
             # Add Kafka and Pinot configurations only when metric profile is active
             {{- if .Values.global.metric.enabled }}
             - name: PINPOINT_METRIC_KAFKA_BOOTSTRAP_SERVERS
-              value: "{{ .Release.Name }}-kafka:9092"
+              value: {{ include "pinpoint.kafka.bootstrapServers" . | quote }}
             - name: KAFKA_BOOTSTRAP_SERVERS
-              value: "{{ .Release.Name }}-kafka:9092"
+              value: {{ include "pinpoint.kafka.bootstrapServers" . | quote }}
             - name: SPRING_PINOTDATASOURCE_PINOT_JDBCURL
               value: "jdbc:pinot://{{ .Release.Name }}-pinot-controller:9000"
             - name: PINPOINT_PINOT_JDBC_URL
@@ -120,24 +149,14 @@ spec:
             - name: MANAGEMENT_METRICS_EXPORT_OTLP_ENABLED
               value: "false"
             # Redis Connection Settings
-            {{- if .Values.redis.enabled }}
             - name: SPRING_DATA_REDIS_HOST
-              value: "{{ .Release.Name }}-redis-master"
+              value: {{ include "pinpoint.redis.host" . | quote }}
             - name: SPRING_DATA_REDIS_PORT
-              value: "6379"
+              value: {{ include "pinpoint.redis.port" . | quote }}
             - name: SPRING_DATA_REDIS_USERNAME
-              value: ""
-            {{- if .Values.redis.auth.enabled }}
+              value: {{ include "pinpoint.redis.username" . | quote }}
             - name: SPRING_DATA_REDIS_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: "{{ .Release.Name }}-redis"
-                  key: redis-password
-            {{- else }}
-            - name: SPRING_DATA_REDIS_PASSWORD
-              value: ""
-            {{- end }}
-            {{- end }}
+              {{ include "pinpoint.redis.password" . | nindent 14 }}
 
             # Additional Collector Configuration (matching Docker Compose)
             {{- if not .Values.global.metric.enabled }}

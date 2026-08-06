@@ -1,4 +1,4 @@
-{{- if .Values.global.metric.enabled }}
+{{- if and .Values.global.metric.enabled .Values.global.kafka.createTopics }}
 # Kafka Topics Initialization Job
 apiVersion: batch/v1
 kind: Job
@@ -28,12 +28,18 @@ spec:
       initContainers:
         - name: wait-for-kafka
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ include "pinpoint.kafka.bootstrapServers" . | quote }}
           command:
             - 'sh'
             - '-c'
             - |
               echo "Waiting for Kafka to be ready..."
-              until nc -z -w3 {{ .Release.Name }}-kafka 9092; do
+              KAFKA_ENDPOINT="${KAFKA_BOOTSTRAP_SERVERS%%,*}"
+              KAFKA_HOST="${KAFKA_ENDPOINT%:*}"
+              KAFKA_PORT="${KAFKA_ENDPOINT##*:}"
+              until nc -z -w3 "$KAFKA_HOST" "$KAFKA_PORT"; do
                 echo "Kafka init job waiting for Kafka..."
                 sleep 5
               done
@@ -46,7 +52,7 @@ spec:
             - '-c'
             - |
               echo "Setting up Kafka topics..."
-              BOOTSTRAP_SERVER="{{ .Release.Name }}-kafka:9092"
+              BOOTSTRAP_SERVER="$KAFKA_BOOTSTRAP_SERVERS"
 
               # Wait for Kafka to be ready
               until kafka-topics --list --bootstrap-server "$BOOTSTRAP_SERVER" >/dev/null 2>&1; do
@@ -75,5 +81,5 @@ spec:
               echo "Topics created successfully!"
           env:
             - name: KAFKA_BOOTSTRAP_SERVERS
-              value: "{{ .Release.Name }}-kafka:9092"
+              value: {{ include "pinpoint.kafka.bootstrapServers" . | quote }}
 {{- end }}
