@@ -79,7 +79,7 @@ spec:
           {{- if .Values.global.metric.enabled }}
             {{- $imageTag = printf "%s-metric" ($imageTag | default .Values.global.pinpointVersion) }}
           {{- end }}
-          image: "{{ .Values.web.image.repository }}:{{ $imageTag }}"
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.web.image.repository }}:{{ $imageTag }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           ports:
             - name: http

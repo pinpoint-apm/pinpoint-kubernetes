@@ -25,7 +25,7 @@ spec:
           command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-collector {{ .Values.agent.config.transport.agentCollectorPort }}; do echo "Agent is waiting for Collector..."; sleep 2; done;']
       containers:
         - name: agent
-          image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag | default .Values.global.pinpointVersion }}"
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag | default .Values.global.pinpointVersion }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           env:
             # Spring Configuration

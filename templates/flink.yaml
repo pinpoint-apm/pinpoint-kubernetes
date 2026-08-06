@@ -27,7 +27,7 @@ spec:
 
       containers:
         - name: flink-jobmanager
-          image: "{{ .Values.flink.image.repository }}:{{ .Values.flink.image.tag | default .Values.global.pinpointVersion }}"
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.flink.image.repository }}:{{ .Values.flink.image.tag | default .Values.global.pinpointVersion }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           command: ["/docker-entrypoint.sh"]
           args: ["jobmanager"]
@@ -98,7 +98,7 @@ spec:
 
       containers:
         - name: flink-taskmanager
-          image: "{{ .Values.flink.image.repository }}:{{ .Values.flink.image.tag | default .Values.global.pinpointVersion }}"
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.flink.image.repository }}:{{ .Values.flink.image.tag | default .Values.global.pinpointVersion }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           command: ["/docker-entrypoint.sh"]
           args: ["taskmanager"]

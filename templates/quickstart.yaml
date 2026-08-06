@@ -21,7 +21,7 @@ spec:
     spec:
       initContainers:
         - name: pinpoint-agent-init
-          image: "{{ .Values.quickstart.agentImage.repository }}:{{ .Values.quickstart.agentImage.tag | default .Values.global.pinpointVersion }}"
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.quickstart.agentImage.repository }}:{{ .Values.quickstart.agentImage.tag | default .Values.global.pinpointVersion }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           command: ['sh', '-c', 'cp -r /pinpoint-agent/. /agent']
           volumeMounts:
@@ -32,7 +32,7 @@ spec:
           command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-collector {{ .Values.collector.service.ports.grpcAgent }}; do echo "Quickstart is waiting for pinpoint-collector..."; sleep 2; done;']
       containers:
         - name: quickstart
-          image: "{{ .Values.quickstart.image.repository }}:{{ .Values.quickstart.image.tag | default .Values.global.pinpointVersion }}"
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.quickstart.image.repository }}:{{ .Values.quickstart.image.tag | default .Values.global.pinpointVersion }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           ports:
             - name: http

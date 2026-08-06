@@ -72,26 +72,26 @@ spec:
 
               # Download each file with validation
               echo "Downloading uriStat files..."
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/uristat/uristat-common/src/main/pinot/pinot-uriStat-realtime-table.json" > uriStatTable.json
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/uristat/uristat-common/src/main/pinot/pinot-uriStat-schema.json" > uriStatSchema.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/uristat/uristat-common/src/main/pinot/pinot-uriStat-realtime-table.json" > uriStatTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/uristat/uristat-common/src/main/pinot/pinot-uriStat-schema.json" > uriStatSchema.json
 
               echo "Downloading metric files..."
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/metric-module/metric/src/main/pinot/pinot-tag-realtime-table.json" > tagTable.json
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/metric-module/metric/src/main/pinot/pinot-tag-schema.json" > tagSchema.json
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/metric-module/metric/src/main/pinot/pinot-double-realtime-table.json" > doubleTable.json
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/metric-module/metric/src/main/pinot/pinot-double-schema.json" > doubleSchema.json
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/metric-module/metric/src/main/pinot/pinot-dataType-realtime-table.json" > dataTypeTable.json
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/metric-module/metric/src/main/pinot/pinot-dataType-schema.json" > dataTypeSchema.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/metric-module/metric/src/main/pinot/pinot-tag-realtime-table.json" > tagTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/metric-module/metric/src/main/pinot/pinot-tag-schema.json" > tagSchema.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/metric-module/metric/src/main/pinot/pinot-double-realtime-table.json" > doubleTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/metric-module/metric/src/main/pinot/pinot-double-schema.json" > doubleSchema.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/metric-module/metric/src/main/pinot/pinot-dataType-realtime-table.json" > dataTypeTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/metric-module/metric/src/main/pinot/pinot-dataType-schema.json" > dataTypeSchema.json
 
               echo "Downloading exception trace files..."
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/exceptiontrace/exceptiontrace-common/src/main/pinot/pinot-exceptionTrace-offline-table.json" > exceptionTraceTable.json
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/exceptiontrace/exceptiontrace-common/src/main/pinot/pinot-exceptionTrace-schema.json" > exceptionTraceSchema.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/exceptiontrace/exceptiontrace-common/src/main/pinot/pinot-exceptionTrace-offline-table.json" > exceptionTraceTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/exceptiontrace/exceptiontrace-common/src/main/pinot/pinot-exceptionTrace-schema.json" > exceptionTraceSchema.json
 
               echo "Downloading inspector files..."
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-agent-realtime-table.json" > inspectorAgentTable.json
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-agent-schema.json" > inspectorAgentSchema.json
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-application-realtime-table.json" > inspectorApplicationTable.json
-              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-application-schema.json" > inspectorApplicationSchema.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-agent-realtime-table.json" > inspectorAgentTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-agent-schema.json" > inspectorAgentSchema.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-application-realtime-table.json" > inspectorApplicationTable.json
+              curl -fsSL "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-application-schema.json" > inspectorApplicationSchema.json
 
               # Validate all files exist and are JSON
               echo "Validating downloaded files..."

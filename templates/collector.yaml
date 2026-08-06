@@ -87,7 +87,7 @@ spec:
           {{- if .Values.global.metric.enabled }}
             {{- $imageTag = printf "%s-metric" ($imageTag | default .Values.global.pinpointVersion) }}
           {{- end }}
-          image: "{{ .Values.collector.image.repository }}:{{ $imageTag }}"
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.collector.image.repository }}:{{ $imageTag }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           ports:
             - name: grpc-agent
