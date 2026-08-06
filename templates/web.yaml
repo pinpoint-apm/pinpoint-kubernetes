@@ -214,17 +214,32 @@ metadata:
   name: {{ include "pinpoint.fullname" . }}-web
   labels:
     {{- include "pinpoint.labels" . | nindent 4 }}
+  {{- with .Values.web.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
+  {{- with .Values.web.ingress.ingressClassName }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.web.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   rules:
-    - host: {{ .Values.web.ingress.host }}
+    {{- range .Values.web.ingress.hosts }}
+    - host: {{ .host | quote }}
       http:
         paths:
-          - path: {{ .Values.web.ingress.path }}
-            pathType: ImplementationSpecific
+          {{- range .paths }}
+          - path: {{ .path | quote }}
+            pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "pinpoint.fullname" . }}-web
+                name: {{ include "pinpoint.fullname" $ }}-web
                 port:
                   name: http
+          {{- end }}
+    {{- end }}
 {{- end }}
 {{- end }}
