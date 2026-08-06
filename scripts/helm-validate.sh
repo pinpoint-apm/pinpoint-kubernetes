@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+bash -n scripts/helm-repo-smoke.sh
+
 chart_dir="${1:-.}"
 render_dir="$(mktemp -d)"
 trap 'rm -rf "${render_dir}"' EXIT
