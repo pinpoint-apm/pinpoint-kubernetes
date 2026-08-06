@@ -1,10 +1,11 @@
-name: Helm CI
+name: Helm CI and Release
 
 on:
   pull_request:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,3 +26,70 @@ jobs:
 
       - name: Validate chart
         run: bash scripts/helm-validate.sh
+
+  release:
+    name: Package and publish chart
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: helm-chart-release
+      cancel-in-progress: false
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v5.0.0
+        with:
+          version: v3.21.2
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Ensure GitHub Pages branch exists
+        shell: bash
+        run: |
+          if ! git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            empty_tree=$(git mktree </dev/null)
+            bootstrap_commit=$(git commit-tree "$empty_tree" -m "chore: initialize Helm chart repository")
+            git push origin "$bootstrap_commit:refs/heads/gh-pages"
+          fi
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
+
+      - name: Build chart dependencies
+        run: helm dependency build .
+
+      - name: Package chart
+        run: |
+          mkdir -p .cr-release-packages
+          helm package . --destination .cr-release-packages
+
+      - name: Publish GitHub release and Pages index
+        uses: helm/chart-releaser-action@v1.7.0
+        with:
+          skip_packaging: true
+          skip_existing: true
+          pages_branch: gh-pages
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Verify published chart
+        env:
+          HELM_REPOSITORY_URL: https://raw.githubusercontent.com/${{ github.repository }}/gh-pages
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if bash scripts/helm-repo-smoke.sh "$HELM_REPOSITORY_URL"; then
+              exit 0
+            fi
+            echo "Published chart is not available yet (attempt ${attempt}/6)."
+            sleep 10
+          done
+          exit 1

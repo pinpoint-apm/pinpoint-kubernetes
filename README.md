@@ -21,6 +21,20 @@ helm install pinpoint pinpoint/pinpoint -n pinpoint --create-namespace
 To install directly from source instead, clone the repository, run
 `helm dependency build`, and use `helm install pinpoint .`.
 
+### Verifying the chart repository
+
+Run the repository smoke test to verify that a chart version is indexed,
+downloadable, and renderable:
+
+```bash
+bash scripts/helm-repo-smoke.sh \
+  https://pinpoint-apm.github.io/pinpoint-kubernetes
+```
+
+The version argument is optional and defaults to the version in `Chart.yaml`.
+The script uses isolated Helm cache and configuration directories, so it does
+not modify the repositories configured in the current user profile.
+
 ### Deployment modes
 
 This chart supports two deployment modes:
@@ -120,6 +134,18 @@ To uninstall the `pinpoint` deployment:
 ```bash
 helm uninstall pinpoint -n pinpoint
 ```
+
+## Chart publishing
+
+Pull requests run the Helm lint and render validation matrix. Pushes to
+`master`, and manual workflow runs dispatched from `master`, publish only after
+the same validation job succeeds.
+
+The release job creates the `gh-pages` branch on the first publication,
+packages the chart, creates or reuses the corresponding GitHub Release, updates
+the repository index, and runs `scripts/helm-repo-smoke.sh` against the
+published `gh-pages` content. After the first successful publication, configure
+GitHub Pages to deploy from the `gh-pages` branch and the repository root.
 
 ## Resources
 
