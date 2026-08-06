@@ -46,7 +46,7 @@ spec:
         {{- end }}
       containers:
         - name: batch
-          image: "{{ .Values.batch.image.repository }}:{{ .Values.batch.image.tag | default .Values.global.pinpointVersion }}"
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.batch.image.repository }}:{{ .Values.batch.image.tag | default .Values.global.pinpointVersion }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           ports:
             - name: http

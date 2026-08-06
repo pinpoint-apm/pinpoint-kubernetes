@@ -38,7 +38,7 @@ spec:
                 sleep 5
               done
 
-              echo "✓ Collector is ready!"        - name: download-telegraf-config
+              echo "Collector is ready!"
         - name: download-pinpoint-telegraf-configuration
           image: {{ include "pinpoint.imageRegistry" . }}curlimages/curl:7.85.0
           env:
@@ -49,7 +49,7 @@ spec:
             - '-c'
             - |
               echo "Downloading Pinpoint Telegraf configuration..."
-              curl -L -f "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.0.3/metric-module/metric/src/main/telegraf/pinpoint-telegraf.conf" > /shared/telegraf.conf
+              curl -L -f "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/metric-module/metric/src/main/telegraf/pinpoint-telegraf.conf" > /shared/telegraf.conf
 
               if [ ! -s /shared/telegraf.conf ]; then
                 echo "Failed to download config"

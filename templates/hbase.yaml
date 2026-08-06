@@ -37,7 +37,7 @@ spec:
         {{- end }}
       containers:
         - name: hbase
-          image: "{{ .Values.hbase.image.repository }}:{{ .Values.hbase.image.tag | default .Values.global.pinpointVersion }}"
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.hbase.image.repository }}:{{ .Values.hbase.image.tag | default .Values.global.pinpointVersion }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           ports:
             - containerPort: 60000

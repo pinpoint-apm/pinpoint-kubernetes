@@ -6,11 +6,12 @@ metadata:
   name: {{ .Release.Name }}-mysql-init
   labels:
     {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mysql-init
   annotations:
-    # This hook runs the Job ONLY after a fresh installation.
-    "helm.sh/hook": post-install
-    # Production mode: Delete successful jobs, keep failed ones
-    # "helm.sh/hook-delete-policy": hook-succeeded
+    # Initialize fresh databases and apply idempotent schema changes on upgrades.
+    "helm.sh/hook": post-install,post-upgrade
+    # Keep failed jobs for inspection and remove old/successful hook jobs.
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
     "helm.sh/hook-weight": "1"
     "helm.sh/hook-timeout": "600s"
 spec:
@@ -23,6 +24,7 @@ spec:
       name: {{ .Release.Name }}-mysql-init
       labels:
         {{- include "pinpoint.labels" . | nindent 8 }}
+        app.kubernetes.io/component: mysql-init
     spec:
       restartPolicy: OnFailure
       initContainers:
@@ -37,13 +39,13 @@ spec:
 
               # Download SQL files from Pinpoint GitHub repository
               echo "Downloading CreateTableStatement-mysql.sql..."
-              if ! wget -q -O /shared/create-tables.sql "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/web/src/main/resources/sql/CreateTableStatement-mysql.sql"; then
+              if ! wget -q -O /shared/create-tables.sql "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/web/src/main/resources/sql/CreateTableStatement-mysql.sql"; then
                 echo "❌ Failed to download CreateTableStatement-mysql.sql"
                 exit 1
               fi
 
               echo "Downloading SpringBatchJobRepositorySchema-mysql.sql..."
-              if ! wget -q -O /shared/create-batch-tables.sql "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/master/web/src/main/resources/sql/SpringBatchJobRepositorySchema-mysql.sql"; then
+              if ! wget -q -O /shared/create-batch-tables.sql "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/web/src/main/resources/sql/SpringBatchJobRepositorySchema-mysql.sql"; then
                 echo "❌ Failed to download SpringBatchJobRepositorySchema-mysql.sql"
                 exit 1
               fi
@@ -108,6 +110,12 @@ spec:
 
               if [ "$TABLE_COUNT" -ge 17 ]; then
                 echo "✅ Tables already exist ($TABLE_COUNT tables). Skipping table creation."
+                WEBHOOK_COLUMNS_TO_MIGRATE=$(mysql -h {{ .Release.Name }}-mysql -u root -p$MYSQL_ROOT_PASSWORD -s -N -e "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = '{{ .Values.mysql.auth.database }}' AND table_name = 'webhook' AND column_name IN ('application_id', 'service_name') AND character_maximum_length < 127;")
+                if [ "$WEBHOOK_COLUMNS_TO_MIGRATE" -gt 0 ]; then
+                  echo "Migrating Pinpoint 3.1 webhook columns to VARCHAR(127)..."
+                  mysql -h {{ .Release.Name }}-mysql -u root -p$MYSQL_ROOT_PASSWORD {{ .Values.mysql.auth.database }} -e "ALTER TABLE webhook MODIFY COLUMN application_id VARCHAR(127) NULL, MODIFY COLUMN service_name VARCHAR(127) NULL;"
+                  echo "Webhook schema migration completed."
+                fi
                 echo "--- MYSQL INIT JOB COMPLETED (TABLES EXIST) ---"
                 exit 0
               fi

@@ -15,9 +15,9 @@
 # ========================================================================
 global:
   # Pinpoint version - ensure all components use the same version
-  pinpointVersion: "3.0.3"
+  pinpointVersion: "3.1.0"
   image:
-    # Global registry address
+    # Registry prefix for chart-owned images, e.g. registry.example.com/mirror
     registry: ""
     # Image pull policy - use IfNotPresent for production to reduce registry load
     pullPolicy: IfNotPresent
@@ -69,6 +69,45 @@ global:
     # Option 2: Plain text password
     # (NOT RECOMMENDED for production; do not set this if using `passwordSecret`)
     password: ""
+
+# ========================================================================
+# Network isolation
+# ========================================================================
+networkPolicy:
+  # Opt in after reviewing ingress controller, agent, and external service
+  # selectors for your cluster. When disabled, no root policy is created.
+  enabled: false
+  dns:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: kube-system
+    podSelector:
+      matchLabels:
+        k8s-app: kube-dns
+  web:
+    # Common ingress-nginx default. Replace this selector when the controller
+    # runs in a different namespace.
+    ingressFrom:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: ingress-nginx
+  collector:
+    # Namespaces containing in-cluster Pinpoint agents can opt in with:
+    # kubectl label namespace <name> pinpoint-apm.io/agent-access=true
+    ingressFrom:
+      - namespaceSelector:
+          matchLabels:
+            pinpoint-apm.io/agent-access: "true"
+  assetDownloadEgress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 443
+          protocol: TCP
+  # Raw NetworkPolicy egress rules for external MySQL, Redis, Kafka, SMTP, or
+  # other endpoints. Prefer narrow ipBlock CIDRs and explicit ports.
+  externalEgress: []
 
 
 # ========================================================================
@@ -265,7 +304,9 @@ flink:
   enabled: true  # Automatically disabled when global.metric.enabled: true
   image:
     repository: "pinpointdocker/pinpoint-flink"
-    tag: ""
+    # Pinpoint does not publish a 3.1.0 Flink image. Keep classic mode on the
+    # latest compatible image instead of inheriting global.pinpointVersion.
+    tag: "3.0.3"
   jobmanager:
     resources: {}
     # Production JobManager resources:
@@ -339,9 +380,12 @@ agent:
 # NOTE: When mysql.enabled is false (using external database):
 #   1. You must configure global.datasource.* settings with your external DB connection info
 #   2. The init-job-mysql will NOT run, so you must manually initialize the database schema
-#   3. Schema SQL files can be found at: https://github.com/pinpoint-apm/pinpoint/tree/master/web/src/main/resources/sql
+#   3. Schema SQL files can be found at: https://github.com/pinpoint-apm/pinpoint/tree/v3.1.0/web/src/main/resources/sql
 mysql:
   enabled: true
+  # Root chart policies provide release-scoped rules when enabled.
+  networkPolicy:
+    enabled: false
   image:
     repository: "bitnamilegacy/mysql"
     tag: "8.0.35-debian-11-r0"  # Use stable, tested version
@@ -371,6 +415,9 @@ mysql:
 # ZooKeeper - Coordination service for Kafka, Pinot, and HBase
 zookeeper:
   enabled: true
+  # Root chart policies provide release-scoped rules when enabled.
+  networkPolicy:
+    enabled: false
   image:
     registry: docker.io
     repository: bitnamilegacy/zookeeper
@@ -399,6 +446,9 @@ zookeeper:
 # Redis - Caching and session storage for Pinpoint 3.x
 redis:
   enabled: true
+  # Root chart policies provide release-scoped rules when enabled.
+  networkPolicy:
+    enabled: false
   image:
     registry: docker.io
     repository: bitnamilegacy/redis
@@ -427,6 +477,9 @@ redis:
 # global.kafka.bootstrapServers. `enabled` is intentionally omitted here so
 # global.metric.enabled remains the backward-compatible default condition.
 kafka:
+  # Root chart policies provide release-scoped rules when enabled.
+  networkPolicy:
+    enabled: false
   image:
     registry: docker.io
     repository: bitnamilegacy/kafka
@@ -479,6 +532,10 @@ kafka:
 # Apache Pinot - Real-time analytics database (only deployed when global.metric.enabled: true)
 # Controlled by global.metric.enabled in Chart.yaml
 pinot:
+  image:
+    repository: apachepinot/pinot
+    tag: "1.0.0-11-amazoncorretto"
+    pullPolicy: IfNotPresent
   cluster:
     name: "pinpoint-cluster"
   # ZooKeeper integration - using shared ZooKeeper

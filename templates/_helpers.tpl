@@ -55,7 +55,7 @@ Image registry
 */}}
 {{- define "pinpoint.imageRegistry" -}}
 {{- if .Values.global.image.registry }}
-{{- printf "%s/" .Values.global.image.registry }}
+{{- printf "%s/" (trimSuffix "/" .Values.global.image.registry) }}
 {{- end }}
 {{- end }}
 

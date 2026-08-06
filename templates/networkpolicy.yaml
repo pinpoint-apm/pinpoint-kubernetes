@@ -1,0 +1,324 @@
+{{- define "pinpoint.networkPolicy.rootPeer" }}
+- podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ include "pinpoint.name" . }}
+{{- end }}
+{{- define "pinpoint.networkPolicy.mysqlPeer" }}
+- podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: mysql
+{{- end }}
+{{- define "pinpoint.networkPolicy.redisPeer" }}
+- podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: redis
+{{- end }}
+{{- define "pinpoint.networkPolicy.zookeeperPeer" }}
+- podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: zookeeper
+{{- end }}
+{{- define "pinpoint.networkPolicy.kafkaPeer" }}
+- podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: kafka
+{{- end }}
+{{- define "pinpoint.networkPolicy.pinotPeer" }}
+- podSelector:
+    matchLabels:
+      app: pinot
+      release: {{ .Release.Name }}
+{{- end }}
+{{- define "pinpoint.networkPolicy.internalPeers" }}
+{{ include "pinpoint.networkPolicy.rootPeer" . }}
+{{ include "pinpoint.networkPolicy.mysqlPeer" . }}
+{{ include "pinpoint.networkPolicy.redisPeer" . }}
+{{ include "pinpoint.networkPolicy.zookeeperPeer" . }}
+{{ include "pinpoint.networkPolicy.kafkaPeer" . }}
+{{ include "pinpoint.networkPolicy.pinotPeer" . }}
+{{- end }}
+{{- define "pinpoint.networkPolicy.egress" }}
+- to:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.dns.namespaceSelector | nindent 8 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.dns.podSelector | nindent 8 }}
+  ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+- to:
+{{ include "pinpoint.networkPolicy.internalPeers" . | nindent 4 }}
+{{- with .Values.networkPolicy.externalEgress }}
+{{ toYaml . }}
+{{- end }}
+{{- end }}
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-components
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ include "pinpoint.name" . }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+{{ include "pinpoint.networkPolicy.rootPeer" . | nindent 8 }}
+      ports:
+        - { port: 8080, protocol: TCP }
+        - { port: 9991, protocol: TCP }
+        - { port: 9992, protocol: TCP }
+        - { port: 9993, protocol: TCP }
+        - { port: 9994, protocol: TCP }
+        - { port: 9995, protocol: UDP }
+        - { port: 9996, protocol: UDP }
+        - { port: 15200, protocol: TCP }
+        - { port: 60000, protocol: TCP }
+        - { port: 60020, protocol: TCP }
+        - { port: 16010, protocol: TCP }
+        - { port: 16030, protocol: TCP }
+        - { port: 6121, protocol: TCP }
+        - { port: 6122, protocol: TCP }
+        - { port: 6123, protocol: TCP }
+        - { port: 8081, protocol: TCP }
+        - { port: 19994, protocol: TCP }
+  egress:
+{{ include "pinpoint.networkPolicy.egress" . | nindent 4 }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-mysql
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: mysql
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/name: {{ include "pinpoint.name" . }}
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [web, batch, mysql-init]
+      ports:
+        - { port: 3306, protocol: TCP }
+  egress:
+{{ include "pinpoint.networkPolicy.egress" . | nindent 4 }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-redis
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: redis
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/name: {{ include "pinpoint.name" . }}
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [web, collector]
+      ports:
+        - { port: 6379, protocol: TCP }
+  egress:
+{{ include "pinpoint.networkPolicy.egress" . | nindent 4 }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-zookeeper
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: zookeeper
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/name: {{ include "pinpoint.name" . }}
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [web, collector, batch, flink-jobmanager, hbase]
+{{ include "pinpoint.networkPolicy.kafkaPeer" . | nindent 8 }}
+{{ include "pinpoint.networkPolicy.pinotPeer" . | nindent 8 }}
+{{ include "pinpoint.networkPolicy.zookeeperPeer" . | nindent 8 }}
+      ports:
+        - { port: 2181, protocol: TCP }
+    - from:
+{{ include "pinpoint.networkPolicy.zookeeperPeer" . | nindent 8 }}
+      ports:
+        - { port: 2888, protocol: TCP }
+        - { port: 3888, protocol: TCP }
+  egress:
+{{ include "pinpoint.networkPolicy.egress" . | nindent 4 }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-kafka
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: kafka
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/name: {{ include "pinpoint.name" . }}
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [collector, kafka-init, pinot-init]
+{{ include "pinpoint.networkPolicy.kafkaPeer" . | nindent 8 }}
+{{ include "pinpoint.networkPolicy.pinotPeer" . | nindent 8 }}
+      ports:
+        - { port: 9092, protocol: TCP }
+        - { port: 9093, protocol: TCP }
+        - { port: 9094, protocol: TCP }
+  egress:
+{{ include "pinpoint.networkPolicy.egress" . | nindent 4 }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-pinot
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: pinot
+      release: {{ .Release.Name }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/name: {{ include "pinpoint.name" . }}
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [web, collector, pinot-init]
+{{ include "pinpoint.networkPolicy.pinotPeer" . | nindent 8 }}
+      ports:
+        - { port: 9000, protocol: TCP }
+        - { port: 8099, protocol: TCP }
+        - { port: 8098, protocol: TCP }
+        - { port: 8097, protocol: TCP }
+        - { port: 9514, protocol: TCP }
+  egress:
+{{ include "pinpoint.networkPolicy.egress" . | nindent 4 }}
+{{- with .Values.networkPolicy.assetDownloadEgress }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "pinpoint.fullname" $ }}-asset-downloads
+  labels:
+    {{- include "pinpoint.labels" $ | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      app.kubernetes.io/name: {{ include "pinpoint.name" $ }}
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values:
+          - mysql-init
+          - pinot-init
+          - telegraf
+  policyTypes: [Egress]
+  egress:
+{{ toYaml . | nindent 4 }}
+{{- end }}
+{{- with .Values.networkPolicy.web.ingressFrom }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "pinpoint.fullname" $ }}-web-ingress
+  labels:
+    {{- include "pinpoint.labels" $ | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      app.kubernetes.io/name: {{ include "pinpoint.name" $ }}
+      app.kubernetes.io/component: web
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+{{ toYaml . | nindent 8 }}
+      ports:
+        - { port: 8080, protocol: TCP }
+{{- end }}
+{{- with .Values.networkPolicy.collector.ingressFrom }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "pinpoint.fullname" $ }}-collector-ingress
+  labels:
+    {{- include "pinpoint.labels" $ | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      app.kubernetes.io/name: {{ include "pinpoint.name" $ }}
+      app.kubernetes.io/component: collector
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+{{ toYaml . | nindent 8 }}
+      ports:
+        - { port: 9991, protocol: TCP }
+        - { port: 9992, protocol: TCP }
+        - { port: 9993, protocol: TCP }
+        - { port: 9994, protocol: TCP }
+        - { port: 9995, protocol: UDP }
+        - { port: 9996, protocol: UDP }
+        - { port: 15200, protocol: TCP }
+{{- end }}
+{{- end }}

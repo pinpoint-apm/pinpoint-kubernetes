@@ -49,6 +49,12 @@ jobs:
         with:
           version: v3.21.2
 
+      - name: Build and package chart
+        run: |
+          helm dependency build .
+          mkdir -p .cr-release-packages
+          helm package . --destination .cr-release-packages
+
       - name: Configure Git
         run: |
           git config user.name "$GITHUB_ACTOR"
@@ -64,13 +70,20 @@ jobs:
           fi
           git fetch origin gh-pages:refs/remotes/origin/gh-pages
 
-      - name: Build chart dependencies
-        run: helm dependency build .
-
-      - name: Package chart
+      - name: Publish Helm repository landing page
+        shell: bash
         run: |
-          mkdir -p .cr-release-packages
-          helm package . --destination .cr-release-packages
+          pages_root=$(mktemp -d)
+          pages_dir="$pages_root/gh-pages"
+          git worktree add "$pages_dir" origin/gh-pages
+          bash scripts/render-pages-site.sh "$pages_dir"
+          git -C "$pages_dir" add index.html .nojekyll
+          if ! git -C "$pages_dir" diff --cached --quiet; then
+            git -C "$pages_dir" commit -m "docs: update Helm repository landing page"
+            git -C "$pages_dir" push origin HEAD:gh-pages
+          fi
+          git worktree remove "$pages_dir"
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
 
       - name: Publish GitHub release and Pages index
         uses: helm/chart-releaser-action@v1.7.0
