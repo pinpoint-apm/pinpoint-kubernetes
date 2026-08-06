@@ -6,10 +6,26 @@ docs/
 # Unnecessary system and IDE files
 .git/
 .gitignore
+.github/
 .idea/
 .vscode/
 .DS_Store
+graphify-out/
+scripts/
+.cr-index/
+.cr-release-packages/
+
+# Local configuration and generated release artifacts
+.env
+.env.*
+values.local.yaml
+values.*.local.yaml
+secrets*.yaml
+*.prov
+Dockerfile
+docker-compose*
 
 # To lighten the package, documentation files (Optional but recommended)
 README.md
+RELEASING.md
 LICENSE

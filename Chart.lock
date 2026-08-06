@@ -1,0 +1,18 @@
+dependencies:
+- name: zookeeper
+  repository: https://charts.bitnami.com/bitnami
+  version: 13.8.7
+- name: mysql
+  repository: https://charts.bitnami.com/bitnami
+  version: 14.0.3
+- name: redis
+  repository: https://charts.bitnami.com/bitnami
+  version: 22.0.7
+- name: kafka
+  repository: https://charts.bitnami.com/bitnami
+  version: 32.4.3
+- name: pinot
+  repository: https://raw.githubusercontent.com/apache/pinot/master/helm
+  version: 0.3.4
+digest: sha256:705fcaf4dd48ad333fd830e6419f4b537ba332770cbbd349ee6bb17bef240c1b
+generated: "2026-08-05T23:51:04.430349372+03:00"
