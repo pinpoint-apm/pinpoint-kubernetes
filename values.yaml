@@ -26,6 +26,23 @@ global:
   # metric.enabled: false = Classic stack (Batch + Flink + traditional processing)
   metric:
     enabled: true  # DEFAULT: Modern mode for new deployments
+  # Shared Redis connection configuration for Web and Collector.
+  # Used when redis.enabled=false. Password is optional, and passwordSecret is
+  # mutually exclusive with password.
+  redis:
+    host: ""
+    port: 6379
+    username: ""
+    passwordSecret:
+      name: ""
+      key: ""
+    password: ""
+  # Shared Kafka connection configuration for Collector and initialization jobs.
+  kafka:
+    # Required when kafka.enabled=false. Multiple brokers can be comma-separated.
+    bootstrapServers: ""
+    # Disable when topics are managed outside this Helm release.
+    createTopics: true
   # Global Datasource Configuration (Shared by Web and Batch)
   # This configuration controls how Web and Batch components connect to the MySQL database.
   datasource:
@@ -405,8 +422,10 @@ redis:
     #     cpu: 500m
     #     memory: 1Gi
 
-# Kafka - Message streaming platform (only deployed when global.metric.enabled: true)
-# Controlled by global.metric.enabled in Chart.yaml
+# Kafka - Message streaming platform (deployed in metric mode by default)
+# To use external Kafka, set kafka.enabled=false and configure
+# global.kafka.bootstrapServers. `enabled` is intentionally omitted here so
+# global.metric.enabled remains the backward-compatible default condition.
 kafka:
   image:
     registry: docker.io

@@ -14,5 +14,5 @@ dependencies:
 - name: pinot
   repository: https://raw.githubusercontent.com/apache/pinot/master/helm
   version: 0.3.4
-digest: sha256:705fcaf4dd48ad333fd830e6419f4b537ba332770cbbd349ee6bb17bef240c1b
-generated: "2026-08-05T23:51:04.430349372+03:00"
+digest: sha256:bc49c54e7f64d6ca271941a0bc7a2223ba3ba8bd74d77536087ee2dfce20387e
+generated: "2026-08-06T18:27:30.428679103+03:00"

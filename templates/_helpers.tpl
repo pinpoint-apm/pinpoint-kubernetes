@@ -134,3 +134,84 @@ valueFrom:
 {{- fail "global.datasource.password or global.datasource.passwordSecret is required when mysql.enabled is false" -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Redis host shared by Web and Collector.
+*/}}
+{{- define "pinpoint.redis.host" -}}
+{{- if .Values.redis.enabled -}}
+{{- printf "%s-redis-master" .Release.Name -}}
+{{- else -}}
+{{- required "global.redis.host is required when redis.enabled is false" .Values.global.redis.host -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Redis port shared by Web and Collector.
+*/}}
+{{- define "pinpoint.redis.port" -}}
+{{- if .Values.redis.enabled -}}
+6379
+{{- else -}}
+{{- required "global.redis.port is required when redis.enabled is false" .Values.global.redis.port -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Redis username shared by Web and Collector.
+*/}}
+{{- define "pinpoint.redis.username" -}}
+{{- if .Values.redis.enabled -}}
+{{- "" -}}
+{{- else -}}
+{{- .Values.global.redis.username -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Redis password value or Secret reference shared by Web and Collector.
+*/}}
+{{- define "pinpoint.redis.password" -}}
+{{- if .Values.redis.enabled -}}
+{{- if .Values.redis.auth.enabled -}}
+valueFrom:
+  secretKeyRef:
+    name: {{ default (printf "%s-redis" .Release.Name) .Values.redis.auth.existingSecret | quote }}
+    key: {{ default "redis-password" .Values.redis.auth.existingSecretPasswordKey | quote }}
+{{- else -}}
+value: ""
+{{- end -}}
+{{- else -}}
+{{- $secret := .Values.global.redis.passwordSecret -}}
+{{- if or $secret.name $secret.key -}}
+{{- if .Values.global.redis.password -}}
+{{- fail "Configuration conflict: global.redis.password and global.redis.passwordSecret are mutually exclusive" -}}
+{{- end -}}
+{{- if not $secret.name -}}
+{{- fail "global.redis.passwordSecret.name is required when passwordSecret.key is provided" -}}
+{{- end -}}
+{{- if not $secret.key -}}
+{{- fail "global.redis.passwordSecret.key is required when passwordSecret.name is provided" -}}
+{{- end -}}
+valueFrom:
+  secretKeyRef:
+    name: {{ $secret.name | quote }}
+    key: {{ $secret.key | quote }}
+{{- else -}}
+value: {{ .Values.global.redis.password | quote }}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Kafka bootstrap servers shared by Collector and initialization jobs.
+*/}}
+{{- define "pinpoint.kafka.bootstrapServers" -}}
+{{- if .Values.global.kafka.bootstrapServers -}}
+{{- .Values.global.kafka.bootstrapServers -}}
+{{- else if and (hasKey .Values.kafka "enabled") (not .Values.kafka.enabled) -}}
+{{- fail "global.kafka.bootstrapServers is required when kafka.enabled is false" -}}
+{{- else -}}
+{{- printf "%s-kafka:9092" .Release.Name -}}
+{{- end -}}
+{{- end -}}

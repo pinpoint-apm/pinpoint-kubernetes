@@ -2,7 +2,7 @@ apiVersion: v2
 name: pinpoint
 description: A Helm chart for deploying Pinpoint APM (Application Performance Management) on Kubernetes.
 type: application
-version: 2.1.0
+version: 2.2.0
 appVersion: "3.0.3"
 
 keywords:
@@ -39,11 +39,11 @@ dependencies:
     repository: "https://charts.bitnami.com/bitnami"
     condition: redis.enabled
 
-  # CORRECT: Condition points directly to the boolean value in values.yaml
+  # kafka.enabled overrides the metric-mode default when explicitly provided.
   - name: kafka
     version: "32.4.3"
     repository: "https://charts.bitnami.com/bitnami"
-    condition: global.metric.enabled
+    condition: kafka.enabled,global.metric.enabled
 
   # CORRECT: Condition points directly to the boolean value in values.yaml
   - name: pinot

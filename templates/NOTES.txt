@@ -58,7 +58,12 @@ Pinpoint has been successfully deployed.
 
 3. Checking the Installation Status:
 {{- if .Values.global.metric.enabled }}
-   The "metric" profile is enabled. You should see pods for Kafka and Pinot running.
+   The "metric" profile is enabled. You should see Pinot pods running.
+{{- if and (hasKey .Values.kafka "enabled") (not .Values.kafka.enabled) }}
+   Kafka endpoint: {{ include "pinpoint.kafka.bootstrapServers" . }} (external)
+{{- else }}
+   You should also see the bundled Kafka pods running.
+{{- end }}
 {{- else }}
    The "metric" profile is disabled. Kafka and Pinot are not deployed.
    To use URI statistics, OTLP metrics, and exception traces,
