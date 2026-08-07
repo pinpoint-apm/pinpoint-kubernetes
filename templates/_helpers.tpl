@@ -206,6 +206,26 @@ value: {{ .Values.global.redis.password | quote }}
 {{/*
 Kafka bootstrap servers shared by Collector and initialization jobs.
 */}}
+{{- define "pinpoint.kafka.internalEnabled" -}}
+{{- if hasKey .Values.kafka "enabled" -}}
+{{- ternary "true" "false" .Values.kafka.enabled -}}
+{{- else -}}
+{{- ternary "true" "false" .Values.global.metric.enabled -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Kafka client image used by the root topic initialization job. Reuse the
+bundled Kafka image so the client matches the broker and is already cached.
+*/}}
+{{- define "pinpoint.kafka.image" -}}
+{{- $registry := .Values.kafka.image.registry -}}
+{{- if .Values.global.image.registry -}}
+{{- $registry = trimSuffix "/" .Values.global.image.registry -}}
+{{- end -}}
+{{- printf "%s/%s:%s" $registry .Values.kafka.image.repository .Values.kafka.image.tag -}}
+{{- end -}}
+
 {{- define "pinpoint.kafka.bootstrapServers" -}}
 {{- if .Values.global.kafka.bootstrapServers -}}
 {{- .Values.global.kafka.bootstrapServers -}}

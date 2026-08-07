@@ -1,4 +1,6 @@
-{{- if and .Values.global.metric.enabled .Values.global.kafka.createTopics }}
+{{- $internalKafka := eq (include "pinpoint.kafka.internalEnabled" .) "true" -}}
+{{- $manageTopics := or $internalKafka .Values.global.kafka.manageExternalTopics -}}
+{{- if and .Values.global.metric.enabled .Values.global.kafka.createTopics $manageTopics }}
 # Kafka Topics Initialization Job
 apiVersion: batch/v1
 kind: Job
@@ -8,10 +10,10 @@ metadata:
     {{- include "pinpoint.labels" . | nindent 4 }}
     app.kubernetes.io/component: kafka-init
   annotations:
-    "helm.sh/hook": post-install
+    "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "2"
-    # Production mode: Delete successful jobs, keep failed ones
-    # "helm.sh/hook-delete-policy": hook-succeeded
+    # Replace stale hook jobs and retain failures for inspection.
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
     "helm.sh/hook-timeout": "600s"
 spec:
   backoffLimit: 3
@@ -46,7 +48,10 @@ spec:
               echo "Kafka is ready!"
       containers:
         - name: kafka-topics-creator
-          image: {{ include "pinpoint.imageRegistry" . }}confluentinc/cp-kafka:7.4.0
+          # Match the client to the bundled broker instead of downloading a
+          # second, version-skewed Kafka distribution.
+          image: {{ include "pinpoint.kafka.image" . | quote }}
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           command:
             - 'sh'
             - '-c'
@@ -55,28 +60,28 @@ spec:
               BOOTSTRAP_SERVER="$KAFKA_BOOTSTRAP_SERVERS"
 
               # Wait for Kafka to be ready
-              until kafka-topics --list --bootstrap-server "$BOOTSTRAP_SERVER" >/dev/null 2>&1; do
+              until /opt/bitnami/kafka/bin/kafka-topics.sh --list --bootstrap-server "$BOOTSTRAP_SERVER" >/dev/null 2>&1; do
                 echo "Waiting for Kafka broker..."
                 sleep 10
               done
 
               # Check existing topics
-              EXISTING_TOPICS=$(kafka-topics --list --bootstrap-server "$BOOTSTRAP_SERVER" 2>/dev/null | grep -E "(url-stat|system-metric|exception-trace|inspector-stat)" | wc -l || echo "0")
+              EXISTING_TOPICS=$(/opt/bitnami/kafka/bin/kafka-topics.sh --list --bootstrap-server "$BOOTSTRAP_SERVER" 2>/dev/null | grep -E "(url-stat|system-metric|exception-trace|inspector-stat)" | wc -l || echo "0")
 
               if [ "$EXISTING_TOPICS" -ge 7 ]; then
                 echo "Topics already exist ($EXISTING_TOPICS found):"
-                kafka-topics --list --bootstrap-server "$BOOTSTRAP_SERVER" 2>/dev/null | grep -E "(url-stat|system-metric|exception-trace|inspector-stat)" | sort || echo "Could not list topics"
+                /opt/bitnami/kafka/bin/kafka-topics.sh --list --bootstrap-server "$BOOTSTRAP_SERVER" 2>/dev/null | grep -E "(url-stat|system-metric|exception-trace|inspector-stat)" | sort || echo "Could not list topics"
                 exit 0
               fi
 
               echo "Creating Kafka topics..."
-              kafka-topics --create --topic url-stat --partitions 64 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
-              kafka-topics --create --topic system-metric-data-type --partitions 3 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
-              kafka-topics --create --topic system-metric-tag --partitions 3 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
-              kafka-topics --create --topic system-metric-double --partitions 3 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
-              kafka-topics --create --topic exception-trace --partitions 3 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
-              kafka-topics --create --topic inspector-stat-app --partitions 64 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
-              kafka-topics --create --topic inspector-stat-agent-00 --partitions 32 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic url-stat --partitions 64 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic system-metric-data-type --partitions 3 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic system-metric-tag --partitions 3 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic system-metric-double --partitions 3 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic exception-trace --partitions 3 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic inspector-stat-app --partitions 64 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic inspector-stat-agent-00 --partitions 32 --replication-factor 1 --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
 
               echo "Topics created successfully!"
           env:

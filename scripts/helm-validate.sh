@@ -46,8 +46,7 @@ helm lint "${chart_dir}" \
   --set global.redis.passwordSecret.name=external-redis \
   --set global.redis.passwordSecret.key=password \
   --set kafka.enabled=false \
-  --set global.kafka.bootstrapServers=kafka.external.example:9092 \
-  --set global.kafka.createTopics=false
+  --set global.kafka.bootstrapServers=kafka.external.example:9092
 
 helm template pinpoint "${chart_dir}" --namespace pinpoint \
   --set redis.enabled=false \
@@ -57,13 +56,13 @@ helm template pinpoint "${chart_dir}" --namespace pinpoint \
   --set global.redis.passwordSecret.name=external-redis \
   --set global.redis.passwordSecret.key=password \
   --set kafka.enabled=false \
-  --set global.kafka.bootstrapServers=kafka.external.example:9092 \
-  --set global.kafka.createTopics=false > "${render_dir}/external-services.yaml"
+  --set global.kafka.bootstrapServers=kafka.external.example:9092 > "${render_dir}/external-services.yaml"
 
 helm template pinpoint "${chart_dir}" --namespace pinpoint \
   --show-only templates/init-job-kafka.yaml \
   --set kafka.enabled=false \
   --set global.kafka.bootstrapServers=kafka.external.example:9092 \
+  --set global.kafka.manageExternalTopics=true \
   > "${render_dir}/external-kafka-init.yaml"
 
 helm template pinpoint "${chart_dir}" --namespace pinpoint \
@@ -149,6 +148,27 @@ grep -q 'key: "password"' "${render_dir}/external-services.yaml"
 grep -q 'value: "kafka.external.example:9092"' "${render_dir}/external-services.yaml"
 grep -q 'name: pinpoint-kafka-init' "${render_dir}/external-kafka-init.yaml"
 grep -q 'value: "kafka.external.example:9092"' "${render_dir}/external-kafka-init.yaml"
+grep -q 'bitnamilegacy/kafka:4.0.0-debian-12-r10' "${render_dir}/external-kafka-init.yaml"
+grep -q '/opt/bitnami/kafka/bin/kafka-topics.sh' "${render_dir}/external-kafka-init.yaml"
+grep -q 'post-install,post-upgrade' "${render_dir}/external-kafka-init.yaml"
+grep -q 'post-install,post-upgrade' "${render_dir}/pinot-init.yaml"
+grep -q 'name: wait-for-redis' "${render_dir}/metric.yaml"
+grep -q 'name: wait-for-kafka' "${render_dir}/metric.yaml"
+
+if grep -q 'confluentinc/cp-kafka' "${render_dir}/metric.yaml"; then
+  echo "Kafka initialization unexpectedly uses a second Kafka distribution" >&2
+  exit 1
+fi
+
+if grep -q 'name: wait-for-redis' "${render_dir}/external-services.yaml"; then
+  echo "External Redis unexpectedly blocks application startup" >&2
+  exit 1
+fi
+
+if grep -q 'name: wait-for-kafka' "${render_dir}/external-services.yaml"; then
+  echo "External Kafka unexpectedly blocks application startup" >&2
+  exit 1
+fi
 
 if grep -q '# Source: pinpoint/charts/redis/' "${render_dir}/external-services.yaml"; then
   echo "External-services render unexpectedly contains bundled Redis resources" >&2
@@ -161,7 +181,12 @@ if grep -q '# Source: pinpoint/charts/kafka/' "${render_dir}/external-services.y
 fi
 
 if grep -q 'name: pinpoint-kafka-init' "${render_dir}/external-services.yaml"; then
-  echo "External-services render unexpectedly contains the Kafka init job" >&2
+  echo "External Kafka topic management unexpectedly enabled without opt-in" >&2
+  exit 1
+fi
+
+if grep -q 'Pinot init job is waiting for Kafka' "${render_dir}/pinot-init.yaml"; then
+  echo "Pinot initialization unexpectedly blocks on Kafka availability" >&2
   exit 1
 fi
 
