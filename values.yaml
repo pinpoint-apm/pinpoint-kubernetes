@@ -41,8 +41,10 @@ global:
   kafka:
     # Required when kafka.enabled=false. Multiple brokers can be comma-separated.
     bootstrapServers: ""
-    # Disable when topics are managed outside this Helm release.
+    # Create the Pinpoint topics in bundled Kafka. External Kafka is never
+    # modified unless manageExternalTopics is explicitly enabled.
     createTopics: true
+    manageExternalTopics: false
   # Global Datasource Configuration (Shared by Web and Batch)
   # This configuration controls how Web and Batch components connect to the MySQL database.
   datasource:
@@ -483,6 +485,7 @@ kafka:
   image:
     registry: docker.io
     repository: bitnamilegacy/kafka
+    tag: 4.0.0-debian-12-r10
   # Security configuration - PRODUCTION: Enable authentication
   auth:
     clientProtocol: "PLAINTEXT"      # CHANGE: Use SASL_SSL for production
