@@ -1,0 +1,49 @@
+apiVersion: v1
+entries:
+  pinpoint:
+  - apiVersion: v2
+    appVersion: 3.1.0
+    created: "2026-08-07T09:48:00.705820684Z"
+    dependencies:
+    - condition: zookeeper.enabled
+      name: zookeeper
+      repository: https://charts.bitnami.com/bitnami
+      version: 13.8.7
+    - condition: mysql.enabled
+      name: mysql
+      repository: https://charts.bitnami.com/bitnami
+      version: 14.0.3
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: 22.0.7
+    - condition: kafka.enabled,global.metric.enabled
+      name: kafka
+      repository: https://charts.bitnami.com/bitnami
+      version: 32.4.3
+    - condition: global.metric.enabled
+      name: pinot
+      repository: https://raw.githubusercontent.com/apache/pinot/master/helm
+      version: 0.3.4
+    description: A Helm chart for deploying Pinpoint APM (Application Performance
+      Management) on Kubernetes.
+    digest: 02f5b290bcf234dcc1e3a886d2d66256f1db5f65fcd1194b1d2fc74c5b122243
+    home: https://github.com/pinpoint-apm/pinpoint-kubernetes
+    icon: https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.1.0/doc/images/NAVERPinpoint.png
+    keywords:
+    - apm
+    - pinpoint
+    - monitoring
+    - performance
+    - metrics
+    maintainers:
+    - email: thesadson@gmail.com
+      name: Emircan Agac
+    name: pinpoint
+    sources:
+    - https://github.com/pinpoint-apm/pinpoint
+    type: application
+    urls:
+    - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-3.1.0/pinpoint-3.1.0.tgz
+    version: 3.1.0
+generated: "2026-08-07T09:48:00.705833588Z"
