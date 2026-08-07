@@ -3,272 +3,83 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Official Pinpoint APM Helm chart repository for Kubernetes.">
+  <meta name="description" content="Official open-source Pinpoint APM Helm chart repository.">
   <title>Pinpoint Helm Chart</title>
   <style>
-    :root {
-      color-scheme: dark;
-      --bg: #07111f;
-      --surface: #0b192a;
-      --text: #f4f8fc;
-      --muted: #9fb2c8;
-      --cyan: #54d7f1;
-      --mint: #6ce3b5;
-      --border: rgba(150, 190, 220, 0.18);
-    }
-
     * { box-sizing: border-box; }
-
-    html, body { min-height: 100%; }
 
     body {
       margin: 0;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 12% 8%, rgba(41, 161, 190, 0.16), transparent 30rem),
-        radial-gradient(circle at 88% 74%, rgba(83, 211, 164, 0.09), transparent 26rem),
-        var(--bg);
+      color: #0f172a;
+      background: #ffffff;
+      font-family: Arial, Helvetica, sans-serif;
     }
 
-    a { color: inherit; }
-
-    .shell {
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      gap: 24px;
-      width: min(960px, calc(100% - 40px));
-      min-height: 100svh;
-      margin: 0 auto;
-      padding: 24px 0;
+    main {
+      width: min(760px, calc(100% - 40px));
+      margin: 72px auto;
     }
 
-    nav, footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 24px;
+    h1 {
+      margin: 0 0 28px;
+      font-size: clamp(28px, 4vw, 34px);
+      line-height: 1.2;
     }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 760;
-      letter-spacing: -0.02em;
-      text-decoration: none;
+    p {
+      margin: 0 0 14px;
+      line-height: 1.6;
     }
 
-    .mark {
-      display: grid;
-      place-items: center;
-      width: 32px;
-      height: 32px;
-      border: 1px solid rgba(84, 215, 241, 0.35);
+    .versions {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    pre {
+      margin: 18px 0;
+      padding: 18px 16px;
+      overflow-x: auto;
       border-radius: 9px;
-      color: var(--cyan);
-      background: rgba(84, 215, 241, 0.08);
-      font: 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: #0f172a;
+      background: #f1f5f9;
+      font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
 
-    .nav-links, .footer-links, .versions {
+    .links {
       display: flex;
-      align-items: center;
       flex-wrap: wrap;
       gap: 18px;
     }
 
-    .nav-links a, .footer-links a {
-      color: var(--muted);
-      font-size: 13px;
-      text-decoration: none;
-    }
+    a { color: #0969da; }
 
-    .nav-links a:hover, .footer-links a:hover { color: var(--text); }
+    @media (max-width: 560px) {
+      main {
+        width: min(100% - 24px, 760px);
+        margin: 40px auto;
+      }
 
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.88fr);
-      align-items: center;
-      gap: 54px;
-      padding: 28px 0;
-    }
-
-    .eyebrow {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-      color: var(--mint);
-      font-size: 12px;
-      font-weight: 750;
-      letter-spacing: 0.11em;
-      text-transform: uppercase;
-    }
-
-    .dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--mint);
-      box-shadow: 0 0 16px rgba(108, 227, 181, 0.75);
-    }
-
-    h1 {
-      max-width: 560px;
-      margin: 0;
-      font-size: clamp(46px, 6vw, 68px);
-      line-height: 1;
-      letter-spacing: -0.055em;
-    }
-
-    .lead {
-      max-width: 540px;
-      margin: 22px 0 24px;
-      color: var(--muted);
-      font-size: 18px;
-      line-height: 1.6;
-    }
-
-    .version {
-      padding: 7px 11px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      color: #cfe0ee;
-      background: rgba(255, 255, 255, 0.03);
-      font-size: 12px;
-    }
-
-    .terminal {
-      overflow: hidden;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: rgba(5, 13, 24, 0.94);
-      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.24);
-    }
-
-    .terminal-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 15px;
-      border-bottom: 1px solid var(--border);
-      color: #7890a8;
-      font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
-    }
-
-    .terminal-bar span:first-child::before {
-      content: "";
-      display: inline-block;
-      width: 7px;
-      height: 7px;
-      margin-right: 9px;
-      border-radius: 50%;
-      background: var(--mint);
-    }
-
-    .copy {
-      padding: 5px 8px;
-      border: 1px solid var(--border);
-      border-radius: 7px;
-      color: var(--muted);
-      background: #102033;
-      font: inherit;
-      cursor: pointer;
-    }
-
-    .copy:hover { color: var(--text); border-color: rgba(84, 215, 241, 0.45); }
-
-    pre {
-      margin: 0;
-      padding: 22px;
-      overflow-x: auto;
-      color: #d8e9f5;
-      font: 12px/1.9 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
-
-    .prompt { color: var(--mint); user-select: none; }
-    .url { color: var(--cyan); }
-
-    footer {
-      padding-top: 18px;
-      border-top: 1px solid var(--border);
-      color: #71869b;
-      font-size: 12px;
-    }
-
-    @media (max-width: 760px) {
-      .shell { min-height: auto; }
-      .hero { grid-template-columns: 1fr; gap: 30px; padding: 44px 0; }
-      .terminal { max-width: 560px; }
-    }
-
-    @media (max-width: 520px) {
-      .shell { width: min(100% - 24px, 960px); padding: 16px 0; }
-      .nav-links a:first-child { display: none; }
-      .hero { padding: 28px 0; }
-      h1 { font-size: 44px; }
-      .lead { font-size: 16px; }
-      pre { padding: 18px 14px; font-size: 11px; }
-      footer { align-items: flex-start; flex-direction: column; }
-    }
-
-    @media (max-height: 720px) and (min-width: 761px) {
-      .shell { gap: 12px; padding: 16px 0; }
-      .hero { padding: 12px 0; }
-      h1 { font-size: 54px; }
-      .lead { margin: 16px 0 18px; }
+      h1 { margin-bottom: 20px; }
+      pre { font-size: 11px; }
     }
   </style>
 </head>
 <body>
-  <main class="shell">
-    <nav>
-      <a class="brand" href="__GITHUB_REPOSITORY_URL__"><span class="mark">P</span> Pinpoint Helm</a>
-      <div class="nav-links">
-        <a href="__GITHUB_REPOSITORY_URL__/blob/master/README.md">Documentation</a>
-        <a href="__GITHUB_REPOSITORY_URL__/releases">Releases</a>
-        <a href="__GITHUB_REPOSITORY_URL__">GitHub</a>
-      </div>
-    </nav>
+  <main>
+    <h1>Pinpoint Helm Chart Repository</h1>
+    <p>Open-source Helm chart for running Pinpoint APM on Kubernetes.</p>
+    <p class="versions">Chart __CHART_VERSION__ · Pinpoint __APP_VERSION__</p>
 
-    <section class="hero">
-      <div>
-        <div class="eyebrow"><span class="dot"></span> Official Helm repository</div>
-        <h1>Run Pinpoint on Kubernetes.</h1>
-        <p class="lead">Install Pinpoint __APP_VERSION__ with a versioned, production-ready Helm chart.</p>
-        <div class="versions">
-          <span class="version">Chart __CHART_VERSION__</span>
-          <span class="version">Pinpoint __APP_VERSION__</span>
-        </div>
-      </div>
+    <pre>helm repo add pinpoint __HELM_REPOSITORY_URL__
+helm repo update
+helm upgrade --install pinpoint pinpoint/pinpoint --namespace pinpoint --create-namespace</pre>
 
-      <div class="terminal">
-        <div class="terminal-bar"><span>Quick install</span><button class="copy" type="button" aria-label="Copy install commands">Copy</button></div>
-        <pre><code id="commands"><span class="prompt">$</span> helm repo add pinpoint <span class="url">__HELM_REPOSITORY_URL__</span>
-<span class="prompt">$</span> helm repo update
-<span class="prompt">$</span> helm install pinpoint pinpoint/pinpoint \
-    --namespace pinpoint --create-namespace</code></pre>
-      </div>
-    </section>
-
-    <footer>
-      <span>Repository online · Apache License 2.0</span>
-      <div class="footer-links">
-        <a href="__HELM_REPOSITORY_URL__/index.yaml">index.yaml</a>
-        <a href="__GITHUB_REPOSITORY_URL__/releases">Download chart</a>
-      </div>
-    </footer>
+    <div class="links">
+      <a href="__GITHUB_REPOSITORY_URL__">GitHub repository</a>
+      <a href="__GITHUB_REPOSITORY_URL__/releases">Releases</a>
+      <a href="__HELM_REPOSITORY_URL__/index.yaml">index.yaml</a>
+    </div>
   </main>
-
-  <script>
-    const button = document.querySelector('.copy');
-    button.addEventListener('click', async () => {
-      const commands = document.querySelector('#commands').innerText.replace(/^\$ /gm, '');
-      await navigator.clipboard.writeText(commands);
-      button.textContent = 'Copied';
-      setTimeout(() => { button.textContent = 'Copy'; }, 1400);
-    });
-  </script>
 </body>
 </html>
