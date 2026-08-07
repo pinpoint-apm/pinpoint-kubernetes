@@ -2,6 +2,8 @@
 charts/
 *.tgz
 *.prov
+.cr-index/
+.cr-release-packages/
 
 # Graph analysis artifacts
 graphify-out/
@@ -19,9 +21,12 @@ graphify-out/
 # Editor and operating-system files
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
 *.swp
 *.swo
 *~
+*.log
 
 # Docker artifacts
 docker-compose*

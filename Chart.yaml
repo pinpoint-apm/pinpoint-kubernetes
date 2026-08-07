@@ -13,6 +13,7 @@ keywords:
   - metrics
 
 home: https://github.com/pinpoint-apm/pinpoint-kubernetes
+icon: https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.1.0/doc/images/NAVERPinpoint.png
 sources:
   - https://github.com/pinpoint-apm/pinpoint
 
@@ -21,7 +22,7 @@ maintainers:
     email: thesadson@gmail.com
 
 dependencies:
-  # Shared and central Zookeeper for Kafka and Pinot
+  # Shared ZooKeeper for Kafka and Pinot
   - name: zookeeper
     version: "13.8.7"
     repository: "https://charts.bitnami.com/bitnami"
@@ -39,13 +40,13 @@ dependencies:
     repository: "https://charts.bitnami.com/bitnami"
     condition: redis.enabled
 
-  # kafka.enabled overrides the metric-mode default when explicitly provided.
+  # Follow metric mode unless kafka.enabled explicitly overrides it.
   - name: kafka
     version: "32.4.3"
     repository: "https://charts.bitnami.com/bitnami"
     condition: kafka.enabled,global.metric.enabled
 
-  # CORRECT: Condition points directly to the boolean value in values.yaml
+  # Pinot is required by the metric profile.
   - name: pinot
     version: "0.3.4"
     repository: "https://raw.githubusercontent.com/apache/pinot/master/helm"
