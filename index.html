@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Official open-source Pinpoint APM Helm chart repository.">
+  <title>Pinpoint Helm Chart</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: #0f172a;
+      background: #ffffff;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    main {
+      width: min(760px, calc(100% - 40px));
+      margin: 72px auto;
+    }
+
+    h1 {
+      margin: 0 0 28px;
+      font-size: clamp(28px, 4vw, 34px);
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0 0 14px;
+      line-height: 1.6;
+    }
+
+    .versions {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    pre {
+      margin: 18px 0;
+      padding: 18px 16px;
+      overflow-x: auto;
+      border-radius: 9px;
+      color: #0f172a;
+      background: #f1f5f9;
+      font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+    }
+
+    a { color: #0969da; }
+
+    @media (max-width: 560px) {
+      main {
+        width: min(100% - 24px, 760px);
+        margin: 40px auto;
+      }
+
+      h1 { margin-bottom: 20px; }
+      pre { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Pinpoint Helm Chart Repository</h1>
+    <p>Open-source Helm chart for running Pinpoint APM on Kubernetes.</p>
+    <p class="versions">Chart 3.1.0 · Pinpoint 3.1.0</p>
+
+    <pre>helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
+helm repo update
+helm upgrade --install pinpoint pinpoint/pinpoint --namespace pinpoint --create-namespace</pre>
+
+    <div class="links">
+      <a href="https://github.com/pinpoint-apm/pinpoint-kubernetes">GitHub repository</a>
+      <a href="https://github.com/pinpoint-apm/pinpoint-kubernetes/releases">Releases</a>
+      <a href="https://pinpoint-apm.github.io/pinpoint-kubernetes/index.yaml">index.yaml</a>
+    </div>
+  </main>
+</body>
+</html>
