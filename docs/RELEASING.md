@@ -29,5 +29,7 @@ The chart can then be installed from the published repository:
 ```bash
 helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
 helm repo update
-helm install pinpoint pinpoint/pinpoint -n pinpoint --create-namespace
+helm upgrade --install pinpoint pinpoint/pinpoint \
+  --namespace pinpoint \
+  --create-namespace
 ```

@@ -6,6 +6,8 @@ docs/
 # Unnecessary system and IDE files
 .git/
 .gitignore
+.gitattributes
+.helmignore
 .github/
 .idea/
 .vscode/
@@ -24,8 +26,3 @@ secrets*.yaml
 *.prov
 Dockerfile
 docker-compose*
-
-# To lighten the package, documentation files (Optional but recommended)
-README.md
-RELEASING.md
-LICENSE
