@@ -1,0 +1,24 @@
+{{- $_ := required "storageClass is required: choose validated independent disk storage; NFS alone is not an HA storage design" .Values.storageClass -}}
+{{- if or (lt (int .Values.bootstrap.readyTimeoutSeconds) 1) (gt (int .Values.bootstrap.readyTimeoutSeconds) 1500) (ne (float64 .Values.bootstrap.readyTimeoutSeconds) (float64 (int .Values.bootstrap.readyTimeoutSeconds))) -}}
+{{- fail "bootstrap.readyTimeoutSeconds must be an integer between 1 and 1500, below the Job deadline" -}}
+{{- end -}}
+{{- if not (has .Values.imagePullPolicy (list "IfNotPresent" "Always" "Never")) -}}
+{{- fail "imagePullPolicy must be IfNotPresent, Always or Never" -}}
+{{- end -}}
+{{- range $item := list (dict "name" "zookeeper" "replicas" .Values.zookeeper.replicas "minimum" 3) (dict "name" "hdfs.nameNodes" "replicas" .Values.hdfs.nameNodes.replicas "minimum" 2) (dict "name" "hdfs.journalNodes" "replicas" .Values.hdfs.journalNodes.replicas "minimum" 3) (dict "name" "hdfs.dataNodes" "replicas" .Values.hdfs.dataNodes.replicas "minimum" 3) (dict "name" "hbase.masters" "replicas" .Values.hbase.masters.replicas "minimum" 2) (dict "name" "hbase.regionServers" "replicas" .Values.hbase.regionServers.replicas "minimum" 2) -}}
+{{- if or (lt (int $item.replicas) (int $item.minimum)) (ne (float64 $item.replicas) (float64 (int $item.replicas))) -}}
+{{- fail (printf "%s.replicas must be an integer >= %v for this HA backend" $item.name $item.minimum) -}}
+{{- end -}}
+{{- end -}}
+{{- if or (lt (int .Values.hdfs.replication) 3) (gt (int .Values.hdfs.replication) (int .Values.hdfs.dataNodes.replicas)) (ne (float64 .Values.hdfs.replication) (float64 (int .Values.hdfs.replication))) -}}
+{{- fail "hdfs.replication must be an integer >=3 and <= hdfs.dataNodes.replicas" -}}
+{{- end -}}
+{{- if eq (mod (int .Values.zookeeper.replicas) 2) 0 -}}
+{{- fail "zookeeper.replicas must be odd for quorum" -}}
+{{- end -}}
+{{- if eq (mod (int .Values.hdfs.journalNodes.replicas) 2) 0 -}}
+{{- fail "hdfs.journalNodes.replicas must be odd for quorum" -}}
+{{- end -}}
+{{- if or (gt (len .Values.bootstrap.revision) 20) (not (regexMatch "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$" .Values.bootstrap.revision)) -}}
+{{- fail "bootstrap.revision must be a DNS label of at most 20 characters" -}}
+{{- end -}}

@@ -1,0 +1,53 @@
+# Permit the application release to reach the separate backend release.
+# Match backend pods only; sharing a namespace must not broaden every pod's ingress.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pinpoint-application-clients
+  namespace: pinpoint
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: services
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: pinpoint
+              app.kubernetes.io/name: pinpoint
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [web, collector]
+      ports:
+        - {port: 2181, protocol: TCP}
+        - {port: 3306, protocol: TCP}
+        - {port: 6379, protocol: TCP}
+        - {port: 9092, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pinpoint-application-pinot-clients
+  namespace: pinpoint
+spec:
+  podSelector:
+    matchLabels:
+      app: pinot
+      release: services
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: pinpoint
+              app.kubernetes.io/name: pinpoint
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [web, collector]
+      ports:
+        - {port: 9000, protocol: TCP}
+        - {port: 8099, protocol: TCP}
+        - {port: 8098, protocol: TCP}

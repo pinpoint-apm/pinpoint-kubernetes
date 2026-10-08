@@ -1,0 +1,7 @@
+# Optional traffic/metrics fixtures. Omit this overlay in production.
+quickstart:
+  enabled: true
+  agentId: production-demo-agent
+  applicationName: PINPOINT_PRODUCTION_DEMO
+telegraf:
+  enabled: true

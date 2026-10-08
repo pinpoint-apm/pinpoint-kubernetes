@@ -1,0 +1,42 @@
+apiVersion: zookeeper.stackable.tech/v1alpha1
+kind: ZookeeperCluster
+metadata:
+  name: {{ include "backend.name" . }}-zk
+  {{- include "backend.metadata" . | nindent 2 }}
+spec:
+  image:
+    productVersion: {{ .Values.zookeeper.version | quote }}
+    stackableVersion: "26.7.0"
+    pullPolicy: {{ .Values.imagePullPolicy }}
+    {{- with .Values.zookeeper.customImage }}
+    custom: {{ . | quote }}
+    {{- end }}
+    {{- with .Values.imagePullSecrets }}
+    pullSecrets: {{ toJson . }}
+    {{- end }}
+  clusterConfig:
+    # Stock Pinpoint clients do not configure ZooKeeper TLS. Restrict client
+    # traffic to private namespaces; quorum communication remains TLS protected.
+    tls:
+      serverSecretClass: null
+      quorumSecretClass: tls
+  servers:
+    roleConfig:
+      podDisruptionBudget: {enabled: true, maxUnavailable: 1}
+    config:
+      {{- include "backend.affinity" (dict "root" . "product" "zookeeper" "cluster" (printf "%s-zk" (include "backend.name" .)) "role" "server") | nindent 6 }}
+      {{- include "backend.resources" (dict "root" . "resources" .Values.zookeeper.resources) | nindent 6 }}
+    roleGroups:
+      default:
+        replicas: {{ .Values.zookeeper.replicas }}
+{{- range $product := list "hdfs" "hbase" }}
+---
+apiVersion: zookeeper.stackable.tech/v1alpha1
+kind: ZookeeperZnode
+metadata:
+  name: {{ include "backend.name" $ }}-{{ $product }}-znode
+  {{- include "backend.metadata" $ | nindent 2 }}
+spec:
+  clusterRef:
+    name: {{ include "backend.name" $ }}-zk
+{{- end }}

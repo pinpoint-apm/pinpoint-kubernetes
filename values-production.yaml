@@ -1,0 +1,97 @@
+# Application tier for an operator-managed Metric stack. Edit all example
+# endpoints/selectors and create Secrets before installing; this is a starting
+# configuration, not a promise of backend HA, throughput or durable storage.
+global:
+  metric:
+    enabled: true
+  zookeeper:
+    address: zk-1.example.internal:2181,zk-2.example.internal:2181,zk-3.example.internal:2181
+  hbase:
+    zookeeperQuorum: hbase-zk-1.example.internal,hbase-zk-2.example.internal,hbase-zk-3.example.internal
+    clientPort: 2181
+    znodeParent: /hbase
+    namespace: default
+  datasource:
+    jdbcUrl: jdbc:mysql://mysql.example.internal:3306/pinpoint?sslMode=VERIFY_IDENTITY
+    username: pinpoint
+    passwordSecret:
+      name: pinpoint-mysql-credentials
+      key: password
+  redis:
+    host: redis.example.internal
+    port: 6379
+    passwordSecret:
+      name: pinpoint-redis-credentials
+      key: password
+  kafka:
+    bootstrapServers: kafka-1.example.internal:9092,kafka-2.example.internal:9092,kafka-3.example.internal:9092
+    createTopics: false
+  pinot:
+    jdbcUrl: jdbc:pinot://pinot-controller.example.internal:9000
+    createTables: false
+
+hbase:
+  enabled: false
+zookeeper:
+  enabled: false
+mysql:
+  enabled: false
+redis:
+  enabled: false
+kafka:
+  enabled: false
+pinot:
+  enabled: false
+quickstart:
+  enabled: false
+telegraf:
+  enabled: false  # Enable only for intentional system-metric collection.
+
+web:
+  replicaCount: 2
+  pdb:
+    enabled: true
+  topologySpreadWhenUnsatisfiable: DoNotSchedule
+  login:
+    enabled: true
+    existingSecret: pinpoint-login
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: pinpoint.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: pinpoint-web-tls
+        hosts: [pinpoint.example.com]
+
+collector:
+  replicaCount: 2
+  pdb:
+    enabled: true
+  topologySpreadWhenUnsatisfiable: DoNotSchedule
+
+networkPolicy:
+  enabled: true
+  assetDownloadEgress: []
+  # Replace CIDR and ports with the complete backend network, including HBase
+  # RegionServers, Pinot Brokers/Servers and Kafka advertised listeners.
+  externalEgress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/24
+      ports:
+        - {port: 2181, protocol: TCP}
+        # HBase 2.x defaults; replace if your cluster uses other RPC ports.
+        - {port: 16000, protocol: TCP}
+        - {port: 16020, protocol: TCP}
+        - {port: 3306, protocol: TCP}
+        - {port: 6379, protocol: TCP}
+        - {port: 9092, protocol: TCP}
+        - {port: 9000, protocol: TCP}
+        - {port: 8099, protocol: TCP}
+        - {port: 8098, protocol: TCP}

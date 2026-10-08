@@ -1,0 +1,7 @@
+The hbase-create.hbase file is the Pinpoint 3.1.1 schema distributed in
+pinpointdocker/pinpoint-hbase:3.1.1 at /opt/hbase/hbase-create.hbase.
+Pinpoint is licensed under Apache License 2.0.
+Upstream: https://github.com/pinpoint-apm/pinpoint/tree/v3.1.1/hbase
+
+The Stackable operators and images are independent projects. They are
+installed separately and are not redistributed by this chart.

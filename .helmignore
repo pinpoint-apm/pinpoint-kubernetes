@@ -2,6 +2,8 @@
 
 # Exclude the folder containing the images
 docs/
+backends/
+examples/
 
 # Unnecessary system and IDE files
 .git/
@@ -9,6 +11,12 @@ docs/
 .gitattributes
 .helmignore
 .github/
+.agents/
+.aws/
+.codex/
+.venv/
+__pycache__/
+*.pyc
 .idea/
 .vscode/
 .DS_Store
@@ -26,3 +34,4 @@ secrets*.yaml
 *.prov
 Dockerfile
 docker-compose*
+lazygit

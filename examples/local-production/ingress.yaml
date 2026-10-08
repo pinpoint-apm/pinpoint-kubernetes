@@ -1,0 +1,19 @@
+# Local entry point; access through a loopback-only kubectl port-forward.
+service:
+  spec:
+    type: ClusterIP
+providers:
+  kubernetesCRD:
+    enabled: false
+  kubernetesIngress:
+    enabled: true
+ingressRoute:
+  dashboard:
+    enabled: false
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: "1"
+    memory: 256Mi

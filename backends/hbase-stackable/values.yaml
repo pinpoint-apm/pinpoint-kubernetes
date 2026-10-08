@@ -1,0 +1,77 @@
+# Requires Stackable commons/secret/listener/zookeeper/hdfs/hbase operators 26.7.0.
+# This is a separate release from the Pinpoint application chart.
+# Select an explicit, independently backed disk StorageClass before installing.
+storageClass: ""
+imagePullPolicy: IfNotPresent
+imagePullSecrets: []
+keepResources: true
+nodeSelector: {}
+# Required anti-affinity per role; at least three schedulable storage workers.
+topologyKey: kubernetes.io/hostname
+zookeeper:
+  version: "3.9.5"
+  customImage: ""  # Compatible Stackable image, optionally pinned by digest
+  replicas: 3
+  resources:
+    cpu: {min: 250m, max: "1"}
+    memory: {limit: 1Gi}
+    storage:
+      data: {capacity: 10Gi}
+hdfs:
+  version: "3.4.3"
+  customImage: ""
+  replication: 3
+  nameNodes:
+    replicas: 2
+    resources:
+      cpu: {min: 500m, max: "2"}
+      memory: {limit: 2Gi}
+      storage:
+        data: {capacity: 20Gi}
+  journalNodes:
+    replicas: 3
+    resources:
+      cpu: {min: 250m, max: "1"}
+      memory: {limit: 1Gi}
+      storage:
+        data: {capacity: 20Gi}
+  dataNodes:
+    replicas: 3
+    resources:
+      cpu: {min: "1", max: "4"}
+      memory: {limit: 2Gi}
+      storage:
+        # DISK is Hadoop's default logical storage type, even on physical SSDs.
+        # SSD-only logical volumes reject the default HOT (DISK) allocation.
+        data: {capacity: 500Gi, count: 1, hdfsStorageType: Disk}
+hbase:
+  version: "2.6.6"
+  customImage: ""
+  masters:
+    replicas: 2
+    resources:
+      cpu: {min: 500m, max: "2"}
+      memory: {limit: 2Gi}
+  regionServers:
+    replicas: 3
+    resources:
+      cpu: {min: "2", max: "8"}
+      memory: {limit: 8Gi}
+bootstrap:
+  enabled: true
+  # Preserve upstream 3.1.1 splits by default; false is for small local tests.
+  preSplit: true
+  # Keep transient startup errors inside the schema pod, bounded by Job deadline.
+  readyTimeoutSeconds: 900
+  # Change this revision to explicitly rerun idempotent schema verification.
+  revision: "311-1"
+  resources:
+    requests: {cpu: 250m, memory: 1Gi}
+    limits: {cpu: "2", memory: 2Gi}
+networkPolicy:
+  enabled: true
+  # Empty means the storage release's namespace; set when operators live elsewhere.
+  operatorNamespace: ""
+  # All clients in the backend namespace are allowed. Cross-namespace clients
+  # may reach ZooKeeper/HBase only, not HDFS storage or JournalNodes.
+  clientNamespaces: []

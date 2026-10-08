@@ -1,0 +1,32 @@
+apiVersion: hdfs.stackable.tech/v1alpha1
+kind: HdfsCluster
+metadata:
+  name: {{ include "backend.name" . }}-hdfs
+  {{- include "backend.metadata" . | nindent 2 }}
+spec:
+  image:
+    productVersion: {{ .Values.hdfs.version | quote }}
+    stackableVersion: "26.7.0"
+    pullPolicy: {{ .Values.imagePullPolicy }}
+    {{- with .Values.hdfs.customImage }}
+    custom: {{ . | quote }}
+    {{- end }}
+    {{- with .Values.imagePullSecrets }}
+    pullSecrets: {{ toJson . }}
+    {{- end }}
+  clusterConfig:
+    dfsReplication: {{ .Values.hdfs.replication }}
+    listenerClass: cluster-internal
+    zookeeperConfigMapName: {{ include "backend.name" . }}-hdfs-znode
+  {{- range $role, $component := dict "nameNodes" "namenode" "journalNodes" "journalnode" "dataNodes" "datanode" }}
+  {{ $role }}:
+    roleConfig:
+      podDisruptionBudget: {enabled: true, maxUnavailable: 1}
+    config:
+      gracefulShutdownTimeout: 5m
+      {{- include "backend.affinity" (dict "root" $ "product" "hdfs" "cluster" (printf "%s-hdfs" (include "backend.name" $)) "role" $component) | nindent 6 }}
+      {{- include "backend.resources" (dict "root" $ "resources" (index $.Values.hdfs $role).resources) | nindent 6 }}
+    roleGroups:
+      default:
+        replicas: {{ (index $.Values.hdfs $role).replicas }}
+  {{- end }}

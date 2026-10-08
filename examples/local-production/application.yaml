@@ -1,0 +1,81 @@
+# Merge AFTER values-production.yaml. All endpoints belong to the local demo.
+global:
+  zookeeper:
+    address: services-zookeeper.pinpoint.svc.cluster.local:2181
+  hbase:
+    zookeeperQuorum: ""
+    discoveryConfigMap:
+      name: pinpoint-storage-hbase-znode
+      znodeSuffix: /hbase
+  datasource:
+    # Plain MySQL is confined to this loopback test cluster. Production must
+    # use a verified TLS connection and the database's trusted CA.
+    jdbcUrl: jdbc:mysql://services-mysql.pinpoint.svc.cluster.local:3306/pinpoint
+    username: pinpoint_user
+    passwordSecret:
+      name: pinpoint-mysql
+      key: mysql-password
+  redis:
+    host: services-redis-master.pinpoint.svc.cluster.local
+    passwordSecret:
+      name: pinpoint-redis
+      key: redis-password
+  kafka:
+    bootstrapServers: services-kafka.pinpoint.svc.cluster.local:9092
+  pinot:
+    jdbcUrl: jdbc:pinot://services-pinot-controller.pinpoint.svc.cluster.local:9000
+web:
+  ingress:
+    ingressClassName: pinpoint-ingress-traefik
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: null
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+    hosts:
+      - host: localhost
+        paths:
+          - path: /
+            pathType: Prefix
+      - host: pinpoint.localhost
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: pinpoint-web-tls
+        hosts: [localhost, pinpoint.localhost]
+networkPolicy:
+  web:
+    ingressFrom:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/name: traefik
+  externalEgress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: services
+        - podSelector:
+            matchLabels:
+              app: pinot
+              release: services
+      ports:
+        - {port: 2181, protocol: TCP}
+        - {port: 3306, protocol: TCP}
+        - {port: 6379, protocol: TCP}
+        - {port: 9092, protocol: TCP}
+        - {port: 9000, protocol: TCP}
+        - {port: 8099, protocol: TCP}
+        - {port: 8098, protocol: TCP}
+    - to:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/instance
+                operator: In
+                values: [pinpoint-storage-zk, pinpoint-storage-hbase]
+      ports:
+        - {port: 2181, protocol: TCP}
+        - {port: 16000, protocol: TCP}
+        - {port: 16020, protocol: TCP}

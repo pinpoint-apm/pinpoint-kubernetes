@@ -30,3 +30,10 @@ Thumbs.db
 
 # Docker artifacts
 docker-compose*
+
+# Python validation caches
+__pycache__/
+*.pyc
+
+# Local tooling binary
+/lazygit

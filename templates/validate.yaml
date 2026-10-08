@@ -1,0 +1,112 @@
+{{- if .Values.global.datasource.enabled -}}
+{{- $pool := .Values.global.datasource.pool -}}
+{{- if or (lt (int $pool.maximumPoolSize) 1) (lt (int $pool.minimumIdle) 0) (gt (int $pool.minimumIdle) (int $pool.maximumPoolSize)) (lt (int $pool.connectionTimeout) 250) -}}
+{{- fail "global.datasource.pool requires maximumPoolSize>=1, 0<=minimumIdle<=maximumPoolSize and connectionTimeout>=250ms" -}}
+{{- end -}}
+{{- end -}}
+{{- if and .Values.mysql.enabled (not (regexMatch "^[A-Za-z0-9_]+$" .Values.mysql.auth.database)) -}}
+{{- fail "mysql.auth.database must contain only letters, digits or underscores" -}}
+{{- end -}}
+{{/* Validate endpoints even when individual consumers are disabled. */}}
+{{- $_ := include "pinpoint.zookeeper.address" . -}}
+{{- if .Values.global.hbase.discoveryConfigMap.name -}}
+{{- if .Values.hbase.enabled -}}
+{{- fail "global.hbase.discoveryConfigMap is for operator-managed HBase; set hbase.enabled=false" -}}
+{{- end -}}
+{{- if .Values.global.hbase.zookeeperQuorum -}}
+{{- fail "Set either global.hbase.discoveryConfigMap.name or global.hbase.zookeeperQuorum" -}}
+{{- end -}}
+{{- if and .Values.global.hbase.discoveryConfigMap.znodeSuffix (not (regexMatch "^/[A-Za-z0-9_./-]+$" .Values.global.hbase.discoveryConfigMap.znodeSuffix)) -}}
+{{- fail "global.hbase.discoveryConfigMap.znodeSuffix must be empty or an absolute path suffix" -}}
+{{- end -}}
+{{- range $key := list "quorumKey" "portKey" "znodeKey" -}}
+{{- if not (index $.Values.global.hbase.discoveryConfigMap $key) -}}
+{{- fail (printf "global.hbase.discoveryConfigMap.%s is required" $key) -}}
+{{- end -}}
+{{- end -}}
+{{- else -}}
+{{- $_ := include "pinpoint.hbase.quorum" . -}}
+{{- end -}}
+{{- if or (lt (int .Values.global.hbase.clientPort) 1) (gt (int .Values.global.hbase.clientPort) 65535) -}}
+{{- fail "global.hbase.clientPort must be between 1 and 65535" -}}
+{{- end -}}
+{{- if not (regexMatch "^/[A-Za-z0-9_./-]+$" .Values.global.hbase.znodeParent) -}}
+{{- fail "global.hbase.znodeParent must be an absolute ZooKeeper path" -}}
+{{- end -}}
+{{- if not (regexMatch "^[A-Za-z0-9_]+$" .Values.global.hbase.namespace) -}}
+{{- fail "global.hbase.namespace must contain letters, digits or underscores" -}}
+{{- end -}}
+{{- if and .Values.hbase.enabled (ne .Values.global.hbase.namespace "default") -}}
+{{- fail "Bundled HBase initializes the default namespace only; use global.hbase.namespace=default or provision an external HBase schema with hbase.enabled=false" -}}
+{{- end -}}
+{{- range $component := list "web" "collector" -}}
+{{- $config := index $.Values $component -}}
+{{- if $config.enabled -}}
+{{- if or (lt (int $config.replicaCount) 1) (ne (float64 $config.replicaCount) (float64 (int $config.replicaCount))) -}}
+{{- fail (printf "%s.replicaCount must be a positive integer" $component) -}}
+{{- end -}}
+{{- if not (has $config.topologySpreadWhenUnsatisfiable (list "ScheduleAnyway" "DoNotSchedule")) -}}
+{{- fail (printf "%s.topologySpreadWhenUnsatisfiable must be ScheduleAnyway or DoNotSchedule" $component) -}}
+{{- end -}}
+{{- if $config.pdb.enabled -}}
+{{- if lt (int $config.replicaCount) 2 -}}
+{{- fail (printf "%s.pdb requires at least two replicas" $component) -}}
+{{- end -}}
+{{- if eq (ne $config.pdb.minAvailable nil) (ne $config.pdb.maxUnavailable nil) -}}
+{{- fail (printf "%s.pdb requires exactly one of minAvailable or maxUnavailable" $component) -}}
+{{- end -}}
+{{- $budget := $config.pdb.minAvailable -}}
+{{- if eq $budget nil -}}
+{{- $budget = $config.pdb.maxUnavailable -}}
+{{- end -}}
+{{- if not (regexMatch "^([0-9]+|[0-9]+%)$" (toString $budget)) -}}
+{{- fail (printf "%s.pdb budget must be a nonnegative integer or percentage" $component) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{/* Reject server-only authentication settings that stock Pinpoint clients cannot use. */}}
+{{- if and .Values.zookeeper.enabled (or .Values.zookeeper.auth.enabled (dig "client" "enabled" false .Values.zookeeper.auth)) -}}
+{{- fail "ZooKeeper client authentication is unsupported (zookeeper.auth.client.enabled or legacy zookeeper.auth.enabled): HBase, Pinpoint and Pinot clients do not receive credentials; see README issue #41 guidance" -}}
+{{- end -}}
+{{- if and .Values.zookeeper.enabled (dig "tls" "client" "enabled" false .Values.zookeeper) -}}
+{{- fail "zookeeper.tls.client.enabled is unsupported: chart-managed HBase, Pinpoint and Pinot clients do not receive TLS configuration" -}}
+{{- end -}}
+{{- if .Values.global.metric.enabled -}}
+{{- if ne .Values.global.kafka.securityProtocol "PLAINTEXT" -}}
+{{- fail "global.kafka.securityProtocol must be PLAINTEXT: stock Pinpoint 3.1.1 Kafka producers do not expose SASL/TLS properties" -}}
+{{- end -}}
+{{- if eq (include "pinpoint.kafka.internalEnabled" .) "true" -}}
+{{- if ne .Values.kafka.listeners.client.protocol "PLAINTEXT" -}}
+{{- fail "kafka.listeners.client.protocol must be PLAINTEXT: enabling broker SASL/TLS alone breaks Collector and Pinot clients (issue #41)" -}}
+{{- end -}}
+{{- with .Values.kafka.auth -}}
+{{- if or (and .clientProtocol (ne .clientProtocol "PLAINTEXT")) (and .interBrokerProtocol (ne .interBrokerProtocol "PLAINTEXT")) (dig "sasl" "enabled" false .) -}}
+{{- fail "kafka.auth is a legacy configuration: SASL/TLS clients are unsupported by stock Pinpoint 3.1.1; see README issue #41 guidance" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- if and .Values.pinot.zookeeper.enabled (or (dig "auth" "enabled" false .Values.pinot.zookeeper) (dig "auth" "client" "enabled" false .Values.pinot.zookeeper)) -}}
+{{- fail "pinot.zookeeper.auth.enabled is unsupported: Pinot clients do not receive ZooKeeper credentials" -}}
+{{- end -}}
+{{- $_ := include "pinpoint.pinot.jdbcUrl" . -}}
+{{- if eq (include "pinpoint.pinot.initialize" .) "true" -}}
+{{- $_ := include "pinpoint.pinot.controllerUrl" . -}}
+{{- $replicas := .Values.global.pinot.tableReplicas -}}
+{{- if or (lt (int $replicas) 1) (ne (float64 $replicas) (float64 (int $replicas))) -}}
+{{- fail "global.pinot.tableReplicas must be a positive integer" -}}
+{{- end -}}
+{{- if and (eq (include "pinpoint.pinot.internalEnabled" .) "true") (gt (int $replicas) (int .Values.pinot.server.replicaCount)) -}}
+{{- fail "global.pinot.tableReplicas cannot exceed pinot.server.replicaCount" -}}
+{{- end -}}
+{{- if not (.Files.Glob (printf "files/pinot/%s/*.json" .Values.global.pinpointVersion)) -}}
+{{- fail "No bundled Pinot definitions for global.pinpointVersion; use this chart's supported version or set global.pinot.createTables=false and manage schemas/tables externally" -}}
+{{- end -}}
+{{- end -}}
+{{- if .Values.global.kafka.createTopics -}}
+{{- $replicas := .Values.global.kafka.topicReplicationFactor -}}
+{{- if or (lt (int $replicas) 1) (ne (float64 $replicas) (float64 (int $replicas))) -}}
+{{- fail "global.kafka.topicReplicationFactor must be a positive integer" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}

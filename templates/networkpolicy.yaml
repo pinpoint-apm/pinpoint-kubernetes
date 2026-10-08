@@ -85,7 +85,7 @@ spec:
         - { port: 9994, protocol: TCP }
         - { port: 9995, protocol: UDP }
         - { port: 9996, protocol: UDP }
-        - { port: 15200, protocol: TCP }
+        - { port: 9995, protocol: TCP }
         - { port: 60000, protocol: TCP }
         - { port: 60020, protocol: TCP }
         - { port: 16010, protocol: TCP }
@@ -97,6 +97,7 @@ spec:
         - { port: 19994, protocol: TCP }
   egress:
 {{ include "pinpoint.networkPolicy.egress" . | nindent 4 }}
+{{- if .Values.mysql.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -119,11 +120,13 @@ spec:
             matchExpressions:
               - key: app.kubernetes.io/component
                 operator: In
-                values: [web, batch, mysql-init]
+                values: [web, collector, batch, mysql-init]
       ports:
         - { port: 3306, protocol: TCP }
   egress:
 {{ include "pinpoint.networkPolicy.egress" . | nindent 4 }}
+{{- end }}
+{{- if .Values.redis.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -151,6 +154,8 @@ spec:
         - { port: 6379, protocol: TCP }
   egress:
 {{ include "pinpoint.networkPolicy.egress" . | nindent 4 }}
+{{- end }}
+{{- if .Values.zookeeper.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -186,6 +191,8 @@ spec:
         - { port: 3888, protocol: TCP }
   egress:
 {{ include "pinpoint.networkPolicy.egress" . | nindent 4 }}
+{{- end }}
+{{- if eq (include "pinpoint.kafka.internalEnabled" .) "true" }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -217,6 +224,8 @@ spec:
         - { port: 9094, protocol: TCP }
   egress:
 {{ include "pinpoint.networkPolicy.egress" . | nindent 4 }}
+{{- end }}
+{{- if eq (include "pinpoint.pinot.internalEnabled" .) "true" }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -249,6 +258,7 @@ spec:
         - { port: 9514, protocol: TCP }
   egress:
 {{ include "pinpoint.networkPolicy.egress" . | nindent 4 }}
+{{- end }}
 {{- with .Values.networkPolicy.assetDownloadEgress }}
 ---
 apiVersion: networking.k8s.io/v1
@@ -319,6 +329,6 @@ spec:
         - { port: 9994, protocol: TCP }
         - { port: 9995, protocol: UDP }
         - { port: 9996, protocol: UDP }
-        - { port: 15200, protocol: TCP }
+        - { port: 9995, protocol: TCP }
 {{- end }}
 {{- end }}

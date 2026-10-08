@@ -1,0 +1,9 @@
+# Local test operator sizing. Commons performs discovery scans and needs more
+# memory than the upstream 128Mi limit, so reserve room for all six operators.
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

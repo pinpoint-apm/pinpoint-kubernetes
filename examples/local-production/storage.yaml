@@ -1,0 +1,3 @@
+# Operators and the storage/application releases share the pinpoint namespace.
+networkPolicy:
+  operatorNamespace: pinpoint
