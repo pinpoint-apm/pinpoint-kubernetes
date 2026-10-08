@@ -1,0 +1,18 @@
+{{- if .Values.mysql.enabled }}
+{{- $schemaPath := printf "files/sql/%s/CreateTableStatement-mysql.sql" .Values.global.pinpointVersion }}
+{{- $batchPath := printf "files/sql/%s/SpringBatchJobRepositorySchema-mysql.sql" .Values.global.pinpointVersion }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-mysql-init-sql
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mysql-init
+data:
+  initialize-mysql.sh: |
+    {{- .Files.Get "files/initialize-mysql.sh" | nindent 4 }}
+  create-tables.sql: |
+    {{- required (printf "No bundled MySQL schema for Pinpoint %s" .Values.global.pinpointVersion) (.Files.Get $schemaPath) | nindent 4 }}
+  create-batch-tables.sql: |
+    {{- required (printf "No bundled batch schema for Pinpoint %s" .Values.global.pinpointVersion) (.Files.Get $batchPath) | nindent 4 }}
+{{- end }}

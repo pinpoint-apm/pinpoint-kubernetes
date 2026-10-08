@@ -1,0 +1,58 @@
+# LOCAL TEST ONLY: small heaps, tiny PVC requests and no upstream presplits.
+# This is not production sizing; local-path does not enforce disk capacity.
+bootstrap:
+  preSplit: false
+  resources:
+    limits:
+      cpu: "2"
+      memory: 1536Mi
+    requests:
+      cpu: 250m
+      memory: 1Gi
+hbase:
+  masters:
+    replicas: 2
+    resources:
+      cpu:
+        max: "2"
+        min: 250m
+      memory:
+        limit: 768Mi
+  regionServers:
+    replicas: 2
+    resources:
+      cpu:
+        max: "2"
+        min: 250m
+      memory:
+        limit: 1536Mi
+hdfs:
+  dataNodes:
+    resources:
+      memory:
+        limit: 768Mi
+      storage:
+        data:
+          capacity: 2Gi
+  journalNodes:
+    resources:
+      memory:
+        limit: 512Mi
+      storage:
+        data:
+          capacity: 2Gi
+  nameNodes:
+    resources:
+      memory:
+        limit: 768Mi
+      storage:
+        data:
+          capacity: 2Gi
+storageClass: local-path
+zookeeper:
+  resources:
+    memory:
+      limit: 512Mi
+    storage:
+      data:
+        capacity: 1Gi

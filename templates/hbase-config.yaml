@@ -1,0 +1,55 @@
+{{- if .Values.hbase.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-hbase-config
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hbase
+data:
+  start.sh: |
+    {{- .Files.Get "files/hbase-start.sh" | nindent 4 }}
+  health.sh: |
+    {{- .Files.Get "files/hbase-health.sh" | nindent 4 }}
+  initialize-schema.rb: |
+    {{- .Files.Get "files/hbase-initialize-schema.rb" | nindent 4 }}
+  hbase-site.xml: |
+    <configuration>
+        <property>
+            <name>hbase.rootdir</name>
+            <value>file:///home/pinpoint/hbase</value>
+        </property>
+        <property>
+            <name>hbase.master.port</name>
+            <value>60000</value>
+        </property>
+        <property>
+            <name>hbase.regionserver.port</name>
+            <value>60020</value>
+        </property>
+        <property>
+            <name>hbase.cluster.distributed</name>
+            <value>true</value>
+        </property>
+        <property>
+            <name>hbase.zookeeper.managed</name>
+            <value>false</value>
+        </property>
+        <property>
+            <name>hbase.zookeeper.quorum</name>
+            <value>{{ include "pinpoint.hbase.quorum" . }}</value>
+        </property>
+        <property>
+            <name>hbase.zookeeper.property.clientPort</name>
+            <value>{{ .Values.global.hbase.clientPort }}</value>
+        </property>
+        <property>
+            <name>zookeeper.znode.parent</name>
+            <value>{{ .Values.global.hbase.znodeParent }}</value>
+        </property>
+        <property>
+            <name>zookeeper.session.timeout</name>
+            <value>180000</value>
+        </property>
+    </configuration>
+{{- end }}

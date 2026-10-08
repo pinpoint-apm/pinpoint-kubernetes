@@ -15,6 +15,8 @@ spec:
       app.kubernetes.io/component: telegraf
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/telegraf-config.yaml") . | sha256sum }}
       labels:
         {{- include "pinpoint.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: telegraf
@@ -22,6 +24,8 @@ spec:
       initContainers:
         - name: wait-for-collector
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           env:
             - name: COLLECTOR_SERVICE_NAME
               value: "{{ include "pinpoint.fullname" . }}-collector.{{ .Release.Namespace }}.svc.cluster.local"
@@ -39,28 +43,6 @@ spec:
               done
 
               echo "Collector is ready!"
-        - name: download-pinpoint-telegraf-configuration
-          image: {{ include "pinpoint.imageRegistry" . }}curlimages/curl:7.85.0
-          env:
-            - name: COLLECTOR_SERVICE_NAME
-              value: "{{ include "pinpoint.fullname" . }}-collector"
-          command:
-            - 'sh'
-            - '-c'
-            - |
-              echo "Downloading Pinpoint Telegraf configuration..."
-              curl -L -f "https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v{{ .Values.global.pinpointVersion }}/metric-module/metric/src/main/telegraf/pinpoint-telegraf.conf" > /shared/telegraf.conf
-
-              if [ ! -s /shared/telegraf.conf ]; then
-                echo "Failed to download config"
-                exit 1
-              fi
-
-              sed -i "s/127.0.0.1/${COLLECTOR_SERVICE_NAME}/g" /shared/telegraf.conf
-              echo "Telegraf configuration ready"
-          volumeMounts:
-            - name: telegraf-shared-config
-              mountPath: /shared
       containers:
         - name: telegraf
           image: {{ include "pinpoint.imageRegistry" . }}{{ .Values.telegraf.image.repository }}:{{ .Values.telegraf.image.tag }}
@@ -93,7 +75,8 @@ spec:
       restartPolicy: Always
       volumes:
         - name: telegraf-shared-config
-          emptyDir: {}
+          configMap:
+            name: {{ include "pinpoint.fullname" . }}-telegraf-config
         - name: proc
           hostPath:
             path: /proc

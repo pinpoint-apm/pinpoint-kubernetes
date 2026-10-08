@@ -1,0 +1,16 @@
+{{- if eq (include "pinpoint.pinot.initialize" .) "true" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-pinot-init
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pinot-init
+data:
+  initialize-pinot.py: |
+{{ .Files.Get "files/initialize-pinot.py" | indent 4 }}
+{{- range $path, $_ := .Files.Glob (printf "files/pinot/%s/*.json" .Values.global.pinpointVersion) }}
+  {{ base $path }}: |
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}
+{{- end }}

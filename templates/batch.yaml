@@ -18,16 +18,23 @@ spec:
         {{- include "pinpoint.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: batch
     spec:
+      {{- if or .Values.zookeeper.enabled .Values.hbase.enabled .Values.mysql.enabled .Values.flink.enabled }}
       initContainers:
         # Wait for Zookeeper to be ready
+        {{- if .Values.zookeeper.enabled }}
         - name: wait-for-zookeeper
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-zookeeper 2181; do echo "Batch is waiting for Zookeeper..."; sleep 2; done;']
 
+        {{- end }}
         # Wait for HBase to be ready
         {{- if .Values.hbase.enabled }}
         - name: wait-for-hbase
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-hbase 60000; do echo "Batch is waiting for HBase..."; sleep 2; done;']
         {{- end }}
 
@@ -35,6 +42,8 @@ spec:
         {{- if .Values.mysql.enabled }}
         - name: wait-for-mysql
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-mysql 3306; do echo "Batch is waiting for MySQL..."; sleep 2; done;']
         {{- end }}
 
@@ -42,8 +51,11 @@ spec:
         {{- if .Values.flink.enabled }}
         - name: wait-for-flink-jobmanager
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
-          command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-flink-jobmanager 8081; do echo "Batch is waiting for Flink JobManager..."; sleep 2; done;']
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
+          command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-flink-jobmanager 8081; do echo "Batch is waiting for Flink JobManager..."; sleep 2; done;']
         {{- end }}
+      {{- end }}
       containers:
         - name: batch
           image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.batch.image.repository }}:{{ .Values.batch.image.tag | default .Values.global.pinpointVersion }}"
@@ -52,12 +64,13 @@ spec:
             - name: http
               containerPort: 8080
           env:
+            {{- include "pinpoint.hbase.clientEnv" . | nindent 12 }}
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.batch.config.springProfiles | quote }}
             - name: BATCH_SERVER_PORT
               value: "8080"
             - name: PINPOINT_ZOOKEEPER_ADDRESS
-              value: "{{ .Release.Name }}-zookeeper"
+              value: {{ include "pinpoint.zookeeper.address" . | quote }}
             - name: CLUSTER_ENABLE
               value: "true"
             - name: LOGGING_LEVEL_ROOT
@@ -67,9 +80,10 @@ spec:
             - name: CONFIG_SHOW_APPLICATIONSTAT
               value: "true"
             - name: BATCH_FLINK_SERVER
-              value: "{{ .Release.Name }}-flink-jobmanager:8081"
+              value: "{{ include "pinpoint.fullname" . }}-flink-jobmanager:8081"
             # JDBC Configuration - Primary Datasource
             {{- if .Values.global.datasource.enabled }}
+            {{- include "pinpoint.datasource.poolEnv" . | nindent 12 }}
             - name: JDBC_DRIVERCLASSNAME
               value: {{ include "pinpoint.datasource.driverClassName" . | quote }}
             - name: JDBC_URL
@@ -79,6 +93,8 @@ spec:
             - name: JDBC_PASSWORD
               {{ include "pinpoint.datasource.password" . | nindent 14 }}
             # Spring Datasource Configuration
+            - name: SPRING_DATASOURCE_HIKARI_DRIVERCLASSNAME
+              value: {{ include "pinpoint.datasource.driverClassName" . | quote }}
             - name: SPRING_DATASOURCE_HIKARI_JDBCURL
               value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}
             - name: SPRING_DATASOURCE_HIKARI_USERNAME
@@ -86,6 +102,8 @@ spec:
             - name: SPRING_DATASOURCE_HIKARI_PASSWORD
               {{ include "pinpoint.datasource.password" . | nindent 14 }}
             # Spring Metadata Datasource Configuration
+            - name: SPRING_METADATASOURCE_HIKARI_DRIVERCLASSNAME
+              value: {{ include "pinpoint.datasource.driverClassName" . | quote }}
             - name: SPRING_METADATASOURCE_HIKARI_JDBCURL
               value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}
             - name: SPRING_METADATASOURCE_HIKARI_USERNAME
@@ -149,8 +167,8 @@ spec:
               value: ""
             {{- end }}
             # JVM Memory Settings
-            - name: JAVA_OPTS
-              value: "-Xms256m -Xmx768m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
+            - name: JAVA_TOOL_OPTIONS
+              value: {{ .Values.batch.jvmOptions | quote }}
           resources:
             {{- toYaml .Values.batch.resources | nindent 12 }}
 {{- end }}

@@ -1,0 +1,93 @@
+{
+  "schemaName": "exceptionTrace",
+  "dimensionFieldSpecs": [
+    {
+      "name": "tenantId",
+      "dataType": "STRING"
+    },
+    {
+      "name": "transactionId",
+      "dataType": "STRING"
+    },
+    {
+      "name": "spanId",
+      "dataType": "LONG"
+    },
+    {
+      "name": "exceptionId",
+      "dataType": "LONG"
+    },
+    {
+      "name": "applicationServiceType",
+      "dataType": "STRING"
+    },
+    {
+      "name": "applicationName",
+      "dataType": "STRING"
+    },
+    {
+      "name": "agentId",
+      "dataType": "STRING"
+    },
+    {
+      "name": "uriTemplate",
+      "dataType": "STRING"
+    },
+    {
+      "name": "errorClassName",
+      "dataType": "STRING"
+    },
+    {
+      "name": "errorMessage_logtype",
+      "dataType": "STRING",
+      "maxLength": 2147483647
+    },
+    {
+      "name": "errorMessage_encodedVars",
+      "dataType": "LONG",
+      "singleValueField": false
+    },
+    {
+      "name": "errorMessage_dictionaryVars",
+      "dataType": "STRING",
+      "singleValueField": false,
+      "maxLength": 2147483647
+    },
+    {
+      "name": "exceptionDepth",
+      "dataType": "INT"
+    },
+    {
+      "name": "stackTraceClassName",
+      "dataType": "STRING",
+      "singleValueField": false
+    },
+    {
+      "name": "stackTraceFileName",
+      "dataType": "STRING",
+      "singleValueField": false
+    },
+    {
+      "name": "stackTraceLineNumber",
+      "dataType": "INT",
+      "singleValueField": false
+    },
+    {
+      "name": "stackTraceMethodName",
+      "dataType": "STRING",
+      "singleValueField": false
+    },
+    {
+      "name": "stackTraceHash",
+      "dataType": "BYTES"
+    }
+  ],
+  "dateTimeFieldSpecs": [
+    {
+      "name": "timestamp",
+      "dataType": "TIMESTAMP",
+      "format": "1:MILLISECONDS:EPOCH",
+      "granularity": "1:MILLISECONDS"
+    }
+  ]
+}

@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-if [[ $# -lt 1 || $# -gt 2 ]]; then
-  echo "Usage: $0 <helm-repository-url> [chart-version]" >&2
+if [[ $# -lt 1 || $# -gt 3 ]]; then
+  echo "Usage: $0 <helm-repository-url> [chart-version] [chart-directory]" >&2
   exit 2
 fi
 
@@ -14,7 +14,7 @@ fi
 
 repository_url="${1%/}"
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-chart_root=$(cd -- "${script_dir}/.." && pwd)
+chart_root=$(cd -- "${3:-${script_dir}/..}" && pwd)
 chart_name=$(awk '/^name:/ { print $2; exit }' "${chart_root}/Chart.yaml" | tr -d '\r')
 chart_version=${2:-$(awk '/^version:/ { print $2; exit }' "${chart_root}/Chart.yaml" | tr -d '\r')}
 
@@ -58,5 +58,9 @@ if [[ "$published_version" != "$chart_version" ]]; then
   exit 1
 fi
 
-helm template pinpoint-smoke "$chart_package" >/dev/null
+render_args=()
+if [[ "$chart_name" == pinpoint-hbase-stackable ]]; then
+  render_args=(--set storageClass=validated-ssd)
+fi
+helm template pinpoint-smoke "$chart_package" "${render_args[@]}" >/dev/null
 echo "Verified ${chart_name}-${chart_version} from ${repository_url}"

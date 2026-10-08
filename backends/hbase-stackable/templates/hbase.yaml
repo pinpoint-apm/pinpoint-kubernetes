@@ -1,0 +1,36 @@
+apiVersion: hbase.stackable.tech/v1alpha1
+kind: HbaseCluster
+metadata:
+  name: {{ include "backend.name" . }}-hbase
+  {{- include "backend.metadata" . | nindent 2 }}
+spec:
+  image:
+    productVersion: {{ .Values.hbase.version | quote }}
+    stackableVersion: "26.7.0"
+    pullPolicy: {{ .Values.imagePullPolicy }}
+    {{- with .Values.hbase.customImage }}
+    custom: {{ . | quote }}
+    {{- end }}
+    {{- with .Values.imagePullSecrets }}
+    pullSecrets: {{ toJson . }}
+    {{- end }}
+  clusterConfig:
+    hdfsConfigMapName: {{ include "backend.name" . }}-hdfs
+    zookeeperConfigMapName: {{ include "backend.name" . }}-hbase-znode
+  {{- range $role, $component := dict "masters" "master" "regionServers" "regionserver" }}
+  {{ $role }}:
+    roleConfig:
+      podDisruptionBudget: {enabled: true, maxUnavailable: 1}
+    config:
+      hbaseRootdir: /hbase
+      listenerClass: cluster-internal
+      gracefulShutdownTimeout: 10m
+      {{- if eq $role "regionServers" }}
+      regionMover: {runBeforeShutdown: true, ack: true, maxThreads: 4}
+      {{- end }}
+      {{- include "backend.affinity" (dict "root" $ "product" "hbase" "cluster" (printf "%s-hbase" (include "backend.name" $)) "role" $component) | nindent 6 }}
+      {{- include "backend.resources" (dict "root" $ "resources" (index $.Values.hbase $role).resources) | nindent 6 }}
+    roleGroups:
+      default:
+        replicas: {{ (index $.Values.hbase $role).replicas }}
+  {{- end }}

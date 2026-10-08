@@ -2,8 +2,8 @@ apiVersion: v2
 name: pinpoint
 description: A Helm chart for deploying Pinpoint APM (Application Performance Management) on Kubernetes.
 type: application
-version: 3.1.0
-appVersion: "3.1.0"
+version: 3.1.1
+appVersion: "3.1.1"
 
 keywords:
   - apm
@@ -13,7 +13,7 @@ keywords:
   - metrics
 
 home: https://github.com/pinpoint-apm/pinpoint-kubernetes
-icon: https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.1.0/doc/images/NAVERPinpoint.png
+icon: https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.1.1/doc/images/NAVERPinpoint.png
 sources:
   - https://github.com/pinpoint-apm/pinpoint
 
@@ -22,13 +22,13 @@ maintainers:
     email: thesadson@gmail.com
 
 dependencies:
-  # Shared ZooKeeper for Kafka and Pinot
+  # Shared ZooKeeper for HBase, Pinpoint and Pinot (Kafka uses KRaft).
   - name: zookeeper
     version: "13.8.7"
     repository: "https://charts.bitnami.com/bitnami"
     condition: zookeeper.enabled
 
-  # Database required by Pinpoint Web/Batch modules
+  # Database required by Pinpoint Web/Collector/Batch modules
   - name: mysql
     version: "14.0.3"
     repository: "https://charts.bitnami.com/bitnami"
@@ -50,4 +50,4 @@ dependencies:
   - name: pinot
     version: "0.3.4"
     repository: "https://raw.githubusercontent.com/apache/pinot/master/helm"
-    condition: global.metric.enabled
+    condition: pinot.enabled,global.metric.enabled

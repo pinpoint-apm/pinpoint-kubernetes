@@ -1,0 +1,28 @@
+# LOCAL DEMO ONLY. Uses evaluation dependencies to represent external services.
+# These MySQL/Redis/Pinot installations are not HA production backends.
+web:
+  enabled: false
+collector:
+  enabled: false
+hbase:
+  enabled: false
+quickstart:
+  enabled: false
+telegraf:
+  enabled: false
+global:
+  hbase:
+    zookeeperQuorum: pinpoint-storage-zk-server.pinpoint.svc.cluster.local
+  kafka:
+    topicReplicationFactor: 3
+mysql:
+  auth:
+    existingSecret: pinpoint-services-mysql
+    password: ""
+    rootPassword: ""
+redis:
+  auth:
+    existingSecret: pinpoint-redis
+networkPolicy:
+  enabled: true
+  assetDownloadEgress: []

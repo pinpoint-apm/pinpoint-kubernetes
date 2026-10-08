@@ -1,0 +1,37 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "backend.name" . }}-ingress
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/instance
+        operator: In
+        values:
+          - {{ include "backend.name" . }}-zk
+          - {{ include "backend.name" . }}-hdfs
+          - {{ include "backend.name" . }}-hbase
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ default .Release.Namespace .Values.networkPolicy.operatorNamespace | quote }}
+      ports:
+        - {protocol: TCP, port: 2181}
+    {{- if .Values.networkPolicy.clientNamespaces }}
+    - from:
+        {{- range .Values.networkPolicy.clientNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . | quote }}
+        {{- end }}
+      ports:
+        - {protocol: TCP, port: 2181}
+        - {protocol: TCP, port: 16000}
+        - {protocol: TCP, port: 16020}
+    {{- end }}
+{{- end }}

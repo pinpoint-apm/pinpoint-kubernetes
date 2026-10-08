@@ -1,0 +1,23 @@
+{{- range $component := list "web" "collector" }}
+{{- $config := index $.Values $component }}
+{{- if and $config.enabled $config.pdb.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "pinpoint.fullname" $ }}-{{ $component }}
+  labels:
+    {{- include "pinpoint.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component }}
+spec:
+  {{- if ne $config.pdb.minAvailable nil }}
+  minAvailable: {{ $config.pdb.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ $config.pdb.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "pinpoint.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $component }}
+{{- end }}
+{{- end }}

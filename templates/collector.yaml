@@ -9,21 +9,31 @@ metadata:
     app.kubernetes.io/component: collector
 spec:
   replicas: {{ .Values.collector.replicaCount }}
+  strategy:
+    {{- toYaml .Values.collector.strategy | nindent 4 }}
   selector:
     matchLabels:
       {{- include "pinpoint.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: collector
   template:
     metadata:
+      {{- with .Values.collector.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "pinpoint.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: collector
     spec:
+      {{- include "pinpoint.applicationPodSpec" (dict "root" . "component" "collector" "config" .Values.collector) | nindent 6 }}
+      {{- if or .Values.hbase.enabled .Values.redis.enabled .Values.mysql.enabled (and .Values.global.metric.enabled (eq (include "pinpoint.pinot.internalEnabled" .) "true")) }}
       initContainers:
         # Wait for HBase - always required
         {{- if .Values.hbase.enabled }}
         - name: wait-for-hbase
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command:
             - 'sh'
             - '-c'
@@ -42,6 +52,8 @@ spec:
         {{- if .Values.redis.enabled }}
         - name: wait-for-redis
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           env:
             - name: REDIS_HOST
               value: {{ include "pinpoint.redis.host" . | quote }}
@@ -62,6 +74,8 @@ spec:
         # handled by the application and must not block pod startup.
         - name: wait-for-kafka
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           env:
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: {{ include "pinpoint.kafka.bootstrapServers" . | quote }}
@@ -78,22 +92,59 @@ spec:
               done
         {{- end }}
 
-        {{- if .Values.global.metric.enabled }}
+        {{- if and .Values.global.metric.enabled (eq (include "pinpoint.pinot.internalEnabled" .) "true") }}
         # Wait for Pinot Controller only when metric profile is enabled.
         - name: wait-for-pinot-controller
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-pinot-controller 9000; do echo "Collector is waiting for Pinot Controller..."; sleep 2; done;']
         {{- end }}
 
+      {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: logs
+          emptyDir:
+            sizeLimit: 256Mi
+      {{- with .Values.collector.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: collector
-          # Dynamically set the image tag based on the metric profile
-          {{- $imageTag := .Values.collector.image.tag | default .Values.global.pinpointVersion }}
-          {{- if .Values.global.metric.enabled }}
-            {{- $imageTag = printf "%s-metric" ($imageTag | default .Values.global.pinpointVersion) }}
-          {{- end }}
-          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.collector.image.repository }}:{{ $imageTag }}"
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.collector.image.repository }}:{{ include "pinpoint.applicationImageTag" (dict "tag" .Values.collector.image.tag "root" .) }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          {{- with .Values.collector.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          startupProbe:
+            tcpSocket:
+              port: grpc-agent
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 120
+          readinessProbe:
+            tcpSocket:
+              port: grpc-agent
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: grpc-agent
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: logs
+              mountPath: /app/logs
+          {{- with .Values.collector.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: grpc-agent
               containerPort: 9991
@@ -109,11 +160,9 @@ spec:
             - name: udp-span
               containerPort: 9996
               protocol: UDP
-            {{- if .Values.global.metric.enabled }}
-            - name: metric-port
-              containerPort: 15200
-            {{- end }}
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: {{ .Values.collector.jvmOptions | quote }}
             # Dynamically set the Spring profile
             - name: SPRING_PROFILES_ACTIVE
               {{- if .Values.global.metric.enabled }}
@@ -126,16 +175,23 @@ spec:
             - name: LOGGING_LEVEL_ROOT
               value: {{ .Values.collector.config.loggingLevel }}
             - name: PINPOINT_ZOOKEEPER_ADDRESS
-              value: "{{ .Release.Name }}-zookeeper"
-            # HBase Connection Settings
-            {{- if .Values.hbase.enabled }}
-            - name: HBASE_HOST
-              value: "{{ .Release.Name }}-hbase"
-            - name: HBASE_PORT
-              value: "60000"
-            - name: HBASE_ZOOKEEPER_QUORUM
-              value: "{{ .Release.Name }}-zookeeper"
+              value: {{ include "pinpoint.zookeeper.address" . | quote }}
+            # MySQL Connection Settings
+            {{- if .Values.global.datasource.enabled }}
+            {{- include "pinpoint.datasource.poolEnv" . | nindent 12 }}
+            - name: SPRING_DATASOURCE_HIKARI_DRIVERCLASSNAME
+              value: {{ include "pinpoint.datasource.driverClassName" . | quote }}
+            - name: SPRING_DATASOURCE_HIKARI_JDBCURL
+              value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}
+            - name: SPRING_DATASOURCE_HIKARI_USERNAME
+              value: {{ include "pinpoint.datasource.username" . | quote }}
+            - name: SPRING_DATASOURCE_HIKARI_PASSWORD
+              {{ include "pinpoint.datasource.password" . | nindent 14 }}
             {{- end }}
+
+            # HBase discovery through its ZooKeeper ensemble.
+            {{- include "pinpoint.hbase.clientEnv" . | nindent 12 }}
+
             # Add Kafka and Pinot configurations only when metric profile is active
             {{- if .Values.global.metric.enabled }}
             - name: PINPOINT_METRIC_KAFKA_BOOTSTRAP_SERVERS
@@ -143,10 +199,22 @@ spec:
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: {{ include "pinpoint.kafka.bootstrapServers" . | quote }}
             - name: SPRING_PINOTDATASOURCE_PINOT_JDBCURL
-              value: "jdbc:pinot://{{ .Release.Name }}-pinot-controller:9000"
+              value: {{ include "pinpoint.pinot.jdbcUrl" . | quote }}
             - name: PINPOINT_PINOT_JDBC_URL
-              value: "jdbc:pinot://{{ .Release.Name }}-pinot-controller:9000"
+              value: {{ include "pinpoint.pinot.jdbcUrl" . | quote }}
             # Remove empty username and password as Pinot driver doesn't accept empty strings
+            {{- end }}
+            {{- if .Values.global.datasource.enabled }}
+            # Metadata Source Configuration
+            - name: SPRING_METADATASOURCE_HIKARI_DRIVERCLASSNAME
+              value: {{ include "pinpoint.datasource.driverClassName" . | quote }}
+            - name: SPRING_METADATASOURCE_HIKARI_JDBCURL
+              value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}
+            - name: SPRING_METADATASOURCE_HIKARI_USERNAME
+              value: {{ include "pinpoint.datasource.username" . | quote }}
+            - name: SPRING_METADATASOURCE_HIKARI_PASSWORD
+              {{ include "pinpoint.datasource.password" . | nindent 14 }}
+
             {{- end }}
             # Disable OTLP metrics in both metric enabled and disabled modes
             - name: MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED
@@ -168,7 +236,10 @@ spec:
             - name: FLINK_CLUSTER_ENABLE
               value: "true"
             - name: FLINK_CLUSTER_ZOOKEEPER_ADDRESS
-              value: "{{ .Release.Name }}-zookeeper"
+              value: {{ include "pinpoint.zookeeper.address" . | quote }}
+            {{- end }}
+            {{- with .Values.collector.extraEnv }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
           resources:
             {{- toYaml .Values.collector.resources | nindent 12 }}
@@ -211,7 +282,9 @@ spec:
     {{- if .Values.global.metric.enabled }}
     - name: metric-port
       port: 15200
-      targetPort: metric-port
+      # Numeric target avoids duplicate 9995 TCP/UDP named-port merge conflicts.
+      # Pinpoint 3.1.1 MetricApp listens on 9995/TCP.
+      targetPort: 9995
       protocol: TCP
     {{- end }}
   selector:

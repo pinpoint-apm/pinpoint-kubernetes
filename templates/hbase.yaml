@@ -16,16 +16,26 @@ spec:
       app.kubernetes.io/component: hbase
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/hbase-config.yaml") . | sha256sum }}
       labels:
         {{- include "pinpoint.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: hbase
     spec:
-      terminationGracePeriodSeconds: 10
+      {{- with .Values.hbase.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.hbase.terminationGracePeriodSeconds }}
+      {{- if .Values.zookeeper.enabled }}
       initContainers:
         # Wait for Zookeeper to be ready
         - name: wait-for-zookeeper
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-zookeeper 2181; do echo "HBase is waiting for Zookeeper..."; sleep 2; done;']
+      {{- end }}
       volumes:
         - name: hbase-config-volume
           configMap:
@@ -39,6 +49,7 @@ spec:
         - name: hbase
           image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.hbase.image.repository }}:{{ .Values.hbase.image.tag | default .Values.global.pinpointVersion }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          command: ["/bin/bash", "/opt/pinpoint-hbase/start.sh"]
           ports:
             - containerPort: 60000
               name: master-api
@@ -49,13 +60,19 @@ spec:
             - containerPort: 16030
               name: region-ui
           env:
+            - name: HBASE_HEAPSIZE
+              value: {{ .Values.hbase.heapSize | quote }}
+            - name: HBASE_PID_DIR
+              value: /tmp/pinpoint-hbase-pids
+            - name: HBASE_IDENT_STRING
+              value: pinpoint
             - name: HBASE_MANAGES_ZK
               value: {{ .Values.hbase.config.managesZk | quote }}
             # ZooKeeper Configuration (external ZooKeeper)
             - name: HBASE_ZOOKEEPER_QUORUM
-              value: "{{ .Release.Name }}-zookeeper"
+              value: {{ include "pinpoint.hbase.quorum" . | quote }}
             - name: HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT
-              value: "2181"
+              value: {{ .Values.global.hbase.clientPort | quote }}
             {{- range $key, $val := .Values.hbase.config.ttl }}
             - name: {{ $key }}
               value: {{ $val | quote }}
@@ -64,8 +81,9 @@ spec:
             - name: hbase-data
               mountPath: /home/pinpoint/hbase
             - name: hbase-config-volume
-              mountPath: /opt/hbase/hbase-2.2.6/conf/hbase-site.xml
-              subPath: hbase-site.xml
+              mountPath: /opt/pinpoint-hbase
+          startupProbe:
+            {{- toYaml .Values.hbase.startupProbe | nindent 12 }}
           livenessProbe:
             {{- toYaml .Values.hbase.livenessProbe | nindent 12 }}
           readinessProbe:
@@ -110,53 +128,4 @@ spec:
   selector:
     {{- include "pinpoint.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: hbase
-{{- end }}
----
-{{- if .Values.hbase.enabled }}
-# Hbase Application ConfigMap
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "pinpoint.fullname" . }}-hbase-config
-  labels:
-    {{- include "pinpoint.labels" . | nindent 4 }}
-    app.kubernetes.io/component: hbase
-data:
-  hbase-site.xml: |
-    <configuration>
-        <property>
-            <name>hbase.rootdir</name>
-            <value>file:///home/pinpoint/hbase</value>
-        </property>
-        <property>
-            <name>hbase.cluster.distributed</name>
-            <value>true</value>
-        </property>
-        <property>
-            <name>hbase.zookeeper.managed</name>
-            <value>false</value>
-        </property>
-        <property>
-            <name>hbase.zookeeper.quorum</name>
-            <value>{{- $zkHeadless := printf "%s-zookeeper-headless" .Release.Name -}}
-                   {{- $zkReplicaCount := .Values.zookeeper.replicaCount | int -}}
-                   {{- range $i, $e := until $zkReplicaCount -}}
-                     {{- printf "%s-zookeeper-%d.%s.%s.svc.cluster.local" $.Release.Name $i $zkHeadless $.Release.Namespace -}}
-                     {{- if (lt $i (sub $zkReplicaCount 1)) -}},{{- end -}}
-                   {{- end -}}
-            </value>
-        </property>
-        <property>
-            <name>hbase.zookeeper.property.clientPort</name>
-            <value>2181</value>
-        </property>
-        <property>
-            <name>zookeeper.znode.parent</name>
-            <value>/hbase</value>
-        </property>
-        <property>
-            <name>zookeeper.session.timeout</name>
-            <value>180000</value>
-        </property>
-    </configuration>
 {{- end }}

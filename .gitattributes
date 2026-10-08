@@ -4,3 +4,7 @@
 *.yml text eol=lf
 *.tpl text eol=lf
 *.txt text eol=lf
+
+# Bundled upstream NOTICE/SQL are preserved byte-for-byte, including whitespace.
+files/pinot/NOTICE -whitespace
+files/sql/3.1.1/*.sql -whitespace

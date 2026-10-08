@@ -1,4 +1,17 @@
 {{- if .Values.web.enabled }}
+{{- if .Values.web.login.enabled }}
+{{- $_ := required "web.login.existingSecret is required when web.login.enabled=true" .Values.web.login.existingSecret }}
+{{- $_ := required "web.login.jwtSecretKey is required when web.login.enabled=true" .Values.web.login.jwtSecretKey }}
+{{- if not (or .Values.web.login.userKey .Values.web.login.adminKey) }}
+{{- fail "web.login.userKey or web.login.adminKey is required when web.login.enabled=true" }}
+{{- end }}
+{{- if not (has .Values.web.login.cookie.sameSite (list "Lax" "Strict" "None")) }}
+{{- fail "web.login.cookie.sameSite must be Lax, Strict, or None" }}
+{{- end }}
+{{- if and (eq .Values.web.login.cookie.sameSite "None") (not .Values.web.login.cookie.secure) }}
+{{- fail "web.login.cookie.secure must be true when sameSite=None" }}
+{{- end }}
+{{- end }}
 # Web Application Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -9,34 +22,48 @@ metadata:
     app.kubernetes.io/component: web
 spec:
   replicas: {{ .Values.web.replicaCount }}
+  strategy:
+    {{- toYaml .Values.web.strategy | nindent 4 }}
   selector:
     matchLabels:
       {{- include "pinpoint.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: web
   template:
     metadata:
+      {{- with .Values.web.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "pinpoint.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: web
     spec:
+      {{- include "pinpoint.applicationPodSpec" (dict "root" . "component" "web" "config" .Values.web) | nindent 6 }}
+      {{- if or .Values.zookeeper.enabled .Values.hbase.enabled .Values.redis.enabled .Values.mysql.enabled (and .Values.global.metric.enabled (eq (include "pinpoint.pinot.internalEnabled" .) "true")) }}
       initContainers:
+        {{- if .Values.zookeeper.enabled }}
         - name: wait-for-zookeeper
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
-          command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-zookeeper 2181; do echo "Web is waiting for Zookeeper..."; sleep 2; done;']
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
+          command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-zookeeper 2181; do echo "Web is waiting for Zookeeper..."; sleep 2; done;']
+        {{- end }}
         {{- if .Values.mysql.enabled }}
         - name: wait-for-mysql
           image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: "{{ .Release.Name }}-mysql"
+                  name: {{ include "pinpoint.mysql.secretName" . | quote }}
                   key: mysql-root-password
           command:
             - 'sh'
             - '-c'
             - |
-              until mysqladmin ping -h {{ .Release.Name }}-mysql --user=root -p$MYSQL_ROOT_PASSWORD --silent; do
+              until mysqladmin ping -h {{ .Release.Name }}-mysql --user=root -p"$MYSQL_ROOT_PASSWORD" --silent; do
                 echo "Web is waiting for MySQL..."
                 sleep 2
               done
@@ -46,12 +73,16 @@ spec:
         {{- if .Values.hbase.enabled }}
         - name: wait-for-hbase
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-hbase 16010; do echo "Web is waiting for HBase..."; sleep 2; done;']
         {{- end }}
 
         {{- if .Values.redis.enabled }}
         - name: wait-for-redis
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           env:
             - name: REDIS_HOST
               value: {{ include "pinpoint.redis.host" . | quote }}
@@ -67,29 +98,71 @@ spec:
               done
         {{- end }}
 
-        {{- if .Values.global.metric.enabled }}
+        {{- if and .Values.global.metric.enabled (eq (include "pinpoint.pinot.internalEnabled" .) "true") }}
         # Wait for the Pinot Controller only when metric profile is enabled.
         - name: wait-for-pinot-controller
           image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          resources:
+            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-pinot-controller 9000; do echo "Web is waiting for Pinot Controller..."; sleep 2; done;']
         {{- end }}
 
+      {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: logs
+          emptyDir:
+            sizeLimit: 256Mi
+      {{- with .Values.web.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: web
-          # Dynamically set the image tag based on the metric profile
-          {{- $imageTag := .Values.web.image.tag | default .Values.global.pinpointVersion }}
-          {{- if .Values.global.metric.enabled }}
-            {{- $imageTag = printf "%s-metric" ($imageTag | default .Values.global.pinpointVersion) }}
-          {{- end }}
-          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.web.image.repository }}:{{ $imageTag }}"
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.web.image.repository }}:{{ include "pinpoint.applicationImageTag" (dict "tag" .Values.web.image.tag "root" .) }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          {{- with .Values.web.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: logs
+              mountPath: /app/logs
+          {{- with .Values.web.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 8080
               protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 120
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: {{ .Values.web.jvmOptions | quote }}
             - name: PINPOINT_ZOOKEEPER_ADDRESS
-              value: "{{ include "pinpoint.fullname" . }}-zookeeper"
+              value: {{ include "pinpoint.zookeeper.address" . | quote }}
             - name: CLUSTER_ENABLE
               value: "true"
             # Dynamically set the Spring profile
@@ -102,7 +175,10 @@ spec:
 
             # MySQL Connection Settings
             {{- if .Values.global.datasource.enabled }}
-            - name: SPRING_DATASOURCE_HIKARI_JDBC_URL
+            {{- include "pinpoint.datasource.poolEnv" . | nindent 12 }}
+            - name: SPRING_DATASOURCE_HIKARI_DRIVERCLASSNAME
+              value: {{ include "pinpoint.datasource.driverClassName" . | quote }}
+            - name: SPRING_DATASOURCE_HIKARI_JDBCURL
               value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}
             - name: SPRING_DATASOURCE_HIKARI_USERNAME
               value: {{ include "pinpoint.datasource.username" . | quote }}
@@ -110,24 +186,17 @@ spec:
               {{ include "pinpoint.datasource.password" . | nindent 14 }}
             {{- end }}
 
-            # HBase Connection Settings
-            {{- if .Values.hbase.enabled }}
-            - name: HBASE_HOST
-              value: "{{ include "pinpoint.fullname" . }}-hbase"
-            - name: HBASE_PORT
-              value: "60000"
-            - name: HBASE_ZOOKEEPER_QUORUM
-              value: "{{ .Release.Name }}-zookeeper"
-            {{- end }}
+            # HBase discovery through its ZooKeeper ensemble.
+            {{- include "pinpoint.hbase.clientEnv" . | nindent 12 }}
 
             # Add Pinot JDBC configurations only when metric profile is enabled
             {{- if .Values.global.metric.enabled }}
             - name: SPRING_PINOT_DATASOURCE_PINOT_JDBC_URL
-              value: "jdbc:pinot://{{ .Release.Name }}-pinot-controller:9000"
+              value: {{ include "pinpoint.pinot.jdbcUrl" . | quote }}
             - name: SPRING_PINOTDATASOURCE_PINOT_JDBCURL
-              value: "jdbc:pinot://{{ .Release.Name }}-pinot-controller:9000"
+              value: {{ include "pinpoint.pinot.jdbcUrl" . | quote }}
             - name: PINPOINT_PINOT_JDBC_URL
-              value: "jdbc:pinot://{{ .Release.Name }}-pinot-controller:9000"
+              value: {{ include "pinpoint.pinot.jdbcUrl" . | quote }}
             # Remove empty username and password as Pinot driver doesn't accept empty strings
             {{- else }}
             # Disable Pinot datasource when metrics are disabled
@@ -168,6 +237,8 @@ spec:
               {{ include "pinpoint.datasource.password" . | nindent 14 }}
 
             # Metadata Source Configuration
+            - name: SPRING_METADATASOURCE_HIKARI_DRIVERCLASSNAME
+              value: {{ include "pinpoint.datasource.driverClassName" . | quote }}
             - name: SPRING_METADATASOURCE_HIKARI_JDBCURL
               value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}
             - name: SPRING_METADATASOURCE_HIKARI_USERNAME
@@ -178,14 +249,38 @@ spec:
 
             # Security Configuration
             - name: PINPOINT_MODULES_WEB_LOGIN
-              value: "false"
+              value: {{ ternary "basicLogin" "false" .Values.web.login.enabled | quote }}
+            {{- if .Values.web.login.enabled }}
+            {{- if .Values.web.login.userKey }}
             - name: WEB_SECURITY_AUTH_USER
-              value: ""
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.web.login.existingSecret | quote }}
+                  key: {{ .Values.web.login.userKey | quote }}
+            {{- end }}
+            {{- if .Values.web.login.adminKey }}
             - name: WEB_SECURITY_AUTH_ADMIN
-              value: ""
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.web.login.existingSecret | quote }}
+                  key: {{ .Values.web.login.adminKey | quote }}
+            {{- end }}
             - name: WEB_SECURITY_AUTH_JWT_SECRETKEY
-              value: ""
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.web.login.existingSecret | quote }}
+                  key: {{ .Values.web.login.jwtSecretKey | quote }}
+            - name: WEB_SECURITY_AUTH_JWT_COOKIE_HTTP_ONLY
+              value: "true"
+            - name: WEB_SECURITY_AUTH_JWT_COOKIE_SECURE
+              value: {{ .Values.web.login.cookie.secure | quote }}
+            - name: WEB_SECURITY_AUTH_JWT_COOKIE_SAME_SITE
+              value: {{ .Values.web.login.cookie.sameSite | quote }}
+            {{- end }}
 
+            {{- with .Values.web.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           resources:
             {{- toYaml .Values.web.resources | nindent 12 }}
 ---

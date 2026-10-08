@@ -1,0 +1,305 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pinpoint chart values",
+  "description": "Type checks for chart-owned configuration. Dependency and custom application settings remain extensible.",
+  "type": "object",
+  "definitions": {
+    "disruptionBudget": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "string",
+          "pattern": "^(100|[1-9]?[0-9])%$"
+        }
+      ]
+    },
+    "application": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "replicaCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "terminationGracePeriodSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "automountServiceAccountToken": {
+          "type": "boolean"
+        },
+        "topologySpreadWhenUnsatisfiable": {
+          "enum": [
+            "ScheduleAnyway",
+            "DoNotSchedule"
+          ]
+        },
+        "pdb": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "minAvailable": {
+              "$ref": "#/definitions/disruptionBudget"
+            },
+            "maxUnavailable": {
+              "$ref": "#/definitions/disruptionBudget"
+            }
+          }
+        },
+        "extraEnv": {
+          "type": "array"
+        },
+        "extraVolumes": {
+          "type": "array"
+        },
+        "extraVolumeMounts": {
+          "type": "array"
+        },
+        "tolerations": {
+          "type": "array"
+        },
+        "topologySpreadConstraints": {
+          "type": "array"
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "resources": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "properties": {
+    "global": {
+      "type": "object",
+      "properties": {
+        "pinpointVersion": {
+          "type": "string"
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "metric": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          }
+        },
+        "hbase": {
+          "type": "object",
+          "properties": {
+            "clientPort": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          }
+        },
+        "redis": {
+          "type": "object",
+          "properties": {
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          }
+        },
+        "datasource": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "pool": {
+              "type": "object",
+              "properties": {
+                "maximumPoolSize": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "minimumIdle": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "connectionTimeout": {
+                  "type": "integer",
+                  "minimum": 250
+                }
+              }
+            }
+          }
+        },
+        "kafka": {
+          "type": "object",
+          "properties": {
+            "createTopics": {
+              "type": "boolean"
+            },
+            "manageExternalTopics": {
+              "type": "boolean"
+            },
+            "topicReplicationFactor": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "pinot": {
+          "type": "object",
+          "properties": {
+            "createTables": {
+              "type": "boolean"
+            },
+            "manageExternalTables": {
+              "type": "boolean"
+            },
+            "tableReplicas": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "web": {
+      "$ref": "#/definitions/application"
+    },
+    "collector": {
+      "$ref": "#/definitions/application"
+    },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "externalEgress": {
+          "type": "array"
+        },
+        "assetDownloadEgress": {
+          "type": "array"
+        }
+      }
+    },
+    "hbase": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "mysql": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "redis": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "zookeeper": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "kafka": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "pinot": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "quickstart": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "telegraf": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "batch": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "flink": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

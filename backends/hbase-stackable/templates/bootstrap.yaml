@@ -1,0 +1,72 @@
+{{- if .Values.bootstrap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "backend.name" . }}-schema
+data:
+  hbase-create.hbase: |
+    {{- .Files.Get "files/hbase-create.hbase" | nindent 4 }}
+  initialize.rb: |
+    {{- .Files.Get "files/initialize-schema.rb" | nindent 4 }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "backend.name" . }}-schema-{{ .Values.bootstrap.revision }}
+spec:
+  # Normal Job: operators may need time to create discovery ConfigMaps and pods.
+  activeDeadlineSeconds: 1800
+  backoffLimit: 20
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: pinpoint-storage
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{ toJson . }}
+      {{- end }}
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: schema
+          image: {{ include "backend.image" (dict "root" . "product" "hbase") | quote }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command: ["/bin/bash", "-ec"]
+          args:
+            - |
+              mkdir -p /tmp/hbase-conf
+              cp /stackable/hbase/conf/* /tmp/hbase-conf/
+              cp /discovery/hbase-site.xml /tmp/hbase-conf/hbase-site.xml
+              /stackable/hbase/bin/hbase --config /tmp/hbase-conf shell -n /schema/initialize.rb
+          env:
+            - name: HBASE_READY_TIMEOUT
+              value: {{ .Values.bootstrap.readyTimeoutSeconds | quote }}
+            - name: PRE_SPLIT
+              value: {{ .Values.bootstrap.preSplit | quote }}
+            - {name: HOME, value: /tmp}
+            - {name: HBASE_LOG_DIR, value: /tmp}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          resources:
+            {{- toYaml .Values.bootstrap.resources | nindent 12 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            - {name: schema, mountPath: /schema, readOnly: true}
+            - {name: discovery, mountPath: /discovery, readOnly: true}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 256Mi}
+        - name: schema
+          configMap:
+            name: {{ include "backend.name" . }}-schema
+        - name: discovery
+          configMap:
+            name: {{ include "backend.name" . }}-hbase
+{{- end }}

@@ -1,0 +1,23 @@
+{{- if and .Values.hbase.enabled .Values.zookeeper.enabled }}
+{{- range $ordinal := until (.Values.zookeeper.replicaCount | int) }}
+---
+# The stock HBase image has ZooKeeper 3.4.10, which caches resolved pod IPs.
+# Give each ensemble member a stable ClusterIP across pod replacements.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Release.Name }}-zookeeper-client-{{ $ordinal }}
+  labels:
+    {{- include "pinpoint.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: zookeeper-client
+spec:
+  ports:
+    - name: client
+      port: 2181
+      targetPort: client
+  selector:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/name: zookeeper
+    statefulset.kubernetes.io/pod-name: {{ $.Release.Name }}-zookeeper-{{ $ordinal }}
+{{- end }}
+{{- end }}

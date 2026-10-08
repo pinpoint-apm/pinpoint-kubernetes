@@ -6,6 +6,7 @@
 Pinpoint has been successfully deployed.
 
 1. Accessing the Pinpoint Web UI:
+{{- if .Values.web.enabled }}
 {{- if .Values.web.ingress.enabled }}
   Ingress is enabled.
   You can access the Pinpoint Web UI at the following address(es):
@@ -42,9 +43,16 @@ Pinpoint has been successfully deployed.
 
   2. Now, open the following URL in your browser:
      http://127.0.0.1:8080
+{{- if and .Values.web.login.enabled .Values.web.login.cookie.secure }}
+  Secure login cookies require HTTPS; use a TLS ingress/proxy for authenticated access.
+{{- end }}
+{{- end }}
+{{- else }}
+   Web is disabled in this release; use the separately installed application release.
 {{- end }}
 
 2. Connecting Agents to Pinpoint Collector:
+{{- if .Values.collector.enabled }}
 {{- if .Values.agent.enabled }}
    A Pinpoint Agent is deployed as part of this chart.
    Agent status: kubectl get pods -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=agent"
@@ -54,11 +62,19 @@ Pinpoint has been successfully deployed.
 {{- else }}
    The Pinpoint Collector is running. Use the following internal Kubernetes DNS address in your agent configuration:
 {{- end }}
-   - gRPC Service: {{ include "pinpoint.fullname" . }}-collector:{{ .Values.collector.service.ports.grpcAgent }}
+   - gRPC Service: {{ include "pinpoint.fullname" . }}-collector.{{ .Release.Namespace }}.svc:{{ .Values.collector.service.ports.grpcAgent }}
+{{- else }}
+   Collector is disabled in this release; use the separately installed application release.
+{{- end }}
 
 3. Checking the Installation Status:
 {{- if .Values.global.metric.enabled }}
-   The "metric" profile is enabled. You should see Pinot pods running.
+   The "metric" profile is enabled.
+{{- if eq (include "pinpoint.pinot.internalEnabled" .) "true" }}
+   You should see the bundled Pinot pods running.
+{{- else }}
+   Pinot endpoint: {{ include "pinpoint.pinot.jdbcUrl" . }} (external)
+{{- end }}
 {{- if and (hasKey .Values.kafka "enabled") (not .Values.kafka.enabled) }}
    Kafka endpoint: {{ include "pinpoint.kafka.bootstrapServers" . }} (external)
 {{- else }}
@@ -74,12 +90,16 @@ Pinpoint has been successfully deployed.
    kubectl get pods -n {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }}"
 
    Verify component-specific logs:
+{{- if .Values.collector.enabled }}
    - Collector: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=collector" --tail=100 -f
+{{- end }}
+{{- if .Values.web.enabled }}
    - Web UI: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=web" --tail=100 -f
+{{- end }}
 {{- if .Values.agent.enabled }}
    - Agent: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=agent" --tail=100 -f
 {{- end }}
-{{- if .Values.global.metric.enabled }}
+{{- if and .Values.global.metric.enabled .Values.telegraf.enabled }}
    - Telegraf: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=telegraf" --tail=100 -f
 {{- end }}
 {{- end -}}
