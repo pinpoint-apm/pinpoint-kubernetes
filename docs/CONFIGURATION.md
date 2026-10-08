@@ -233,12 +233,9 @@ The CNI must enforce NetworkPolicy. Review allowed ingress and external egress
 for your agents, ingress controller and external services. These policies
 restrict network access; they do not encrypt traffic.
 
-### Metric initialization and issue #41
+### Metric initialization
 
-The [Inspector failure in #41](https://github.com/pinpoint-apm/pinpoint-kubernetes/issues/41)
-is relevant to this chart. Earlier production comments suggested enabling Kafka
-SASL_SSL and ZooKeeper authentication without configuring the clients. Stock
-[Pinpoint 3.1.1 KafkaConfiguration](https://github.com/pinpoint-apm/pinpoint/blob/v3.1.1/pinot/pinot-kafka/src/main/java/com/navercorp/pinpoint/pinot/kafka/KafkaConfiguration.java)
+Stock [Pinpoint 3.1.1 KafkaConfiguration](https://github.com/pinpoint-apm/pinpoint/blob/v3.1.1/pinot/pinot-kafka/src/main/java/com/navercorp/pinpoint/pinot/kafka/KafkaConfiguration.java)
 does not bind security properties. `SPRING_KAFKA_*` environment variables do
 not configure that custom producer factory. ZooKeeper credentials are also not
 wired to all consumers. The pinned ZooKeeper dependency uses
@@ -264,7 +261,7 @@ An explicit application version override without bundled definitions requires
 this setting and operator-managed initialization. Existing schemas/table configs
 are not migrated automatically. A successful init hook confirms resources
 exist; validate Collector ingestion and Inspector queries separately before
-closing #41 or promoting a release.
+deploying to production.
 
 Failed initialization jobs are retained until the next install/upgrade replaces
 them or an operator deletes them. Successful hook jobs are removed by Helm.
