@@ -4,82 +4,198 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Official open-source Pinpoint APM Helm chart repository.">
+  <meta name="theme-color" content="#f6f8fb">
   <title>Pinpoint Helm Chart</title>
   <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      color: #0f172a;
-      background: #ffffff;
-      font-family: Arial, Helvetica, sans-serif;
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #18243a;
+      background: #f6f8fb;
+      font-synthesis: none;
     }
 
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+
     main {
-      width: min(760px, calc(100% - 40px));
-      margin: 72px auto;
+      width: min(880px, calc(100% - 48px));
+      margin: 64px auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 44px;
+      font-weight: 650;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border: 1px solid #cbdcf7;
+      border-radius: 11px;
+      color: #245fc2;
+      background: #e8f0fd;
+    }
+
+    .card {
+      padding: 44px;
+      background: #fff;
+      border: 1px solid #dce3ed;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px #18243a06;
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: #245fc2;
+      font-size: 12px;
+      font-weight: 650;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
     }
 
     h1 {
-      margin: 0 0 28px;
-      font-size: clamp(28px, 4vw, 34px);
-      line-height: 1.2;
+      margin: 0 0 16px;
+      font-size: clamp(30px, 5vw, 42px);
+      line-height: 1.15;
+      font-weight: 650;
+      letter-spacing: -0.045em;
     }
 
-    p {
-      margin: 0 0 14px;
-      line-height: 1.6;
-    }
+    p { margin: 0; line-height: 1.65; }
+    .intro { max-width: 560px; color: #53627a; font-size: 16px; }
 
     .versions {
-      color: #64748b;
-      font-size: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 22px 0 34px;
+    }
+
+    .versions span {
+      padding: 5px 10px;
+      border: 1px solid #dce3ed;
+      border-radius: 6px;
+      background: #f6f8fb;
+      color: #40516c;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    h2 { margin: 0 0 12px; font-size: 16px; font-weight: 650; }
+
+    .terminal {
+      overflow: hidden;
+      border: 1px solid #243249;
+      border-radius: 12px;
+      background: #142033;
+      color: #e4ecf8;
+    }
+
+    .terminal-label {
+      padding: 10px 20px;
+      border-bottom: 1px solid #2e3d55;
+      color: #adbed6;
+      font-size: 12px;
     }
 
     pre {
-      margin: 18px 0;
-      padding: 18px 16px;
+      margin: 0;
+      padding: 20px;
       overflow-x: auto;
-      border-radius: 9px;
-      color: #0f172a;
-      background: #f1f5f9;
-      font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font: 13px/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      tab-size: 2;
     }
+
+    .note { margin-top: 14px; color: #53627a; font-size: 13px; }
+    a { color: #245fc2; text-underline-offset: 4px; }
+    a:hover { color: #163e83; }
+    a:focus-visible { outline: 3px solid #245fc2; outline-offset: 5px; border-radius: 3px; }
 
     .links {
       display: flex;
       flex-wrap: wrap;
-      gap: 18px;
+      gap: 12px;
+      margin-top: 28px;
+      padding-top: 24px;
+      border-top: 1px solid #e6ebf2;
     }
 
-    a { color: #0969da; }
+    .links a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 8px 14px;
+      border: 1px solid #dce3ed;
+      border-radius: 7px;
+      color: #344660;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .links a:hover { border-color: #a9bedf; background: #f1f5fb; color: #245fc2; }
+    footer { margin-top: 22px; color: #64748b; font-size: 12px; text-align: center; }
 
     @media (max-width: 560px) {
-      main {
-        width: min(100% - 24px, 760px);
-        margin: 40px auto;
-      }
-
-      h1 { margin-bottom: 20px; }
-      pre { font-size: 11px; }
+      main { width: calc(100% - 32px); margin: 28px auto; }
+      .brand { margin-bottom: 24px; }
+      .card { padding: 26px 20px; border-radius: 14px; }
+      .versions { margin-bottom: 26px; }
+      pre { padding: 16px; font-size: 12px; }
+      .terminal-label { padding-left: 16px; }
+      .links { gap: 8px; }
     }
   </style>
 </head>
 <body>
   <main>
-    <h1>Pinpoint Helm Chart Repository</h1>
-    <p>Open-source Helm chart for running Pinpoint APM on Kubernetes.</p>
-    <p class="versions">Chart 3.1.1 · Pinpoint 3.1.1</p>
+    <header class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 7h6l4 10h6M4 17h6l4-10h6" />
+          <circle cx="4" cy="7" r="2" fill="#e8f0fd" /><circle cx="20" cy="17" r="2" fill="#e8f0fd" />
+          <circle cx="4" cy="17" r="2" fill="#e8f0fd" /><circle cx="20" cy="7" r="2" fill="#e8f0fd" />
+        </svg>
+      </span>
+      Pinpoint APM
+    </header>
 
-    <pre>helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
+    <article class="card">
+      <p class="eyebrow">Helm chart repository</p>
+      <h1>Pinpoint on Kubernetes.</h1>
+      <p class="intro">Install Pinpoint APM with Helm. Start with the evaluation stack, or connect to your own backends for production.</p>
+      <div class="versions" aria-label="Versions">
+        <span>Chart 3.1.1</span>
+        <span>Pinpoint 3.1.1</span>
+      </div>
+
+      <h2>Quick install</h2>
+      <div class="terminal">
+        <div class="terminal-label">Terminal</div>
+        <pre><code>helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
 helm repo update
-helm upgrade --install pinpoint pinpoint/pinpoint --namespace pinpoint --create-namespace</pre>
+helm upgrade --install pinpoint pinpoint/pinpoint \
+  --version 3.1.1 --namespace pinpoint --create-namespace \
+  --wait --timeout 20m</code></pre>
+      </div>
+      <p class="note">The default installation includes evaluation backends. For production, use the <a href="https://github.com/pinpoint-apm/pinpoint-kubernetes/blob/master/docs/PRODUCTION.md">production guide</a>.</p>
 
-    <div class="links">
-      <a href="https://github.com/pinpoint-apm/pinpoint-kubernetes">GitHub repository</a>
-      <a href="https://github.com/pinpoint-apm/pinpoint-kubernetes/releases">Releases</a>
-      <a href="https://pinpoint-apm.github.io/pinpoint-kubernetes/index.yaml">index.yaml</a>
-    </div>
+      <nav class="links" aria-label="Repository links">
+        <a href="https://github.com/pinpoint-apm/pinpoint-kubernetes#readme">Documentation</a>
+        <a href="https://github.com/pinpoint-apm/pinpoint-kubernetes/releases">Releases</a>
+        <a href="https://github.com/pinpoint-apm/pinpoint-kubernetes">GitHub repository</a>
+        <a href="https://pinpoint-apm.github.io/pinpoint-kubernetes/index.yaml">Chart index</a>
+      </nav>
+    </article>
+    <footer>Open-source application performance monitoring.</footer>
   </main>
 </body>
 </html>
