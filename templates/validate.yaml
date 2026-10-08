@@ -67,7 +67,7 @@
 {{- end -}}
 {{/* Reject server-only authentication settings that stock Pinpoint clients cannot use. */}}
 {{- if and .Values.zookeeper.enabled (or .Values.zookeeper.auth.enabled (dig "client" "enabled" false .Values.zookeeper.auth)) -}}
-{{- fail "ZooKeeper client authentication is unsupported (zookeeper.auth.client.enabled or legacy zookeeper.auth.enabled): HBase, Pinpoint and Pinot clients do not receive credentials; see README issue #41 guidance" -}}
+{{- fail "ZooKeeper client authentication is unsupported (zookeeper.auth.client.enabled or legacy zookeeper.auth.enabled): HBase, Pinpoint and Pinot clients do not receive credentials; see docs/CONFIGURATION.md" -}}
 {{- end -}}
 {{- if and .Values.zookeeper.enabled (dig "tls" "client" "enabled" false .Values.zookeeper) -}}
 {{- fail "zookeeper.tls.client.enabled is unsupported: chart-managed HBase, Pinpoint and Pinot clients do not receive TLS configuration" -}}
@@ -78,11 +78,11 @@
 {{- end -}}
 {{- if eq (include "pinpoint.kafka.internalEnabled" .) "true" -}}
 {{- if ne .Values.kafka.listeners.client.protocol "PLAINTEXT" -}}
-{{- fail "kafka.listeners.client.protocol must be PLAINTEXT: enabling broker SASL/TLS alone breaks Collector and Pinot clients (issue #41)" -}}
+{{- fail "kafka.listeners.client.protocol must be PLAINTEXT: enabling broker SASL/TLS alone breaks Collector and Pinot clients; see docs/CONFIGURATION.md" -}}
 {{- end -}}
 {{- with .Values.kafka.auth -}}
 {{- if or (and .clientProtocol (ne .clientProtocol "PLAINTEXT")) (and .interBrokerProtocol (ne .interBrokerProtocol "PLAINTEXT")) (dig "sasl" "enabled" false .) -}}
-{{- fail "kafka.auth is a legacy configuration: SASL/TLS clients are unsupported by stock Pinpoint 3.1.1; see README issue #41 guidance" -}}
+{{- fail "kafka.auth is a legacy configuration: SASL/TLS clients are unsupported by stock Pinpoint 3.1.1; see docs/CONFIGURATION.md" -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}
