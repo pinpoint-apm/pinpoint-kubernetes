@@ -173,7 +173,7 @@
       <h1>Pinpoint on Kubernetes.</h1>
       <p class="intro">Install Pinpoint APM with Helm. Start with the evaluation stack, or connect to your own backends for production.</p>
       <div class="versions" aria-label="Versions">
-        <span>Chart 3.1.1</span>
+        <span>Chart 3.1.2</span>
         <span>Pinpoint 3.1.1</span>
       </div>
 
@@ -183,7 +183,7 @@
         <pre><code>helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
 helm repo update
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.1 --namespace pinpoint --create-namespace \
+  --version 3.1.2 --namespace pinpoint --create-namespace \
   --wait --timeout 20m</code></pre>
       </div>
       <p class="note">The default installation includes evaluation backends. For production, use the <a href="https://github.com/pinpoint-apm/pinpoint-kubernetes/blob/master/docs/PRODUCTION.md">production guide</a>.</p>
