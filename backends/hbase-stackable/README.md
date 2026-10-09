@@ -17,6 +17,31 @@ RegionServers move regions before graceful shutdown. Backend CRs are retained
 when this Helm release is uninstalled by default. Manual CR/PVC deletion still
 requires backup and recovery planning. Replication and HA do not replace backups.
 
+## Components and pod count
+
+| Component | Role |
+| --- | --- |
+| HBase Master / RegionServer | Masters coordinate region assignment and failover; RegionServers serve table data and write WALs to HDFS. |
+| HDFS NameNode / JournalNode / DataNode | NameNodes maintain filesystem metadata, JournalNodes replicate the HA edit log, and DataNodes store replicated data blocks. |
+| ZooKeeper | Coordinates leader election and failover. |
+| HBase / HDFS / ZooKeeper operators | Reconcile backend CRs into configuration, Services and workloads. |
+| Commons operator | Manages shared Stackable infrastructure resources used by the product operators. |
+| Secret operator and CSI | Provision and mount pod-specific certificates/credentials used by the backend. |
+| Listener operator and CSI | Create listener Services and mount their connection details into backend pods. |
+
+The default backend has **16 data-service pods**. Installing its six operators
+adds five controller pods, a Listener CSI provisioner/controller and two CSI DaemonSets
+(Secret and Listener), each with one pod per eligible worker. With seven eligible
+workers this is **20 infrastructure pods**, shared by Stackable-managed clusters.
+Pinpoint Web/Collector, MySQL and Pinot add their own pods independently.
+
+These CSI drivers are Stackable integrations for credentials and endpoints;
+they do not replace the volume provisioner for HDFS PVCs. Operators and CSI
+drivers are installed separately, once per cluster, and can be placed in a
+platform namespace. Using already managed backends avoids installing this stack.
+References: [Secret operator](https://docs.stackable.tech/home/26.7/secret-operator/)
+and [Listener operator](https://docs.stackable.tech/home/26.7/listener-operator/).
+
 ## Prerequisites
 
 - At least three schedulable storage workers; independently backed SSD disks
@@ -67,7 +92,7 @@ helm upgrade --install pinpoint-storage backends/hbase-stackable \
 
 Use a reviewed values file for node selectors, resources and disk capacities.
 The release workflow publishes this chart separately as
-`pinpoint/pinpoint-hbase-stackable`, version `0.1.0`. Until it is published, use
+`pinpoint/pinpoint-hbase-stackable`, version `0.1.1`. Until it is published, use
 the checkout path in the command above. Installing the root chart does not
 implicitly install these operators or this storage release.
 Operator pods can share the `pinpoint` namespace with the application and

@@ -108,11 +108,15 @@ jobs:
         run: |
           chart_version=$(awk '/^version:/ {print $2; exit}' Chart.yaml)
           application_version=$(awk '/^appVersion:/ {gsub(/"/, "", $2); print $2; exit}' Chart.yaml)
+          release_notes_version=$chart_version
+          if [ ! -f "docs/RELEASE-$release_notes_version.md" ]; then
+            release_notes_version=$application_version
+          fi
           {
             printf 'Pinpoint application chart **%s**, targeting Pinpoint **%s**.\n\n' "$chart_version" "$application_version"
             printf 'The production profile deploys Web/Collector with independently managed backends. The default bundled Metric stack is intended for evaluation.\n\n'
             printf '[Installation and production configuration](https://github.com/%s/blob/master/README.md)\n\n' "$GITHUB_REPOSITORY"
-            printf '[Changes and validation scope](https://github.com/%s/blob/master/docs/RELEASE-%s.md)\n\n' "$GITHUB_REPOSITORY" "$application_version"
+            printf '[Changes and validation scope](https://github.com/%s/blob/master/docs/RELEASE-%s.md)\n\n' "$GITHUB_REPOSITORY" "$release_notes_version"
             printf '[Upgrade notes](https://github.com/%s/blob/master/docs/UPGRADING.md)\n' "$GITHUB_REPOSITORY"
           } > /tmp/pinpoint-release-notes.md
           gh release edit "pinpoint-$chart_version" --repo "$GITHUB_REPOSITORY" \

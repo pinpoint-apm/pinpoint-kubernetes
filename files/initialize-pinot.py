@@ -17,11 +17,14 @@ from urllib.request import Request, urlopen
 
 DEFINITIONS = (
     ("uriStat", "realtime"),
+    ("uriStat", "offline"),
     ("tag", "realtime"),
     ("double", "realtime"),
+    ("double", "offline"),
     ("dataType", "realtime"),
     ("exceptionTrace", "offline"),
     ("inspector-stat-agent", "realtime"),
+    ("inspector-stat-agent", "offline"),
     ("inspector-stat-application", "realtime"),
     ("heatmap-stat-application", "realtime"),
     ("heatmap-stat-application", "offline"),

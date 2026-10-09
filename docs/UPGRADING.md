@@ -1,5 +1,26 @@
 # Upgrading the Pinpoint chart
 
+## Chart 3.1.1 to 3.1.2
+
+Pinpoint application images stay at 3.1.1. The bundled Pinot Server now requests
+4 GiB and limits memory at 6 GiB (previously 2 GiB request / 4 GiB limit). Plan the
+additional capacity and a Server rollout when these defaults take effect;
+existing explicit values remain authoritative. The JVM heap and CPU are unchanged.
+
+The Pinot init hook creates missing `inspectorStatAgent00_OFFLINE`,
+`uriStat_OFFLINE` and `systemMetricDouble_OFFLINE` tables with configured
+replication. Upstream retention is 14 days for agent Inspector and 56 days for
+URI/system offline measurements; budget disk space for the additional history.
+It preserves existing realtime tables and other table configs/data. Check that the Minion's
+`RealtimeToOfflineSegmentsTask` stops reporting a missing table and successfully
+produces offline segments; table existence alone does not establish history.
+If `global.pinot.createTables=false`, ask the backend owner to create these tables
+from the bundled definition with the deployment's replication settings.
+
+Use chart version `3.1.2` with your reviewed values file. Chart 3.1.1 packages
+are not overwritten. Detailed traces still follow HBase TTL; adding an offline
+metric table does not extend trace retention.
+
 ## Chart 3.1.0 to 3.1.1
 
 The default Web, Collector, Agent, Batch and HBase images now use Pinpoint
@@ -36,7 +57,7 @@ All default workloads now have explicit requests/limits. Web and Collector
 heaps are set with `*.jvmOptions`; Kafka heaps use the role-specific
 `kafka.controller.heapOpts` and `kafka.broker.heapOpts`. ZooKeeper defaults to
 a 512 MiB heap within a 1536 MiB limit. Check scheduling capacity before the
-upgrade: defaults reserve about 20.6 GiB RAM and 7.75 CPU, plus surge/init/system
+upgrade: chart 3.1.1 defaults reserve about 20.6 GiB RAM and 7.75 CPU, plus surge/init/system
 pods. Existing user overrides are retained unless explicitly reset.
 
 HBase now uses stable per-member ZooKeeper ClusterIP Services to work around

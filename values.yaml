@@ -710,13 +710,15 @@ pinot:
   # Pinot Server - data storage and processing
   server:
     replicaCount: 1  # PRODUCTION: Scale based on data volume
+    # Size requests for sustained working memory, including segment mmap/off-heap.
+    # The limit allows additional headroom; tune both from workload measurements.
     resources:
       requests:
         cpu: 1
-        memory: 2Gi
+        memory: 4Gi
       limits:
         cpu: "4"
-        memory: 4Gi
+        memory: 6Gi
     persistence:
       enabled: true
       size: 10Gi  # PRODUCTION: Size based on analytics data retention (100Gi+ recommended)
