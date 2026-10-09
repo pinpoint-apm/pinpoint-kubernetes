@@ -60,7 +60,7 @@ class PinotInitializationTests(unittest.TestCase):
         self.assertIn("inspectorStatApp_REALTIME", controller.tables)
         self.assertIn("systemMetricDataType_REALTIME", controller.tables)
         self.assertIn("exceptionTrace_OFFLINE", controller.tables)
-        self.assertEqual(len(controller.writes), 15)
+        self.assertEqual(len(controller.writes), 18)
         self.assertTrue(all(path != "/schemas" for path, _ in controller.writes))
         before = list(controller.writes)
         self.run_init(controller)
@@ -81,6 +81,29 @@ class PinotInitializationTests(unittest.TestCase):
         realtime = next(table for table in heatmap if table["tableType"] == "REALTIME")
         self.assertEqual(realtime["tableIndexConfig"]["streamConfigs"]["stream.kafka.topic.name"],
                          "heatmap-stat-app-00")
+
+    def test_upgrade_creates_only_missing_realtime_to_offline_targets(self):
+        controller = FakeController()
+        for schema, table in self.definitions:
+            controller.schemas.add(schema["schemaName"])
+            controller.tables.add(table["tableName"] + "_" + table["tableType"])
+        missing = {"inspectorStatAgent00_OFFLINE", "uriStat_OFFLINE", "systemMetricDouble_OFFLINE"}
+        controller.tables.difference_update(missing)
+        self.run_init(controller)
+        self.assertEqual(len(controller.writes), 3)
+        self.assertEqual({table["tableName"] + "_" + table["tableType"]
+                          for _, table in controller.writes}, missing)
+        for path, table in controller.writes:
+            self.assertEqual(path, "/tables")
+            self.assertEqual(table["tableType"], "OFFLINE")
+            self.assertEqual(table["segmentsConfig"]["replication"], "2")
+            expected_retention = "14" if table["tableName"] == "inspectorStatAgent00" else "56"
+            self.assertEqual(table["segmentsConfig"]["retentionTimeValue"], expected_retention)
+        for _, realtime in self.definitions:
+            if "RealtimeToOfflineSegmentsTask" in realtime.get("task", {}).get("taskTypeConfigsMap", {}):
+                self.assertIn(realtime["tableName"] + "_OFFLINE", controller.tables)
+        self.run_init(controller)
+        self.assertEqual(len(controller.writes), 3)
 
     def test_offline_table_does_not_hide_missing_realtime_table(self):
         controller = FakeController()

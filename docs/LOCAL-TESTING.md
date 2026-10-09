@@ -3,7 +3,7 @@
 Use an isolated k3d cluster and its explicit kubeconfig on every command.
 A k3s executable alone does not imply a running server. These checks use Linux
 amd64, one physical computer with 30 GiB memory and local-path storage. Defaults
-reserve about 20.6 GiB memory and 7.75 CPU cores before bootstrap/system pods;
+reserve about 22.6 GiB memory and 7.75 CPU cores before bootstrap/system pods;
 32 GiB host memory is recommended. Run one installation scenario at a time.
 
 ## Create an isolated cluster
@@ -33,7 +33,7 @@ can use a single virtual node; the distributed example needs three.
 ```bash
 bash scripts/helm-validate.sh
 helm package . --destination /tmp/pinpoint-release
-helm install pinpoint /tmp/pinpoint-release/pinpoint-3.1.1.tgz \
+helm install pinpoint /tmp/pinpoint-release/pinpoint-3.1.2.tgz \
   --kubeconfig /tmp/pinpoint-311-kubeconfig.yaml \
   --namespace pinpoint --create-namespace --wait --timeout 20m
 python3 scripts/local-smoke.py \

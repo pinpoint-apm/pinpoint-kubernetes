@@ -42,5 +42,5 @@ for invalid in '' 'zookeeper.replicas=2' 'hdfs.nameNodes.replicas=1' 'hdfs.journ
 done
 ruby "$root/scripts/test-hbase-schema.rb"
 helm package "$backend" --destination "$temp"
-helm lint "$temp/pinpoint-hbase-stackable-0.1.0.tgz" --set storageClass=validated-ssd
+helm lint "$temp/pinpoint-hbase-stackable-0.1.1.tgz" --set storageClass=validated-ssd
 echo "HA backend render and packaging checks passed. Runtime HA qualification is separate."

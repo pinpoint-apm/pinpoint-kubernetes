@@ -474,7 +474,8 @@ helm template pinpoint "${chart_dir}" --show-only templates/telegraf.yaml --show
 grep -q 'http://pinpoint-collector:15200/telegraf' "${render_dir}/telegraf.yaml"
 if grep -q 'download-pinpoint-telegraf-configuration' "${render_dir}/telegraf.yaml"; then exit 1; fi
 grep -q 'pinot-inspector-stat-application-schema.json:' "${render_dir}/pinot-init-config.yaml"
-test "$(grep -c '^  pinot-.*\.json: |' "${render_dir}/pinot-init-config.yaml")" -eq 17
+test "$(grep -c '^  pinot-.*\.json: |' "${render_dir}/pinot-init-config.yaml")" -eq 20
+grep -q 'pinot-inspector-stat-agent-offline-table.json:' "${render_dir}/pinot-init-config.yaml"
 if grep -q 'raw.githubusercontent.com\|pinot-admin.sh\|EXISTING_TABLES' "${render_dir}/pinot-init.yaml"; then
   echo "Pinot initialization still downloads configs or uses count-based detection" >&2
   exit 1
@@ -608,7 +609,7 @@ GITHUB_REPOSITORY=pinpoint-apm/pinpoint-kubernetes \
   bash scripts/render-pages-site.sh "${render_dir}/pages"
 grep -q '<title>Pinpoint Helm Chart</title>' "${render_dir}/pages/index.html"
 grep -q 'https://pinpoint-apm.github.io/pinpoint-kubernetes' "${render_dir}/pages/index.html"
-grep -q 'Chart 3.1.1' "${render_dir}/pages/index.html"
+grep -q 'Chart 3.1.2' "${render_dir}/pages/index.html"
 grep -q 'Pinpoint 3.1.1' "${render_dir}/pages/index.html"
 test -f "${render_dir}/pages/.nojekyll"
 
@@ -620,7 +621,7 @@ fi
 # Check what downstream users receive: all locked dependencies must be bundled
 # in the archive, and it must render without another dependency download.
 helm package "${chart_dir}" --destination "${render_dir}"
-chart_package="${render_dir}/pinpoint-3.1.1.tgz"
+chart_package="${render_dir}/pinpoint-3.1.2.tgz"
 test -f "${chart_package}"
 helm lint "${chart_package}"
 helm template observability "${chart_package}" --namespace telemetry \
@@ -628,7 +629,7 @@ helm template observability "${chart_package}" --namespace telemetry \
 grep -q 'pinpointdocker/pinpoint-web:3.1.1-metric' "${render_dir}/packaged.yaml"
 grep -q 'controller.zk.str=observability-zookeeper:2181' "${render_dir}/packaged.yaml"
 tar -tf "${chart_package}" > "${render_dir}/package-files.txt"
-test "$(grep -c 'files/pinot/3.1.1/.*\.json$' "${render_dir}/package-files.txt")" -eq 17
+test "$(grep -c 'files/pinot/3.1.1/.*\.json$' "${render_dir}/package-files.txt")" -eq 20
 grep -q 'files/initialize-pinot.py$' "${render_dir}/package-files.txt"
 if grep -Eq '^pinpoint/(docs|backends|examples|scripts)/|/\.(aws|codex|agents|git|github|venv)/|/__pycache__/|\.pyc$|^pinpoint/(lazygit|\.env[^/]*|values\..*local\.yaml|secrets[^/]*\.yaml)$|kubeconfig' "${render_dir}/package-files.txt"; then
   echo "Packaged chart contains development files, local configuration or Python cache" >&2

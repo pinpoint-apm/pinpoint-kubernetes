@@ -11,7 +11,7 @@ Web/Collector images and disables the default metric services. To select it:
 
 ```bash
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.1 \
+  --version 3.1.2 \
   --namespace pinpoint \
   --create-namespace \
   --set global.metric.enabled=false \
@@ -248,13 +248,21 @@ If encrypted/authenticated Kafka or ZooKeeper is mandatory, additional client
 integration is required before this chart can meet that requirement.
 
 Topic initialization checks every required topic with `--if-not-exists` and
-fails when a creation fails. Pinot initialization validates all 17 bundled
+fails when a creation fails. Pinot initialization validates all 20 bundled
 3.1.1 JSON definitions before making changes, creates missing schemas/tables
-by their actual names (including `inspectorStatApp` and both Heatmap table types), and preserves existing
-configs. Retries and upgrades can repair a partially initialized cluster;
+by their actual names (including `inspectorStatApp` and the REALTIME/OFFLINE
+table pairs for agent Inspector, URI statistics, system measurements and
+Heatmap), and preserves existing configs. Retries and upgrades can repair a partially initialized cluster;
 unrelated topics/tables cannot hide missing Pinpoint resources. HTTP permission
 and server errors fail the hook rather than being treated as missing tables.
 New realtime tables use Pinot 1.3's Kafka 3.0 consumer plugin.
+
+The upstream definitions retain realtime measurements for 7 days, agent Inspector
+and Heatmap offline data for 14 days, and URI/system offline measurements for
+56 days. Minion converts completed realtime segments into the matching offline
+table. Offline history depends on successful tasks;
+UI query-range settings do not change retention or HBase trace TTL. Size disk
+capacity for these histories, not just the realtime window.
 
 Set `global.pinot.createTables=false` if schemas/tables are managed separately.
 An explicit application version override without bundled definitions requires
@@ -278,6 +286,30 @@ by `--timeout`; use the documented `--timeout 20m` installation command.
 
 See [`values.yaml`](../values.yaml) for all configuration options and
 [upgrade notes](UPGRADING.md) before upgrading a production release.
+
+## Resource sizing
+
+Requests determine scheduling capacity; they do not preallocate all requested
+RAM. Containers can use more than their requests when capacity is available.
+CPU limits throttle bursts, while exceeding a memory limit can cause an OOM
+termination. See [Kubernetes resource management](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).
+
+There is no fixed request-to-limit ratio. Set requests from sustained usage and
+busy-period measurements, then allow headroom for startup, recovery and background
+work. Defaults are a starting point for evaluation; tune production budgets from
+representative ingestion and query load, including segment conversion and compaction.
+
+The bundled Pinot Server defaults to a **4 GiB request / 6 GiB limit**, with
+**1 CPU request / 4 CPU limit**. Its 1 GiB JVM heap does not include native buffers
+or memory-mapped segment pages. Size the container for the complete working set,
+not only `-Xmx`; see [Pinot realtime memory tuning](https://docs.pinot.apache.org/operate-pinot/tuning/realtime).
+Web and Collector JVM settings also need container headroom for native memory.
+
+Equal memory requests and limits alone do not give Guaranteed QoS: every
+container also needs equal, nonzero CPU requests and limits. See
+[Kubernetes QoS classes](https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/).
+The independently managed Stackable backend sizes its JVM and container memory
+together; review its role-specific budgets separately from this application chart.
 
 ## Values validation and initialization resources
 
