@@ -60,7 +60,7 @@ class PinotInitializationTests(unittest.TestCase):
         self.assertIn("inspectorStatApp_REALTIME", controller.tables)
         self.assertIn("systemMetricDataType_REALTIME", controller.tables)
         self.assertIn("exceptionTrace_OFFLINE", controller.tables)
-        self.assertEqual(len(controller.writes), 18)
+        self.assertEqual(len(controller.writes), 27)
         self.assertTrue(all(path != "/schemas" for path, _ in controller.writes))
         before = list(controller.writes)
         self.run_init(controller)
@@ -244,9 +244,10 @@ else:
         result, topics = self.run_creator()
         self.assertEqual(result.returncode, 0, result.stderr)
         required = {"url-stat", "system-metric-data-type", "system-metric-tag", "system-metric-double",
-                    "exception-trace", "inspector-stat-app", "inspector-stat-agent-00", "heatmap-stat-app-00"}
+                    "exception-trace", "inspector-stat-app", "inspector-stat-agent-00", "heatmap-stat-app-00",
+                    "otlp-metric-metadata", "otlp-metric-double-00", "otlp-metric-long-00"}
         self.assertTrue(required.issubset(topics))
-        self.assertEqual(len(topics), 16)
+        self.assertEqual(len(topics), 19)
 
     def test_failed_topic_creation_is_not_reported_as_success(self):
         result, topics = self.run_creator("system-metric-tag")

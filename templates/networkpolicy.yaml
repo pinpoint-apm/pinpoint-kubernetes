@@ -86,6 +86,9 @@ spec:
         - { port: 9995, protocol: UDP }
         - { port: 9996, protocol: UDP }
         - { port: 9995, protocol: TCP }
+        {{- if .Values.global.metric.enabled }}
+        - { port: 9998, protocol: TCP }
+        {{- end }}
         - { port: 60000, protocol: TCP }
         - { port: 60020, protocol: TCP }
         - { port: 16010, protocol: TCP }
@@ -330,5 +333,8 @@ spec:
         - { port: 9995, protocol: UDP }
         - { port: 9996, protocol: UDP }
         - { port: 9995, protocol: TCP }
+        {{- if $.Values.global.metric.enabled }}
+        - { port: 9998, protocol: TCP }
+        {{- end }}
 {{- end }}
 {{- end }}

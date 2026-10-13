@@ -13,6 +13,8 @@ data:
     {{- .Files.Get "files/hbase-health.sh" | nindent 4 }}
   initialize-schema.rb: |
     {{- .Files.Get "files/hbase-initialize-schema.rb" | nindent 4 }}
+  hbase-create.hbase: |
+    {{- required "No bundled HBase schema" (.Files.Get (printf "files/hbase/%s/hbase-create.hbase" .Values.global.pinpointVersion)) | nindent 4 }}
   hbase-site.xml: |
     <configuration>
         <property>

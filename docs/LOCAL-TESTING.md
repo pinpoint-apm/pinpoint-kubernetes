@@ -132,3 +132,22 @@ prior-version data migration, independent host/disk loss, quorum loss, network
 partitions/fencing, NFS durability, off-cluster restore and sustained production
 load remain unqualified. Three virtual nodes on one computer cannot establish
 independent failure-domain resilience. See [production acceptance](PRODUCTION.md).
+
+## Explicit dev database fixture checks
+
+`local-mysql-recovery.py` defaults to rejecting non-loopback API servers. When
+an authorized dev check is needed, select the context explicitly and opt in:
+
+```bash
+python3 scripts/local-mysql-recovery.py --context dev --namespace pinpoint \
+  --release pinpoint --allow-remote-fixture-tests
+```
+
+The test creates randomly named disposable databases, never runs destructive
+fixture SQL against the application database, and uses the installed MySQL
+StatefulSet's credentials Secret reference. It tests classic/metric profile
+initialization, missing tables/indexes, repeated migration, required-column
+failure, preserved data/sequences and dump/restore. Successful fixture databases,
+Job and ConfigMap are removed. Failed jobs are retained for inspection.
+This does not replace a full staging install, a production backup, or restore
+qualification of the application's own database.

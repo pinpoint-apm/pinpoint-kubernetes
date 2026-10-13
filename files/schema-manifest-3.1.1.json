@@ -1,0 +1,188 @@
+{
+  "version": "3.1.1",
+  "repository": "https://github.com/pinpoint-apm/pinpoint",
+  "ref": "v3.1.1",
+  "assets": [
+    {
+      "path": "files/pinot/3.1.1/pinot-dataType-realtime-table.json",
+      "source": "metric-module/metric/src/main/pinot/pinot-dataType-realtime-table.json",
+      "sha256": "3e9d51520486a29d4559098a3e1caddcce7d86ed01b69add6816bc90822f8671"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-dataType-schema.json",
+      "source": "metric-module/metric/src/main/pinot/pinot-dataType-schema.json",
+      "sha256": "b94d199a1dfba6e4d031608ee185160adfe540c352cc664b5e9fb11914de1a3c"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-double-offline-table.json",
+      "source": "metric-module/metric/src/main/pinot/pinot-double-offline-table.json",
+      "sha256": "0646a2ec0073f6ccc659c772d24bc9f67ccc72e487cb1c967c9032f5ec245261"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-double-realtime-table.json",
+      "source": "metric-module/metric/src/main/pinot/pinot-double-realtime-table.json",
+      "sha256": "172fd191e768a643a0cae78aa537f83c3aceab3641bafad36c30de4d2cdec1a5"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-double-schema.json",
+      "source": "metric-module/metric/src/main/pinot/pinot-double-schema.json",
+      "sha256": "988947a1a29780280355f7042cb34b9037bc242d7e27b0c7b85298fab0db6857"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-exceptionTrace-offline-table.json",
+      "source": "exceptiontrace/exceptiontrace-common/src/main/pinot/pinot-exceptionTrace-offline-table.json",
+      "sha256": "c5b975570077d004d9ce06dd65b7096226c0945e5e3034a8368c02dec5fdc11e"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-exceptionTrace-realtime-table.json",
+      "source": "exceptiontrace/exceptiontrace-common/src/main/pinot/pinot-exceptionTrace-realtime-table.json",
+      "sha256": "14e4e5d5338b4527fa8ce81667d19ad96e76481ab8129db39a68d65068049441"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-exceptionTrace-schema.json",
+      "source": "exceptiontrace/exceptiontrace-common/src/main/pinot/pinot-exceptionTrace-schema.json",
+      "sha256": "5056f2ea9f10dc5caca3dba02b023fd02846effc7a95a667790ff5b68881b57d"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-heatmap-stat-application-offline-table.json",
+      "source": "collector/src/main/pinot/pinot-heatmap-stat-application-offline-table.json",
+      "sha256": "e782599e581e9e509cdfba6d10bf1a090c380144febc4459eec8c57e18c09b44"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-heatmap-stat-application-realtime-table.json",
+      "source": "collector/src/main/pinot/pinot-heatmap-stat-application-realtime-table.json",
+      "sha256": "2bbe364b6e4a315318d5bf493159e08589d2e6e175670717dab7f2722a2eb5c9"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-heatmap-stat-application-schema.json",
+      "source": "collector/src/main/pinot/pinot-heatmap-stat-application-schema.json",
+      "sha256": "0b1e514994452a535054fcf6b8589b7c06da8f7e017e573849c4603a4ccbb392"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-inspector-stat-agent-offline-table.json",
+      "source": "inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-agent-offline-table.json",
+      "sha256": "202e9473e6435a1194693b7613875f8d3595dc1defa168041948735d2577c158"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-inspector-stat-agent-realtime-table.json",
+      "source": "inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-agent-realtime-table.json",
+      "sha256": "07281898bd9702bd2ef0c0b7f9852e8021768069c00367e98792f802e006aed0"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-inspector-stat-agent-schema.json",
+      "source": "inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-agent-schema.json",
+      "sha256": "c62a46deffd0404ecbc367a5205d7679d52d737fa32b9e3a9ba6c14d6da33c6f"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-inspector-stat-application-realtime-table.json",
+      "source": "inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-application-realtime-table.json",
+      "sha256": "a9970983feefbb5e0b15631229c6f59d81c7b5cba688ee6ae1f4d8eff978db0b"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-inspector-stat-application-schema.json",
+      "source": "inspector-module/inspector-collector/src/main/pinot/pinot-inspector-stat-application-schema.json",
+      "sha256": "a0602efdf6f2b1e514c1b71fb865c1cfae4e7eb56fe4273b0be9877e67717afb"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-otlpmetric-double-offline-table.json",
+      "source": "otlpmetric/pinot-tables/pinot-otlpmetric-double-offline-table.json",
+      "sha256": "6bed0b3f5381172ce4185912a0ccb8322c6c40363ffc7131bc597162fb965c02"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-otlpmetric-double-realtime-table.json",
+      "source": "otlpmetric/pinot-tables/pinot-otlpmetric-double-realtime-table.json",
+      "sha256": "2fbf5da741c7c9c81cfaa95f28e78c59a8d7a843fe874db51c5a293921c37ca2"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-otlpmetric-double-schema.json",
+      "source": "otlpmetric/pinot-tables/pinot-otlpmetric-double-schema.json",
+      "sha256": "8328f5de1a0ca90d6b74d393cee03a12e6c692744e1fecb9484ccfcc7159a92c"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-otlpmetric-long-offline-table.json",
+      "source": "otlpmetric/pinot-tables/pinot-otlpmetric-long-offline-table.json",
+      "sha256": "d291515fd5ccf21b9b46b60068576746a1ebdd81cca74fd4c8fd1c840b5e72bd"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-otlpmetric-long-realtime-table.json",
+      "source": "otlpmetric/pinot-tables/pinot-otlpmetric-long-realtime-table.json",
+      "sha256": "78c275b0eb69e8b20a083361ea1afa44cb2be2c96ac7a9eabe3fe41e7ea07d07"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-otlpmetric-long-schema.json",
+      "source": "otlpmetric/pinot-tables/pinot-otlpmetric-long-schema.json",
+      "sha256": "c1edc6f74f6f9f09258cf6d20bb14adfedbcb17c41c1e5aefb9b0bcfe4433250"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-otlpmetric-metadata-realtime-table.json",
+      "source": "otlpmetric/pinot-tables/pinot-otlpmetric-metadata-realtime-table.json",
+      "sha256": "74e96cfc0f976464dd97e25c6aa3375c5363b415eaf56ca9e9a141fc7cc5ef2f"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-otlpmetric-metadata-schema.json",
+      "source": "otlpmetric/pinot-tables/pinot-otlpmetric-metadata-schema.json",
+      "sha256": "80261a2ded9feb26f85cb6511977d348a96c44fe52f976cf9fa18e88143628b1"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-tag-realtime-table.json",
+      "source": "metric-module/metric/src/main/pinot/pinot-tag-realtime-table.json",
+      "sha256": "055073a4a453092dddb857e4f06a8aad9131685103574a100fbcdbde303ebc03"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-tag-schema.json",
+      "source": "metric-module/metric/src/main/pinot/pinot-tag-schema.json",
+      "sha256": "091a03c39ddaa8ce68d4495b78fae7895dca920c46ffe4e10f3c7295c64fcd49"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-uriStat-offline-table.json",
+      "source": "uristat/uristat-common/src/main/pinot/pinot-uriStat-offline-table.json",
+      "sha256": "1b010290cf9fa20e8524e002be408644132f6390cd7629e09a22cd98e2efa40f"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-uriStat-realtime-table.json",
+      "source": "uristat/uristat-common/src/main/pinot/pinot-uriStat-realtime-table.json",
+      "sha256": "ca598c6ca0a0fa72e442b51acf2d8d5c5852b637a41e227106b3313c4d863703"
+    },
+    {
+      "path": "files/pinot/3.1.1/pinot-uriStat-schema.json",
+      "source": "uristat/uristat-common/src/main/pinot/pinot-uriStat-schema.json",
+      "sha256": "63f6166fe02405f19928cb65d21b04083c5c5389c6dd4fa6fd47ef90e7148c1f"
+    },
+    {
+      "path": "files/sql/3.1.1/CreateTableStatement-mysql.sql",
+      "source": "web/src/main/resources/sql/CreateTableStatement-mysql.sql",
+      "sha256": "4043cc873e742993ce50344bccd3ed271f427d1318f5f512948d15793756480b",
+      "upstreamSha256": "4043cc873e742993ce50344bccd3ed271f427d1318f5f512948d15793756480b"
+    },
+    {
+      "path": "files/sql/3.1.1/SpringBatchJobRepositorySchema-mysql.sql",
+      "source": "web/src/main/resources/sql/SpringBatchJobRepositorySchema-mysql.sql",
+      "sha256": "faea8a3fbf709bde600487427e61eca42ceb82e24ec6504fa22460ef61011700",
+      "upstreamSha256": "faea8a3fbf709bde600487427e61eca42ceb82e24ec6504fa22460ef61011700"
+    },
+    {
+      "path": "files/sql/3.1.1/FeatureFlag-mysql.sql",
+      "source": "feature-flag/src/main/resources/sql/CreateTableStatement-mysql.sql",
+      "sha256": "ed589d934d8132a477c1d25b74a1a290fe15e8c291c1071dc116d261a7e4dc5b",
+      "upstreamSha256": "ed589d934d8132a477c1d25b74a1a290fe15e8c291c1071dc116d261a7e4dc5b"
+    },
+    {
+      "path": "files/sql/3.1.1/Service-mysql.sql",
+      "source": "service-module/src/main/resources/sql/Service-Schema.sql",
+      "sha256": "0d5a904569c48c4ead3860eead2eb1a916b8fe33fa839523faa742438aea1c2f",
+      "upstreamSha256": "0d5a904569c48c4ead3860eead2eb1a916b8fe33fa839523faa742438aea1c2f"
+    },
+    {
+      "path": "files/sql/3.1.1/OtlpMetric-mysql.sql",
+      "source": "otlpmetric/otlpmetric-web/src/main/resources/sql/CreateTableStatement-mysql.sql",
+      "sha256": "2fa4cf2372e40bca3d167133d0ba507fdccc523ca074425d66c897e26eb0bc10",
+      "upstreamSha256": "2fa4cf2372e40bca3d167133d0ba507fdccc523ca074425d66c897e26eb0bc10"
+    },
+    {
+      "path": "files/hbase/3.1.1/hbase-create.hbase",
+      "source": "hbase/scripts/hbase-create.hbase",
+      "sha256": "c472daa9a1b25a631066256d95bdfcaae1beac2f99be1492556bfce875bfd64d",
+      "adaptations": "Image/companion TTL defaults preserved; runtime TTL overrides apply only to missing tables."
+    }
+  ]
+}

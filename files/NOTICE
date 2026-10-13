@@ -1,0 +1,4 @@
+Bundled Pinpoint SQL, Pinot and HBase definitions are derived from
+NAVER Pinpoint v3.1.1 (https://github.com/pinpoint-apm/pinpoint/tree/v3.1.1),
+licensed under the Apache License, Version 2.0. Copyright NAVER Corp.
+See LICENSE and docs/SCHEMA-COMPATIBILITY.md for provenance and adaptations.

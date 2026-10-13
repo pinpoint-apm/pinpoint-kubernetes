@@ -86,6 +86,10 @@ spec:
 
               /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic heatmap-stat-app-00 --partitions 32 --replication-factor "$TOPIC_REPLICATION_FACTOR" --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
 
+              /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic otlp-metric-metadata --partitions 3 --replication-factor "$TOPIC_REPLICATION_FACTOR" --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic otlp-metric-double-00 --partitions 32 --replication-factor "$TOPIC_REPLICATION_FACTOR" --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+              /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic otlp-metric-long-00 --partitions 32 --replication-factor "$TOPIC_REPLICATION_FACTOR" --bootstrap-server "$BOOTSTRAP_SERVER" --if-not-exists
+
               echo "Topics created successfully!"
           env:
             - name: KAFKA_HEAP_OPTS

@@ -400,6 +400,7 @@ collector:
       grpcAgent: 9991  # Primary agent connection port
       grpcStat: 9992   # Statistics collection
       grpcSpan: 9993   # Span/trace data
+      otlpTrace: 9998  # Metric image OTLP trace gRPC receiver (not standard 4317)
 
 # Demo application - provides sample data for testing and demonstration
 quickstart:
@@ -721,7 +722,33 @@ pinot:
         memory: 6Gi
     persistence:
       enabled: true
-      size: 10Gi  # PRODUCTION: Size based on analytics data retention (100Gi+ recommended)
+      size: 20Gi  # Initial budget, not a retention guarantee; see docs/CONFIGURATION.md.
+    # Pinot 0.3.4 dependency keys. Startup gates readiness/liveness during recovery.
+    probes:
+      endpoint: /health
+      startupEnabled: true
+      readinessEnabled: true
+      livenessEnabled: true
+      startup:
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 180  # Up to 30 minutes for segment recovery.
+        successThreshold: 1
+      readiness:
+        endpoint: /health/readiness
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+        successThreshold: 1
+      liveness:
+        endpoint: /health/liveness
+        initialDelaySeconds: 5
+        periodSeconds: 30
+        timeoutSeconds: 10
+        failureThreshold: 10  # Allow transient GC/storage stalls.
+        successThreshold: 1
   # Pinot Controller - cluster management
   controller:
     external:
@@ -737,6 +764,30 @@ pinot:
     persistence:
       enabled: true
       size: 5Gi  # Controller metadata
+    # Pinot 0.3.4 dependency keys. Startup gates readiness/liveness during recovery.
+    probes:
+      endpoint: /health
+      startupEnabled: true
+      readinessEnabled: true
+      livenessEnabled: true
+      startup:
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 180  # Up to 30 minutes for segment recovery.
+        successThreshold: 1
+      readiness:
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+        successThreshold: 1
+      liveness:
+        initialDelaySeconds: 5
+        periodSeconds: 30
+        timeoutSeconds: 10
+        failureThreshold: 10  # Allow transient GC/storage stalls.
+        successThreshold: 1
   # Pinot Broker - query processing
   broker:
     external:

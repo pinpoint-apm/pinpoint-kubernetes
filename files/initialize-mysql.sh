@@ -11,7 +11,13 @@ export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
 mysql_cmd() { mysql -h "$MYSQL_HOST" -u root -s -N "$@"; }
 workdir=$(mktemp -d)
 trap 'rm -rf "$workdir"' EXIT HUP INT TERM
-for schema in create-tables.sql create-batch-tables.sql; do
+schemas="create-tables.sql create-batch-tables.sql create-service.sql create-feature-flag.sql"
+case "${PINPOINT_METRIC_ENABLED:-false}" in
+  true) schemas="$schemas create-otlp-metric.sql" ;;
+  false) ;;
+  *) echo "PINPOINT_METRIC_ENABLED must be true or false" >&2; exit 1 ;;
+esac
+for schema in $schemas; do
   sed -e 's/^CREATE TABLE /CREATE TABLE IF NOT EXISTS /' -e '/^ALTER TABLE .* ADD /d' "/shared/$schema" > "$workdir/$schema"
   mysql_cmd "$MYSQL_DATABASE" < "$workdir/$schema"
 done
@@ -27,8 +33,10 @@ while read -r statement; do
   fi
 done < "$workdir/indexes"
 # Use exact names from the shipped DDL rather than a count of unrelated tables.
-awk 'toupper($1)=="CREATE" && toupper($2)=="TABLE" {name=$3; gsub(/`/,"",name); print name}' \
-  /shared/create-tables.sql /shared/create-batch-tables.sql > "$workdir/expected-tables"
+for schema in $schemas; do
+  awk 'toupper($1)=="CREATE" && toupper($2)=="TABLE" {name=$3; gsub(/`/,"",name); print name}' \
+    "/shared/$schema"
+done > "$workdir/expected-tables"
 while read -r table; do
   found=$(mysql_cmd -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$MYSQL_DATABASE' AND table_name='$table';")
   if [ "$found" != 1 ]; then
@@ -36,6 +44,26 @@ while read -r table; do
     exit 1
   fi
 done < "$workdir/expected-tables"
+# An existing table with missing columns must not make the hook look successful.
+# Only validate here; incompatible existing schemas require a reviewed migration.
+for schema in $schemas; do
+  awk '
+    toupper($1)=="CREATE" && toupper($2)=="TABLE" {table=$3; gsub(/`/,"",table)}
+    /^[[:space:]]+/ {
+      column=$1; kind=$2
+      if (column ~ /^`/) {
+        split($0, parts, "`"); column=parts[2]; kind=parts[3]; sub(/^[[:space:]]+/, "", kind)
+      }
+      if (toupper(kind) ~ /^(INT|BIGINT|VARCHAR|CHAR|DATETIME|TEXT|ENUM)(\(|[[:space:]]|$)/) print table, column
+    }' "/shared/$schema"
+done > "$workdir/expected-columns"
+while read -r table column; do
+  found=$(mysql_cmd -e "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='$MYSQL_DATABASE' AND table_name='$table' AND column_name='$column';")
+  if [ "$found" != 1 ]; then
+    echo "Missing required MySQL column: $table.$column" >&2
+    exit 1
+  fi
+done < "$workdir/expected-columns"
 columns=$(mysql_cmd -e "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='$MYSQL_DATABASE' AND table_name='webhook' AND column_name IN ('application_id','service_name') AND character_maximum_length < 127;")
 if [ "$columns" -gt 0 ]; then
   mysql_cmd "$MYSQL_DATABASE" -e 'ALTER TABLE webhook MODIFY COLUMN application_id VARCHAR(127) NULL, MODIFY COLUMN service_name VARCHAR(127) NULL;'
