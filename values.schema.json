@@ -191,7 +191,29 @@
       "$ref": "#/definitions/application"
     },
     "collector": {
-      "$ref": "#/definitions/application"
+      "allOf": [
+        {
+          "$ref": "#/definitions/application"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "service": {
+              "type": "object",
+              "properties": {
+                "ports": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "networkPolicy": {
       "type": "object",

@@ -15,4 +15,12 @@ data:
     {{- required (printf "No bundled MySQL schema for Pinpoint %s" .Values.global.pinpointVersion) (.Files.Get $schemaPath) | nindent 4 }}
   create-batch-tables.sql: |
     {{- required (printf "No bundled batch schema for Pinpoint %s" .Values.global.pinpointVersion) (.Files.Get $batchPath) | nindent 4 }}
+  create-service.sql: |
+    {{- required "No bundled service schema" (.Files.Get (printf "files/sql/%s/Service-mysql.sql" .Values.global.pinpointVersion)) | nindent 4 }}
+  create-feature-flag.sql: |
+    {{- required "No bundled feature flag schema" (.Files.Get (printf "files/sql/%s/FeatureFlag-mysql.sql" .Values.global.pinpointVersion)) | nindent 4 }}
+  {{- if .Values.global.metric.enabled }}
+  create-otlp-metric.sql: |
+    {{- required "No bundled OTLP metric schema" (.Files.Get (printf "files/sql/%s/OtlpMetric-mysql.sql" .Values.global.pinpointVersion)) | nindent 4 }}
+  {{- end }}
 {{- end }}

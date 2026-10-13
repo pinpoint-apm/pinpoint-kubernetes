@@ -1,5 +1,37 @@
 # Upgrading the Pinpoint chart
 
+## Chart 3.1.2 to 3.1.3
+
+Application images remain 3.1.1. Back up MySQL and review the existing values
+before upgrading. Bundled MySQL's post-upgrade hook adds the missing service,
+feature-flag and metric-definition tables, validates required columns and
+preserves existing rows/batch sequences. No destructive SQL reset is used.
+External MySQL schemas remain database-owner managed; apply the versioned
+SQL listed in [SCHEMA-COMPATIBILITY.md](SCHEMA-COMPATIBILITY.md).
+
+Kafka and Pinot hooks add only missing OTLP topics/tables and exception trace
+REALTIME. Existing retention and topic settings remain unchanged. External
+backends require their existing explicit management opt-ins. Verify Inspector,
+trace queries and custom metric save/read after the hooks succeed.
+
+Pinot Controller and Server roll when probes are enabled. Single-replica Pinot
+can have a brief interruption while those pods recover. Retain explicit probe
+customizations, or deliberately set `pinot.server.probes.*Enabled` and
+`pinot.controller.probes.*Enabled` to true if an older all-values file disabled
+them. Startup allows about 30 minutes of recovery; tune it to measured load.
+
+**Keep the currently deployed persistence.size in upgrade values.** The new
+20Gi Server default applies to fresh claims. StatefulSet claim templates are
+immutable and changing this value does not resize existing PVCs; a blind
+`--reset-values` can fail the upgrade. For CSI expansion, use a separately
+reviewed storage procedure. For NFS subdirectory provisioning, expansion is
+unsupported even with allowVolumeExpansion=true; monitor actual filesystem space.
+
+Use `helm upgrade pinpoint <reviewed-3.1.3-package> --namespace pinpoint -f
+<existing-values.yaml> --wait --timeout 20m`, with the explicitly selected
+cluster/context. Avoid printing rendered Secrets. Validate the package in
+staging first; [RELEASE-3.1.3.md](RELEASE-3.1.3.md) lists the changes.
+
 ## Chart 3.1.1 to 3.1.2
 
 Pinpoint application images stay at 3.1.1. The bundled Pinot Server now requests

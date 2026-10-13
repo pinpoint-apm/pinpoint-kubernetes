@@ -323,3 +323,18 @@ PDBs accept nonnegative integer budgets (including zero) or percentages from
 containers and MySQL/Kafka initialization hooks. The Kafka CLI heap is bounded
 to 256 MiB. `global.pinot.initResources` configures the Python initializer.
 Hooks inherit `global.imagePullSecrets` and do not mount service-account tokens.
+
+## Chart 3.1.3 schema coverage and Pinot health checks
+
+See [SCHEMA-COMPATIBILITY.md](SCHEMA-COMPATIBILITY.md) for the complete
+versioned SQL/HBase/Pinot/Kafka inventory, initialization ownership and retention.
+Pinot Server and Controller now enable all three health probes. Configure
+`pinot.server.probes` / `pinot.controller.probes` using the dependency's
+`startupEnabled`, `readinessEnabled`, `livenessEnabled` and per-probe timing
+values. The server uses `/health/liveness` and `/health/readiness` on 8097; the
+controller uses `/health` on 9000. Startup gates both other probes during recovery.
+These local health checks do not establish Kafka ingestion or HBase availability.
+
+New Pinot Server claims request 20Gi. Preserve existing claim sizes on upgrade;
+see [UPGRADING.md](UPGRADING.md#chart-312-to-313) for immutable StatefulSet
+claim templates and the NFS expansion limitation.

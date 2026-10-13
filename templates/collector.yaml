@@ -152,6 +152,10 @@ spec:
               containerPort: 9992
             - name: grpc-span
               containerPort: 9993
+            {{- if .Values.global.metric.enabled }}
+            - name: otlp-trace
+              containerPort: 9998
+            {{- end }}
             - name: thrift-rcv
               containerPort: 9994
             - name: udp-stat
@@ -280,6 +284,10 @@ spec:
       targetPort: udp-span
       protocol: UDP
     {{- if .Values.global.metric.enabled }}
+    - name: otlp-trace
+      port: {{ .Values.collector.service.ports.otlpTrace }}
+      targetPort: otlp-trace
+      protocol: TCP
     - name: metric-port
       port: 15200
       # Numeric target avoids duplicate 9995 TCP/UDP named-port merge conflicts.

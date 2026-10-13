@@ -6,7 +6,7 @@
 
 Deploy Pinpoint APM 3.1.1 on Kubernetes with Helm 3. **Metric mode is the
 default**, providing application tracing and Kafka/Pinot-based metrics.
-Chart **3.1.2** targets Pinpoint **3.1.1**; chart fixes have their own release version.
+Chart **3.1.3** targets Pinpoint **3.1.1**; chart fixes have their own release version.
 
 | Installation | What the chart installs |
 | --- | --- |
@@ -63,7 +63,7 @@ and [values.yaml](values.yaml) for resource and JVM settings.
 helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
 helm repo update
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.2 --namespace pinpoint --create-namespace \
+  --version 3.1.3 --namespace pinpoint --create-namespace \
   --wait --timeout 20m
 kubectl get pods,jobs,pvc -n pinpoint
 kubectl port-forward -n pinpoint service/pinpoint-web 8080:8080
@@ -83,7 +83,7 @@ Kubernetes or on separate infrastructure; endpoints can be Service DNS names or
 private addresses. After adding the Helm repository, copy the production example:
 
 ```bash
-helm pull pinpoint/pinpoint --version 3.1.2 --untar --untardir /tmp/pinpoint-chart
+helm pull pinpoint/pinpoint --version 3.1.3 --untar --untardir /tmp/pinpoint-chart
 cp /tmp/pinpoint-chart/pinpoint/values-production.yaml my-production-values.yaml
 ```
 
@@ -93,7 +93,7 @@ rules. Initialize backend schemas and create Secrets following the
 
 ```bash
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.2 --namespace pinpoint --create-namespace \
+  --version 3.1.3 --namespace pinpoint --create-namespace \
   -f my-production-values.yaml --wait --timeout 20m
 ```
 
@@ -181,7 +181,8 @@ values outside this repository.
 - [Configuration](docs/CONFIGURATION.md): profiles, connection settings, Secrets and recovery.
 - [Local testing](docs/LOCAL-TESTING.md): installation and runtime validation.
 - [Upgrades](docs/UPGRADING.md): persistent data and version changes.
-- [Release notes](docs/RELEASE-3.1.2.md) and [release process](docs/RELEASING.md).
+- [Pinpoint 3.1.1 schema coverage](docs/SCHEMA-COMPATIBILITY.md).
+- [Release notes](docs/RELEASE-3.1.3.md) and [release process](docs/RELEASING.md).
 
 To install a checkout, run `helm dependency build .`, use `.` as the chart path
 and omit `--version`. Run `bash scripts/helm-validate.sh` for chart validation;

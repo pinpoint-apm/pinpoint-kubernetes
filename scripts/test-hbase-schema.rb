@@ -32,3 +32,23 @@ expected.each do |scenario, code|
   end
   puts "HBase schema #{scenario}: passed"
 end
+
+# Bundled image initialization uses chart-owned definitions and applies TTLs
+# only to missing tables. Existing stores must never be recreated.
+runner = <<~RUBYCODE
+  NAME=:name; TTL=:ttl; DATA_BLOCK_ENCODING=:encoding; NUMREGIONS=:regions; SPLITALGO=:split; SPLITS=:splits; VERSIONS=:versions
+  def exists(name); name != 'TraceV2'; end
+  def is_enabled(name); true; end
+  def create(name, *definitions)
+    raise 'Existing table recreated' unless name == 'TraceV2'
+    raise 'TTL override not applied' unless definitions.first[TTL] == 12345
+    @created = name
+  end
+  load ARGV.fetch(0)
+  raise 'Missing table not repaired' unless @created == 'TraceV2'
+RUBYCODE
+out, err, status = Open3.capture3(
+  {'TRACEV2_TTL'=>'12345', 'HBASE_SCHEMA_FILE'=>"#{root}/files/hbase/3.1.1/hbase-create.hbase"},
+  'ruby', '-e', runner, "#{root}/files/hbase-initialize-schema.rb")
+raise "Bundled schema failed: #{out} #{err}" unless status.success? && out.include?('Verified 22')
+puts 'Bundled HBase schema partial repair and TTL preservation: passed'

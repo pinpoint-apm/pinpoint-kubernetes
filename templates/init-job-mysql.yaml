@@ -75,6 +75,8 @@ spec:
               value: "{{ .Release.Name }}-mysql"
             - name: MYSQL_DATABASE
               value: {{ .Values.mysql.auth.database | quote }}
+            - name: PINPOINT_METRIC_ENABLED
+              value: {{ .Values.global.metric.enabled | quote }}
           command: ["sh", "/shared/initialize-mysql.sh"]
           volumeMounts:
             - name: sql-scripts
@@ -90,4 +92,12 @@ spec:
                 path: create-tables.sql
               - key: create-batch-tables.sql
                 path: create-batch-tables.sql
+              - key: create-service.sql
+                path: create-service.sql
+              - key: create-feature-flag.sql
+                path: create-feature-flag.sql
+              {{- if .Values.global.metric.enabled }}
+              - key: create-otlp-metric.sql
+                path: create-otlp-metric.sql
+              {{- end }}
 {{- end }}
