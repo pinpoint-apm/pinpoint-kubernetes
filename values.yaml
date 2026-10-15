@@ -401,6 +401,24 @@ collector:
       grpcStat: 9992   # Statistics collection
       grpcSpan: 9993   # Span/trace data
       otlpTrace: 9998  # Metric image OTLP trace gRPC receiver (not standard 4317)
+  # Optional separate endpoint for external agents. Keep service.type=ClusterIP
+  # for internal clients; only the three agent gRPC ports are exposed here.
+  externalService:
+    enabled: false
+    # Empty: <chart fullname>-collector-external. Set the existing name to adopt
+    # a manually provisioned Service without changing its address/NodePorts.
+    name: ""
+    type: NodePort  # NodePort or LoadBalancer
+    annotations: {}
+    externalTrafficPolicy: Cluster  # Cluster or Local
+    # null: Kubernetes allocates a port. Explicit ports must be free and within
+    # the cluster's configured NodePort range (normally 30000-32767).
+    nodePorts:
+      grpcAgent: null
+      grpcStat: null
+      grpcSpan: null
+    # LoadBalancer only; enforcement depends on the load balancer implementation.
+    loadBalancerSourceRanges: []
 
 # Demo application - provides sample data for testing and demonstration
 quickstart:

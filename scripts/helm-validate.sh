@@ -9,6 +9,7 @@ python3 -m py_compile scripts/local-smoke.py scripts/local-ha-recovery.py script
 python3 -m py_compile examples/local-production/setup-local.py examples/local-production/verify-ingress.py
 
 chart_dir="${1:-.}"
+chart_version="$(awk '$1 == "version:" { print $2; exit }' "${chart_dir}/Chart.yaml")"
 render_dir="$(mktemp -d)"
 trap 'rm -rf "${render_dir}"' EXIT
 
@@ -18,6 +19,7 @@ helm dependency build "${chart_dir}"
 
 helm lint "${chart_dir}"
 helm lint "${chart_dir}" --set global.metric.enabled=false
+ruby "${chart_dir}/scripts/test-collector-service.rb" "${chart_dir}"
 
 helm template pinpoint "${chart_dir}" --namespace pinpoint > "${render_dir}/metric.yaml"
 helm template pinpoint "${chart_dir}" --namespace pinpoint \
@@ -610,7 +612,7 @@ GITHUB_REPOSITORY=pinpoint-apm/pinpoint-kubernetes \
   bash scripts/render-pages-site.sh "${render_dir}/pages"
 grep -q '<title>Pinpoint Helm Chart</title>' "${render_dir}/pages/index.html"
 grep -q 'https://pinpoint-apm.github.io/pinpoint-kubernetes' "${render_dir}/pages/index.html"
-grep -q 'Chart 3.1.3' "${render_dir}/pages/index.html"
+grep -q "Chart ${chart_version}" "${render_dir}/pages/index.html"
 grep -q 'Pinpoint 3.1.1' "${render_dir}/pages/index.html"
 test -f "${render_dir}/pages/.nojekyll"
 
@@ -622,7 +624,7 @@ fi
 # Check what downstream users receive: all locked dependencies must be bundled
 # in the archive, and it must render without another dependency download.
 helm package "${chart_dir}" --destination "${render_dir}"
-chart_package="${render_dir}/pinpoint-3.1.3.tgz"
+chart_package="${render_dir}/pinpoint-${chart_version}.tgz"
 test -f "${chart_package}"
 helm lint "${chart_package}"
 helm template observability "${chart_package}" --namespace telemetry \

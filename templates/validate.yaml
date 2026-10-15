@@ -1,3 +1,23 @@
+{{- if .Values.collector.externalService.enabled -}}
+{{- if not .Values.collector.enabled -}}
+{{- fail "collector.externalService.enabled requires collector.enabled=true" -}}
+{{- end -}}
+{{- if eq (include "pinpoint.collector.externalServiceName" .) (printf "%s-collector" (include "pinpoint.fullname" .)) -}}
+{{- fail "collector.externalService.name must differ from the internal Collector Service name" -}}
+{{- end -}}
+{{- $allocated := dict -}}
+{{- range $key, $port := .Values.collector.externalService.nodePorts -}}
+{{- if $port -}}
+{{- if hasKey $allocated (toString $port) -}}
+{{- fail "collector.externalService.nodePorts must use distinct port numbers" -}}
+{{- end -}}
+{{- $_ := set $allocated (toString $port) $key -}}
+{{- end -}}
+{{- end -}}
+{{- if and (ne .Values.collector.externalService.type "LoadBalancer") .Values.collector.externalService.loadBalancerSourceRanges -}}
+{{- fail "collector.externalService.loadBalancerSourceRanges requires type=LoadBalancer" -}}
+{{- end -}}
+{{- end -}}
 {{- if .Values.global.datasource.enabled -}}
 {{- $pool := .Values.global.datasource.pool -}}
 {{- if or (lt (int $pool.maximumPoolSize) 1) (lt (int $pool.minimumIdle) 0) (gt (int $pool.minimumIdle) (int $pool.maximumPoolSize)) (lt (int $pool.connectionTimeout) 250) -}}
