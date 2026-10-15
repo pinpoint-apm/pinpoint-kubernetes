@@ -24,6 +24,13 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 
 {{/*
+Name of the optional external Collector Service. Reserve room for the suffix.
+*/}}
+{{- define "pinpoint.collector.externalServiceName" -}}
+{{- default (printf "%s-collector-external" (include "pinpoint.fullname" . | trunc 44 | trimSuffix "-")) .Values.collector.externalService.name -}}
+{{- end -}}
+
+{{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "pinpoint.chart" -}}

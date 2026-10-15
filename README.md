@@ -6,7 +6,7 @@
 
 Deploy Pinpoint APM 3.1.1 on Kubernetes with Helm 3. **Metric mode is the
 default**, providing application tracing and Kafka/Pinot-based metrics.
-Chart **3.1.3** targets Pinpoint **3.1.1**; chart fixes have their own release version.
+Chart **3.1.4** targets Pinpoint **3.1.1**; chart fixes have their own release version.
 
 | Installation | What the chart installs |
 | --- | --- |
@@ -63,7 +63,7 @@ and [values.yaml](values.yaml) for resource and JVM settings.
 helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
 helm repo update
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.3 --namespace pinpoint --create-namespace \
+  --version 3.1.4 --namespace pinpoint --create-namespace \
   --wait --timeout 20m
 kubectl get pods,jobs,pvc -n pinpoint
 kubectl port-forward -n pinpoint service/pinpoint-web 8080:8080
@@ -83,7 +83,7 @@ Kubernetes or on separate infrastructure; endpoints can be Service DNS names or
 private addresses. After adding the Helm repository, copy the production example:
 
 ```bash
-helm pull pinpoint/pinpoint --version 3.1.3 --untar --untardir /tmp/pinpoint-chart
+helm pull pinpoint/pinpoint --version 3.1.4 --untar --untardir /tmp/pinpoint-chart
 cp /tmp/pinpoint-chart/pinpoint/values-production.yaml my-production-values.yaml
 ```
 
@@ -93,7 +93,7 @@ rules. Initialize backend schemas and create Secrets following the
 
 ```bash
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.3 --namespace pinpoint --create-namespace \
+  --version 3.1.4 --namespace pinpoint --create-namespace \
   -f my-production-values.yaml --wait --timeout 20m
 ```
 
@@ -115,21 +115,40 @@ Agents outside Kubernetes need a reachable Collector endpoint, such as a TCP
 load balancer or a TCP proxy forwarding to NodePorts. Configure Collector access
 separately from the Web UI ingress.
 
-For example, add this to your installation values to expose the Collector on
-worker node IPs:
+For example, keep the internal Service unchanged and add a separate endpoint
+with fixed worker NodePorts in your installation values:
 
 ```yaml
 collector:
-  service:
+  externalService:
+    enabled: true
     type: NodePort
+    nodePorts:
+      grpcAgent: 30991
+      grpcStat: 30992
+      grpcSpan: 30993
 ```
 
-After installing/upgrading with that values file, find the allocated ports:
+This creates `pinpoint-collector-external` and exposes only the three agent
+gRPC ports. It is disabled by default. The port numbers must be free and within
+your cluster's configured NodePort range. Set `name` to preserve an existing
+external Service name. Leave `nodePorts` entries `null` for automatic allocation,
+or use `type: LoadBalancer` with your provider's `annotations` and optional
+`loadBalancerSourceRanges`. Service ports follow `collector.service.ports`; target
+ports remain the stock Collector's 9991/9992/9993. This endpoint does not expose
+legacy Thrift/UDP receivers, OTLP or the metric HTTP receiver.
 
 ```bash
-kubectl get service pinpoint-collector -n pinpoint \
+kubectl get service pinpoint-collector-external -n pinpoint \
   -o jsonpath='{range .spec.ports[*]}{.name}{"="}{.nodePort}{"\n"}{end}'
 ```
+
+The existing `collector.service.type: NodePort` option still changes the internal
+Service and allocates NodePorts for all its receivers. Prefer the separate
+external Service when only agent gRPC access is needed. When NetworkPolicies are
+enabled, configure `networkPolicy.collector.ingressFrom` for the actual agent/proxy
+source; creating a Service does not grant network access. With
+`externalTrafficPolicy: Local`, proxy only to nodes with a ready Collector endpoint.
 
 For a Java agent, add these JVM options alongside your `-javaagent` option.
 Replace the hostname and the three example ports with a reachable worker address
@@ -182,7 +201,7 @@ values outside this repository.
 - [Local testing](docs/LOCAL-TESTING.md): installation and runtime validation.
 - [Upgrades](docs/UPGRADING.md): persistent data and version changes.
 - [Pinpoint 3.1.1 schema coverage](docs/SCHEMA-COMPATIBILITY.md).
-- [Release notes](docs/RELEASE-3.1.3.md) and [release process](docs/RELEASING.md).
+- [Release notes](docs/RELEASE-3.1.4.md) and [release process](docs/RELEASING.md).
 
 To install a checkout, run `helm dependency build .`, use `.` as the chart path
 and omit `--version`. Run `bash scripts/helm-validate.sh` for chart validation;

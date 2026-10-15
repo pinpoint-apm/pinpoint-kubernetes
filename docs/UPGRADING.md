@@ -1,5 +1,52 @@
 # Upgrading the Pinpoint chart
 
+## Chart 3.1.3 to 3.1.4
+
+Pinpoint stays on 3.1.1; dependencies, schema definitions and persistence sizes
+are unchanged. The new `collector.externalService` is disabled by default.
+Existing `collector.service` behavior is preserved. New Services expose only
+agent gRPC ports, without opening the internal Service's other receivers.
+
+To adopt an existing external agent Service, retain its name, traffic policy,
+Service ports and NodePorts. For example:
+
+```yaml
+collector:
+  externalService:
+    enabled: true
+    name: pinpoint-collector-nodeport
+    type: NodePort
+    externalTrafficPolicy: Cluster
+    nodePorts:
+      grpcAgent: 30991
+      grpcStat: 30992
+      grpcSpan: 30993
+```
+
+Preserve any required Service annotations under `externalService.annotations`.
+The Service's ports follow `collector.service.ports`. Compare the rendered
+spec/selector to the existing Service before applying. Do not delete the old
+Service or create a second Service requesting the same allocated NodePorts.
+The example is not a portable reservation of those ports in every cluster.
+
+For **Argo CD**, change the chart version, enable the external Service with the
+existing name, and remove the duplicate raw Service manifest in the **same Git
+change**, after the new chart is published. The resource stays under the same
+Application and keeps its identity. Review the diff before sync; do not prune,
+Force or Replace the Service as part of adoption.
+
+For **Helm CLI**, a manually created Service must first have the ownership
+metadata for the intended release: `app.kubernetes.io/managed-by: Helm` plus
+`meta.helm.sh/release-name` and `meta.helm.sh/release-namespace`. Check that no
+other release/controller owns it before changing these fields. Upgrade with
+reviewed values; do not force-recreate it to bypass an ownership error.
+
+Creating an external Service does not change NetworkPolicy or firewall rules.
+With `externalTrafficPolicy: Local`, send traffic only to nodes with a ready
+Collector endpoint. Validate agent ingestion via the actual proxy/LB after
+adoption. SQL/Kafka/Pinot initialization hooks still follow their existing
+install/upgrade/sync lifecycle; enabling this Service does not disable them.
+
 ## Chart 3.1.2 to 3.1.3
 
 Application images remain 3.1.1. Back up MySQL and review the existing values

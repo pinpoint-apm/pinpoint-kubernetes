@@ -1,0 +1,48 @@
+{{- if and .Values.collector.enabled .Values.collector.externalService.enabled }}
+{{- $external := .Values.collector.externalService }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pinpoint.collector.externalServiceName" . }}
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: collector-external
+  {{- with $external.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $external.type }}
+  externalTrafficPolicy: {{ $external.externalTrafficPolicy }}
+  {{- if eq $external.type "LoadBalancer" }}
+  {{- with $external.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  ports:
+    - name: grpc-agent
+      port: {{ .Values.collector.service.ports.grpcAgent }}
+      targetPort: 9991
+      protocol: TCP
+      {{- with $external.nodePorts.grpcAgent }}
+      nodePort: {{ . }}
+      {{- end }}
+    - name: grpc-stat
+      port: {{ .Values.collector.service.ports.grpcStat }}
+      targetPort: 9992
+      protocol: TCP
+      {{- with $external.nodePorts.grpcStat }}
+      nodePort: {{ . }}
+      {{- end }}
+    - name: grpc-span
+      port: {{ .Values.collector.service.ports.grpcSpan }}
+      targetPort: 9993
+      protocol: TCP
+      {{- with $external.nodePorts.grpcSpan }}
+      nodePort: {{ . }}
+      {{- end }}
+  selector:
+    {{- include "pinpoint.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: collector
+{{- end }}
