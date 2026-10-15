@@ -229,6 +229,21 @@ entries:
   pinpoint-hbase-stackable:
   - apiVersion: v2
     appVersion: 2.6.6
+    created: "2026-10-15T13:54:11.580861348Z"
+    description: Operator-managed distributed HBase/HDFS backend for Pinpoint; qualification
+      candidate.
+    digest: b3e81137eb1add96ad63ca3db4355a2918e059f24c9f8ee30dcc83f6e673eef9
+    kubeVersion: '>=1.31.0-0 <1.37.0-0'
+    maintainers:
+    - email: thesadson@gmail.com
+      name: Emircan Agac
+    name: pinpoint-hbase-stackable
+    type: application
+    urls:
+    - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-hbase-stackable-0.1.2/pinpoint-hbase-stackable-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
+    appVersion: 2.6.6
     created: "2026-10-09T09:02:26.306924144Z"
     description: Operator-managed distributed HBase/HDFS backend for Pinpoint; qualification
       candidate.
@@ -257,4 +272,4 @@ entries:
     urls:
     - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-hbase-stackable-0.1.0/pinpoint-hbase-stackable-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-15T08:23:38.256937728Z"
+generated: "2026-10-15T13:54:11.580892076Z"
