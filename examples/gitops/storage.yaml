@@ -11,7 +11,7 @@ spec:
   sources:
     - repoURL: https://pinpoint-apm.github.io/pinpoint-kubernetes
       chart: pinpoint-hbase-stackable
-      targetRevision: 0.1.2
+      targetRevision: 0.1.3
       helm:
         releaseName: pinpoint-storage
         valuesObject:
