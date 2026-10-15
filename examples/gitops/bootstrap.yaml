@@ -1,0 +1,39 @@
+# Bootstraps Argo CD so committed Application and chart-version changes are reconciled automatically.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: pinpoint-bootstrap
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/YOUR_ORG/YOUR_GITOPS_REPO.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: argoproj.io
+      kind: Application
+    - group: argoproj.io
+      kind: AppProject
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pinpoint-bootstrap
+  namespace: argocd
+spec:
+  project: pinpoint-bootstrap
+  source:
+    repoURL: https://github.com/YOUR_ORG/YOUR_GITOPS_REPO.git
+    targetRevision: master
+    path: examples/gitops
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - FailOnSharedResource=true

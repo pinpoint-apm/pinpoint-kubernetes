@@ -1,0 +1,6 @@
+# Selects Argo CD resources while keeping Helm values out of Kubernetes manifest discovery.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - bootstrap.yaml
+  - application.yaml

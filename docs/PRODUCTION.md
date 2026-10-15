@@ -129,3 +129,28 @@ authentication, network isolation and graceful worker maintenance. They use
 one physical host and include distributed HBase/HDFS process recovery. They
 do not establish independent hardware failure resilience, NFS durability,
 production ingress behavior or your ingestion capacity.
+
+## Stackable backend operations
+
+The companion chart runs 16 data-service pods. Its six operators also install
+controller pods and Secret/Listener CSI DaemonSets on eligible workers; these
+provide certificates and listener endpoints, not HDFS data-volume provisioning.
+The default backend main containers reserve about 44 GiB of memory.
+
+Use independently backed disks and qualify the chosen StorageClass. NFS
+subdirectory PVC sizes do not establish independent disk capacity or failure
+domains. Monitor the backing filesystem, HDFS free space and in-flight block
+reservations, HBase regions in transition, WAL recovery and ingestion freshness.
+Bounded WAL writers limit recovery-time streams and HDFS reservations.
+
+ZooKeeper client TLS is disabled for stock Pinpoint clients; quorum TLS remains
+enabled. Preserve `serverSecretClass: null` with Argo CD server-side apply.
+After connection changes, verify the cluster and Znode discovery ConfigMaps,
+then the effective HBase configuration and running client connections. Discovery
+updates may need a Znode reconciliation and controlled role restarts.
+
+Qualify NameNode, JournalNode, DataNode, Master and RegionServer failures;
+exercise network partitions and restore marker data from off-cluster backups.
+The generated NameNode fence is `shell(/bin/true)`: QJM protects shared edits,
+but this command does not terminate an isolated former active process. Pod
+restart tests therefore do not establish network-partition safety.

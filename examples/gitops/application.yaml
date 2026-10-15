@@ -1,0 +1,50 @@
+# Deploys the Pinpoint application with a pinned production profile and Git-managed values.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: pinpoint
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://pinpoint-apm.github.io/pinpoint-kubernetes
+    - https://github.com/pinpoint-apm/pinpoint-kubernetes.git
+    - https://github.com/YOUR_ORG/YOUR_GITOPS_REPO.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: pinpoint
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pinpoint
+  namespace: argocd
+spec:
+  project: pinpoint
+  sources:
+    - repoURL: https://pinpoint-apm.github.io/pinpoint-kubernetes
+      chart: pinpoint
+      targetRevision: 3.1.4
+      helm:
+        releaseName: pinpoint
+        valueFiles:
+          - $defaults/values-production.yaml
+          - $values/examples/gitops/values.yaml
+    - repoURL: https://github.com/pinpoint-apm/pinpoint-kubernetes.git
+      targetRevision: pinpoint-3.1.4
+      ref: defaults
+    - repoURL: https://github.com/YOUR_ORG/YOUR_GITOPS_REPO.git
+      targetRevision: master
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pinpoint
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - FailOnSharedResource=true

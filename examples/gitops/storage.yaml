@@ -1,0 +1,30 @@
+# Deploys the optional storage chart using preinstalled Stackable operators.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pinpoint-storage
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
+spec:
+  project: pinpoint
+  sources:
+    - repoURL: https://pinpoint-apm.github.io/pinpoint-kubernetes
+      chart: pinpoint-hbase-stackable
+      targetRevision: 0.1.2
+      helm:
+        releaseName: pinpoint-storage
+        valuesObject:
+          storageClass: YOUR_STORAGE_CLASS
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pinpoint
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - FailOnSharedResource=true
+      - SkipDryRunOnMissingResource=true
+      - ServerSideApply=true
