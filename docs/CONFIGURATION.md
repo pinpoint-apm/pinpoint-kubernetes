@@ -2,16 +2,18 @@
 
 ## Configuration
 
-**Metric is the default:** Web/Collector use the `3.1.1-metric` images; Kafka,
-Pinot and Telegraf are enabled; Batch and Flink are disabled. No profile flag
-is needed for the installation in the README.
+**Metric is the default:** Web/Collector use the `3.1.1-metric` images; Kafka
+and Pinot are enabled; Batch and Flink are disabled; Telegraf host metrics are
+opt-in. No profile flag is needed for the installation in the README.
+[`values-minimal.yaml`](../values-minimal.yaml) runs the same stack on one
+small node (about 8.3 GiB of memory requests) for kind or a laptop.
 
 **Classic is optional**, for existing Batch/Flink users. It selects the classic
 Web/Collector images and disables the default metric services. To select it:
 
 ```bash
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.2 \
+  --version 3.1.5 \
   --namespace pinpoint \
   --create-namespace \
   --set global.metric.enabled=false \
@@ -93,11 +95,13 @@ two pools per application replica plus rollout surge, hooks and administrative
 connections; raising replicas without a database connection budget can exhaust
 MySQL even without user traffic.
 
-For bundled MySQL, set `mysql.auth.existingSecret` to a Secret containing
-`mysql-root-password`, `mysql-password` and `mysql-replication-password`, as
-required by the dependency. Web, Collector, Batch and SQL init hooks reference that same
-Secret. Replace the evaluation defaults (`pinpoint` / `mysql`) before production;
-when reusing a database volume, the Secret must match its existing credentials.
+Bundled MySQL generates random passwords in `<release>-mysql` on install and
+keeps them on Helm upgrades through lookup. Rendering with `helm template` or
+Argo CD cannot look up that Secret: set `mysql.auth.existingSecret` to a Secret
+containing `mysql-root-password`, `mysql-password` and
+`mysql-replication-password`, as required by the dependency. Web, Collector,
+Batch and SQL init hooks reference that same Secret. When reusing a database
+volume, the Secret must match its existing credentials.
 
 ### Basic login
 
@@ -119,6 +123,7 @@ web:
 
 Omit `userKey` if the Secret contains only administrators. Credentials and JWT
 keys are read from the Secret and never generated as defaults by the chart.
+Basic login also requires the ADMIN role for the `/api/admin/**` endpoints.
 Use HTTPS ingress with `cookie.secure=true`; local HTTP testing requires
 `cookie.secure=false`. Login stays disabled by default, so protect the UI before
 exposing it outside a trusted network.
@@ -128,13 +133,69 @@ seccomp, a read-only root filesystem and no service-account token. Writable
 `/tmp` and `/app/logs` use bounded emptyDir volumes. A custom UID must exist in
 the image's `/etc/passwd`: Hadoop's login fails with an unknown numeric UID.
 Use `extraEnv`, `extraVolumes` and `extraVolumeMounts` to mount custom truststores.
-`global.imagePullSecrets` applies to Web/Collector; configure dependency image
-pull secrets separately when mirroring backend images.
+`global.imagePullSecrets` applies to every chart-owned pod and to the Bitnami
+dependencies; Pinot needs the same list in `pinot.imagePullSecrets`.
 
 Web/Collector support `replicaCount`, `pdb`, `strategy`, `nodeSelector`,
-`tolerations`, `affinity`, `podAnnotations` and `topologySpreadConstraints`.
+`tolerations`, `affinity`, `podAnnotations`, `podLabels`, `serviceAccountName`,
+`priorityClassName`, `lifecycle` and `topologySpreadConstraints`. A short
+`preStop` sleep in `lifecycle` lets endpoint removal propagate before shutdown.
 PDBs require at least two replicas. Default spreading is soft for single-node
 evaluation; the production example requires distinct hostname placement.
+
+### Web admin API and usage reporting
+
+Pinpoint Web protects its `/api/admin/**` maintenance endpoints (removing
+applications, agents and inactive agents) with `admin.password`, passed as a
+`password` query parameter. Pinpoint skips the check when the value is empty,
+and the stock default is `admin`. The chart therefore always sets it from a
+Secret: by default it generates `<release>-web-admin-api` with a 32-character
+random password and keeps it on upgrades. Read it with:
+
+```bash
+kubectl get secret -n pinpoint pinpoint-web-admin-api \
+  -o jsonpath='{.data.admin-password}' | base64 -d
+```
+
+Reference your own Secret with `web.adminApi.passwordSecret.name`/`key`, which
+is required for `helm template` and Argo CD. The password travels in request
+URLs, so restrict access logs and call the API over HTTPS.
+
+`web.config.sendUsage` (and `batch.config.sendUsage`) controls Pinpoint's UI
+usage reporting to Google Analytics. It defaults to `false`.
+
+### Gateway API
+
+`web.httpRoute` renders a `gateway.networking.k8s.io/v1` HTTPRoute as an
+alternative to Ingress. Attach it to an existing Gateway, which owns TLS:
+
+```yaml
+web:
+  httpRoute:
+    enabled: true
+    parentRefs:
+      - name: shared-gateway
+        namespace: gateway-system
+        sectionName: https
+    hostnames: [pinpoint.example.com]
+```
+
+With NetworkPolicies, replace `networkPolicy.web.ingressFrom` with a selector
+for the Gateway's data-plane pods.
+
+### Pod Security
+
+| Workload | Pod Security level |
+| --- | --- |
+| Web, Collector, dependency checks and bootstrap Jobs | `restricted` |
+| Bundled HBase, Quickstart demo | `baseline` (stock images run as root; capabilities are dropped where possible) |
+| Telegraf (opt-in) | `privileged` (read-only hostPath for `/proc` and `/sys`) |
+| Bitnami and Pinot dependencies | Set by those charts |
+
+The production profile renders only `restricted` workloads.
+`global.initSecurityContext` sets the container context of dependency checks
+and Jobs; `hbase.*SecurityContext`, `quickstart.*SecurityContext`,
+`batch.*SecurityContext` and `flink.*SecurityContext` are configurable.
 
 ### Images and production deployments
 
@@ -143,9 +204,9 @@ An empty Web or Collector image tag selects `3.1.1-metric` in metric mode and
 values are used verbatim, including any `-metric` suffix.
 Pinot defaults to the compatible `1.3.0` image. Its init job uses an independently
 pinned Python image (`global.pinot.initImage.*`) and the controller REST API.
-Flink remains independently pinned to `3.0.3`.
+Flink is independently pinned to `3.0.5`; no 3.1.x Flink image is published.
 
-HBase, the optional Agent/Quickstart pods and classic Flink default to
+HBase, the Quickstart pod and classic Flink default to
 `nodeSelector: {kubernetes.io/os: linux, kubernetes.io/arch: amd64}` because their
 stock images (including the Quickstart agent init image) are amd64-only.
 This prevents `exec format error` when a mixed cluster schedules them on arm64.
@@ -160,8 +221,14 @@ backup/restore procedures and availability requirements. Default topic/table
 replication is one; configure `global.kafka.topicReplicationFactor` and
 `global.pinot.tableReplicas` with enough brokers/Pinot servers before creating
 resources. These settings do not change replication of existing resources.
-Dependency images use Bitnami's legacy repositories and need an explicit
-security/update policy for long-term operation.
+Dependency images use Bitnami's frozen `bitnamilegacy` repositories, which
+receive no security updates, and MySQL 8.0 reached end of life in April 2026.
+Treat the bundled backends as an evaluation stack.
+
+To pull from a mirror, set `global.imageRegistry` (read by chart-owned images
+and Bitnami dependencies) and `global.security.allowInsecureImages=true`, which
+Bitnami charts require for relocated images. Override `pinot.image.repository`
+for Pinot and `global.waitImage` for the small dependency-check image.
 
 Validate production changes on a staging installation, including ingesting
 agent traces, viewing Inspector data, alarm delivery, pod recovery and an
@@ -194,6 +261,15 @@ probe allows 30 minutes for schema/WAL recovery; liveness checks daemon
 processes instead of interrupting recovery with aggressive query timeouts.
 For large existing WAL backlogs, set Helm `--timeout` longer than the startup
 budget plus bootstrap hooks (for example `--timeout 45m`).
+
+`hbase.config.ttl` sets retention in seconds when bundled HBase creates a
+missing table; existing TTLs are never rewritten. Keys match the stock
+pinpoint-hbase image. Collector 3.1.1 writes the v2 indexes `TraceIndex`
+(`TRACEINDEX_TTL`), `Application` (`APPLICATION_TTL`) and `AgentId`
+(`AGENTID_TTL`); keep `TRACEINDEX_TTL` equal to `TRACEV2_TTL` so scatter-chart
+entries do not outlive their traces. The v1 index keys remain for existing
+tables, and `MAP*_TTL` apply to the v3 map tables used only with
+`pinpoint.modules.uid.version=v3`.
 The supervisor gives the RegionServer up to 240 seconds to flush, then the
 Master up to 45 seconds to stop. The Kubernetes grace period defaults to
 300 seconds. Probe and Kubernetes grace budgets are tunable under `hbase.*`;
@@ -247,8 +323,13 @@ authentication alone or downgrade the security of an existing external service.
 If encrypted/authenticated Kafka or ZooKeeper is mandatory, additional client
 integration is required before this chart can meet that requirement.
 
-Topic initialization checks every required topic with `--if-not-exists` and
-fails when a creation fails. Pinot initialization validates all 20 bundled
+Topic initialization reads `global.kafka.topics`, the eleven topics produced
+by the default 3.1.1 Collector modules. It creates missing topics with
+`--if-not-exists`, raises lower partition counts (for example after broker
+auto-creation), reports replication factors below
+`global.kafka.topicReplicationFactor`, and fails when an operation fails.
+Optional Collector modules can need more topics, such as `agent-info` for
+`pinpoint.modules.collector.agent-statistics.enabled=true`. Pinot initialization validates all 20 bundled
 3.1.1 JSON definitions before making changes, creates missing schemas/tables
 by their actual names (including `inspectorStatApp` and the REALTIME/OFFLINE
 table pairs for agent Inspector, URI statistics, system measurements and
@@ -270,6 +351,17 @@ this setting and operator-managed initialization. Existing schemas/table configs
 are not migrated automatically. A successful init hook confirms resources
 exist; validate Collector ingestion and Inspector queries separately before
 deploying to production.
+
+### Host metrics (Telegraf)
+
+Pinpoint's system metric view needs Telegraf on the hosts. Enable it with
+`telegraf.enabled=true`: a DaemonSet reports each node under its Kubernetes
+node name and `telegraf.hostGroupName` to the Collector metric endpoint
+(Service port 15200). It mounts `/proc` and `/sys` read-only and therefore
+requires the Pod Security `privileged` level. Use `telegraf.nodeSelector` and
+`telegraf.tolerations` to choose nodes. During a fresh install Telegraf can log
+HTTP 500 responses until the Pinot initialization hook has created the system
+metric tables; writes succeed afterwards.
 
 Failed initialization jobs are retained until the next install/upgrade replaces
 them or an operator deletes them. Successful hook jobs are removed by Helm.
@@ -315,7 +407,9 @@ together; review its role-specific budgets separately from this application char
 
 `values.schema.json` rejects invalid types for chart-owned replica counts,
 ports, datasource pool sizes and replication settings before resources are
-submitted to Kubernetes. Dependency-specific and custom settings remain extensible.
+submitted to Kubernetes, and rejects unknown top-level keys (typos such as
+`colector:` would otherwise be ignored). Dependency-specific settings below
+known keys remain extensible.
 PDBs accept nonnegative integer budgets (including zero) or percentages from
 0% to 100%; configure exactly one of `minAvailable` and `maxUnavailable`.
 

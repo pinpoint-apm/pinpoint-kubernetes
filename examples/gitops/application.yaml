@@ -26,14 +26,14 @@ spec:
   sources:
     - repoURL: https://pinpoint-apm.github.io/pinpoint-kubernetes
       chart: pinpoint
-      targetRevision: 3.1.4
+      targetRevision: 3.1.5
       helm:
         releaseName: pinpoint
         valueFiles:
           - $defaults/values-production.yaml
           - $values/examples/gitops/values.yaml
     - repoURL: https://github.com/pinpoint-apm/pinpoint-kubernetes.git
-      targetRevision: pinpoint-3.1.4
+      targetRevision: pinpoint-3.1.5
       ref: defaults
     - repoURL: https://github.com/YOUR_ORG/YOUR_GITOPS_REPO.git
       targetRevision: master

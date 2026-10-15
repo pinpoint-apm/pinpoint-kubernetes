@@ -5,6 +5,7 @@ set -euo pipefail
 bash -n scripts/helm-repo-smoke.sh
 bash -n scripts/render-pages-site.sh
 bash -n scripts/validate-hbase-backend.sh
+bash -n scripts/check-version-bump.sh
 python3 -m py_compile scripts/local-smoke.py scripts/local-ha-recovery.py scripts/local-mysql-recovery.py scripts/hbase_local_client.py
 python3 -m py_compile examples/local-production/setup-local.py examples/local-production/verify-ingress.py
 
@@ -19,6 +20,7 @@ helm dependency build "${chart_dir}"
 
 helm lint "${chart_dir}"
 helm lint "${chart_dir}" --set global.metric.enabled=false
+helm lint "${chart_dir}" -f "${chart_dir}/values-minimal.yaml"
 ruby "${chart_dir}/scripts/test-collector-service.rb" "${chart_dir}"
 ruby "${chart_dir}/scripts/validate-gitops.rb"
 
@@ -51,6 +53,7 @@ RUBY
 # Lint accepts a valid YAML object here, but the Kubernetes API rejects it.
 helm template pinpoint "${chart_dir}" --namespace pinpoint \
   --set networkPolicy.enabled=true --show-only templates/networkpolicy.yaml \
+  --set 'networkPolicy.assetDownloadEgress[0].ports[0].port=443' \
   > "${render_dir}/network-downloads.yaml"
 helm template services "${chart_dir}" --namespace pinpoint \
   -f "${chart_dir}/examples/local-production/services.yaml" \
@@ -129,7 +132,7 @@ grep -A 1 'name: PINOT_TABLE_REPLICAS' "${render_dir}/replicated-metric.yaml" | 
 grep -A 1 'name: TOPIC_REPLICATION_FACTOR' "${render_dir}/replicated-metric.yaml" | grep -q 'value: "3"'
 grep -q 'image: "example/python:custom-python"' "${render_dir}/replicated-metric.yaml"
 
-helm template pinpoint "${chart_dir}" --namespace pinpoint \
+helm template pinpoint "${chart_dir}" --namespace pinpoint --set telegraf.enabled=true \
   --show-only templates/telegraf.yaml > "${render_dir}/telegraf.yaml"
 
 helm template pinpoint "${chart_dir}" --namespace pinpoint \
@@ -138,8 +141,7 @@ helm template pinpoint "${chart_dir}" --namespace pinpoint \
 
 helm template pinpoint "${chart_dir}" --namespace pinpoint \
   --set global.image.registry=registry.example.com/mirror/ \
-  --set global.metric.enabled=false \
-  --set agent.enabled=true > "${render_dir}/custom-registry.yaml"
+  --set global.metric.enabled=false > "${render_dir}/custom-registry.yaml"
 
 helm lint "${chart_dir}" \
   --set redis.enabled=false \
@@ -227,7 +229,7 @@ helm template pinpoint "${chart_dir}" --namespace pinpoint \
   --show-only templates/web.yaml --show-only templates/batch.yaml \
   --show-only templates/init-job-mysql.yaml \
   > "${render_dir}/mysql-existing-secret.yaml"
-test "$(grep -c 'name: "mysql-credentials"' "${render_dir}/mysql-existing-secret.yaml")" -eq 9
+test "$(grep -c 'name: "mysql-credentials"' "${render_dir}/mysql-existing-secret.yaml")" -eq 8
 if grep -A 1 'secretKeyRef:' "${render_dir}/mysql-existing-secret.yaml" | grep -q 'name: pinpoint-mysql\|name: "pinpoint-mysql"'; then
   echo "Bundled MySQL references its generated Secret instead of mysql.auth.existingSecret" >&2
   exit 1
@@ -454,11 +456,11 @@ if grep -q 'download-sql-scripts\|raw.githubusercontent.com' "${render_dir}/mysq
 fi
 grep -A 1 '^      spec:' "${render_dir}/hbase-persistent.yaml" | grep -q 'accessModes:'
 helm template pinpoint "${chart_dir}" --namespace pinpoint \
-  --set global.metric.enabled=false --set agent.enabled=true --set quickstart.enabled=true \
-  --show-only templates/hbase.yaml --show-only templates/agent.yaml \
+  --set global.metric.enabled=false --set quickstart.enabled=true \
+  --show-only templates/hbase.yaml \
   --show-only templates/quickstart.yaml --show-only templates/flink.yaml \
   > "${render_dir}/amd64-workloads.yaml"
-test "$(grep -c 'kubernetes.io/arch: amd64' "${render_dir}/amd64-workloads.yaml")" -eq 5
+test "$(grep -c 'kubernetes.io/arch: amd64' "${render_dir}/amd64-workloads.yaml")" -eq 4
 helm template pinpoint "${chart_dir}" --namespace pinpoint \
   --show-only templates/hbase.yaml --set hbase.image.repository=example/arm64-hbase \
   --set 'hbase.nodeSelector.kubernetes\.io/arch=arm64' \
@@ -469,12 +471,12 @@ grep -q 'example/arm64-hbase:3.1.1' "${render_dir}/custom-hbase-architecture.yam
 grep -q 'pinpointdocker/pinpoint-web:3.1.1-metric' "${render_dir}/metric.yaml"
 grep -q 'pinpointdocker/pinpoint-collector:3.1.1-metric' "${render_dir}/metric.yaml"
 grep -q 'pinpointdocker/pinpoint-hbase:3.1.1' "${render_dir}/metric.yaml"
-grep -q 'pinpointdocker/pinpoint-flink:3.0.3' "${render_dir}/classic.yaml"
+grep -q 'pinpointdocker/pinpoint-flink:3.0.5' "${render_dir}/classic.yaml"
 grep -q 'apachepinot/pinot:1.3.0' "${render_dir}/metric.yaml"
 grep -q 'name: pinpoint-mysql-init-sql' "${render_dir}/mysql-init.yaml"
 grep -q 'image: "python:3.12.12-slim-bookworm"' "${render_dir}/pinot-init.yaml"
 grep -q 'python3.*initialize-pinot.py' "${render_dir}/pinot-init.yaml"
-helm template pinpoint "${chart_dir}" --show-only templates/telegraf.yaml --show-only templates/telegraf-config.yaml > "${render_dir}/telegraf.yaml"
+helm template pinpoint "${chart_dir}" --set telegraf.enabled=true --show-only templates/telegraf.yaml --show-only templates/telegraf-config.yaml > "${render_dir}/telegraf.yaml"
 grep -q 'http://pinpoint-collector:15200/telegraf' "${render_dir}/telegraf.yaml"
 if grep -q 'download-pinpoint-telegraf-configuration' "${render_dir}/telegraf.yaml"; then exit 1; fi
 grep -q 'pinot-inspector-stat-application-schema.json:' "${render_dir}/pinot-init-config.yaml"
@@ -494,7 +496,7 @@ grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-collector:3.1.1' "$
 grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-hbase:3.1.1' "${render_dir}/custom-registry.yaml"
 grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-agent:3.1.1' "${render_dir}/custom-registry.yaml"
 grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-batch:3.1.1' "${render_dir}/custom-registry.yaml"
-grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-flink:3.0.3' "${render_dir}/custom-registry.yaml"
+grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-flink:3.0.5' "${render_dir}/custom-registry.yaml"
 grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-quickstart:2.5.4' "${render_dir}/custom-registry.yaml"
 
 if grep -R -q 'pinpoint-apm/pinpoint/master' "${render_dir}"; then
@@ -512,7 +514,7 @@ if grep -q 'apachepinot/pinot:latest' "${render_dir}/metric.yaml"; then
   exit 1
 fi
 
-test "$(grep -c '^kind: NetworkPolicy' "${render_dir}/network-policy-enabled.yaml")" -eq 9
+test "$(grep -c '^kind: NetworkPolicy' "${render_dir}/network-policy-enabled.yaml")" -eq 8
 grep -q 'name: pinpoint-mysql' "${render_dir}/network-policy-enabled.yaml"
 grep -q 'values: \[web, collector, batch, mysql-init\]' "${render_dir}/network-policy-enabled.yaml"
 grep -q 'name: pinpoint-zookeeper' "${render_dir}/network-policy-enabled.yaml"
@@ -520,8 +522,11 @@ grep -q 'name: pinpoint-kafka' "${render_dir}/network-policy-enabled.yaml"
 grep -q 'name: pinpoint-pinot' "${render_dir}/network-policy-enabled.yaml"
 grep -q 'pinpoint-apm.io/agent-access: "true"' "${render_dir}/network-policy-enabled.yaml"
 grep -q 'kubernetes.io/metadata.name: ingress-nginx' "${render_dir}/network-policy-enabled.yaml"
-grep -q 'cidr: 0.0.0.0/0' "${render_dir}/network-policy-enabled.yaml"
-grep -q 'port: 443' "${render_dir}/network-policy-enabled.yaml"
+# Bootstrap assets are bundled: no Internet egress unless explicitly configured.
+if grep -q 'cidr: 0.0.0.0/0' "${render_dir}/network-policy-enabled.yaml"; then
+  echo "Default NetworkPolicy unexpectedly allows Internet egress" >&2
+  exit 1
+fi
 
 if grep -q '# Source: pinpoint/charts/.*/templates/.*networkpolicy' "${render_dir}/metric.yaml"; then
   echo "Dependency NetworkPolicies unexpectedly bypass root policy management" >&2
@@ -641,6 +646,7 @@ if grep -Eq '^pinpoint/(docs|backends|examples|scripts)/|/\.(aws|codex|agents|gi
 fi
 
 PYTHONDONTWRITEBYTECODE=1 python3 "${chart_dir}/scripts/test-initialization.py"
+ruby "${chart_dir}/scripts/test-chart-hardening.rb" "${chart_dir}"
 bash "${chart_dir}/scripts/validate-hbase-backend.sh"
 
 echo "Helm lint and render validation passed."

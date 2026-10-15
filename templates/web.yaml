@@ -37,33 +37,36 @@ spec:
       labels:
         {{- include "pinpoint.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: web
+        {{- with .Values.web.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       {{- include "pinpoint.applicationPodSpec" (dict "root" . "component" "web" "config" .Values.web) | nindent 6 }}
       {{- if or .Values.zookeeper.enabled .Values.hbase.enabled .Values.redis.enabled .Values.mysql.enabled (and .Values.global.metric.enabled (eq (include "pinpoint.pinot.internalEnabled" .) "true")) }}
       initContainers:
         {{- if .Values.zookeeper.enabled }}
         - name: wait-for-zookeeper
-          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          image: {{ include "pinpoint.waitImage" . | quote }}
+          securityContext:
+            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 65534) | nindent 12 }}
           resources:
             {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-zookeeper 2181; do echo "Web is waiting for Zookeeper..."; sleep 2; done;']
         {{- end }}
         {{- if .Values.mysql.enabled }}
+        # mysqladmin ping succeeds once the server answers, even when the
+        # anonymous login is refused, so no database credential is mounted.
         - name: wait-for-mysql
           image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          securityContext:
+            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 1001) | nindent 12 }}
           resources:
             {{- toYaml .Values.global.initResources.wait | nindent 12 }}
-          env:
-            - name: MYSQL_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "pinpoint.mysql.secretName" . | quote }}
-                  key: mysql-root-password
           command:
             - 'sh'
             - '-c'
             - |
-              until mysqladmin ping -h {{ .Release.Name }}-mysql --user=root -p"$MYSQL_ROOT_PASSWORD" --silent; do
+              until mysqladmin ping -h {{ .Release.Name }}-mysql --connect-timeout=3 --silent; do
                 echo "Web is waiting for MySQL..."
                 sleep 2
               done
@@ -72,7 +75,9 @@ spec:
 
         {{- if .Values.hbase.enabled }}
         - name: wait-for-hbase
-          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          image: {{ include "pinpoint.waitImage" . | quote }}
+          securityContext:
+            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 65534) | nindent 12 }}
           resources:
             {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-hbase 16010; do echo "Web is waiting for HBase..."; sleep 2; done;']
@@ -80,7 +85,9 @@ spec:
 
         {{- if .Values.redis.enabled }}
         - name: wait-for-redis
-          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          image: {{ include "pinpoint.waitImage" . | quote }}
+          securityContext:
+            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 65534) | nindent 12 }}
           resources:
             {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           env:
@@ -101,7 +108,9 @@ spec:
         {{- if and .Values.global.metric.enabled (eq (include "pinpoint.pinot.internalEnabled" .) "true") }}
         # Wait for the Pinot Controller only when metric profile is enabled.
         - name: wait-for-pinot-controller
-          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          image: {{ include "pinpoint.waitImage" . | quote }}
+          securityContext:
+            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 65534) | nindent 12 }}
           resources:
             {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-pinot-controller 9000; do echo "Web is waiting for Pinot Controller..."; sleep 2; done;']
@@ -124,6 +133,10 @@ spec:
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           {{- with .Values.web.securityContext }}
           securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.web.lifecycle }}
+          lifecycle:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
@@ -220,10 +233,14 @@ spec:
             # Additional Web Configuration (matching Docker Compose)
             - name: WEB_SERVER_PORT
               value: "8080"
+            # Protects /api/admin/**; an empty value would disable the check.
             - name: ADMIN_PASSWORD
-              value: "admin"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "pinpoint.web.adminApiSecretName" . | quote }}
+                  key: {{ include "pinpoint.web.adminApiSecretKey" . | quote }}
             - name: CONFIG_SENDUSAGE
-              value: "true"
+              value: {{ .Values.web.config.sendUsage | quote }}
             - name: CONFIG_SHOW_APPLICATIONSTAT
               value: "true"
             {{- if .Values.global.datasource.enabled }}
@@ -302,8 +319,8 @@ spec:
   selector:
     {{- include "pinpoint.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: web
+{{- if .Values.web.ingress.enabled }}
 ---
-{{- if .Values.web.ingress.enabled -}}
 # Web Application Ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -311,6 +328,7 @@ metadata:
   name: {{ include "pinpoint.fullname" . }}-web
   labels:
     {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
   {{- with .Values.web.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}

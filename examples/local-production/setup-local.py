@@ -28,11 +28,11 @@ def main():
     apply({'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': 'pinpoint'}})
     # Retain credentials on reruns; replacing a database Secret is not password rotation.
     credential_file = output / 'credentials.json'
-    if credential_file.exists():
-        credentials = json.loads(credential_file.read_text())
-    else:
-        credentials = {key: secrets.token_hex(24) for key in ('mysql-root', 'mysql-user', 'redis', 'jwt', 'admin')}
-        credential_file.write_text(json.dumps(credentials))
+    credentials = json.loads(credential_file.read_text()) if credential_file.exists() else {}
+    # Add keys introduced by newer chart versions without rotating existing ones.
+    for key in ('mysql-root', 'mysql-user', 'redis', 'jwt', 'admin', 'admin-api'):
+        credentials.setdefault(key, secrets.token_hex(24))
+    credential_file.write_text(json.dumps(credentials))
     credential_file.chmod(0o600)
     def secret(namespace, name, data, kind='Opaque'):
         apply({'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {'namespace': namespace, 'name': name},
@@ -44,7 +44,8 @@ def main():
     secret('pinpoint', 'pinpoint-mysql', {'mysql-password': credentials['mysql-user']})
     secret('pinpoint', 'pinpoint-redis', {'redis-password': credentials['redis']})
     secret('pinpoint', 'pinpoint-login',
-           {'jwt-secret': credentials['jwt'], 'admin': 'admin:' + credentials['admin']})
+           {'jwt-secret': credentials['jwt'], 'admin': 'admin:' + credentials['admin'],
+            'admin-api-password': credentials['admin-api']})
     login = output / 'login.json'
     login.write_text(json.dumps({'username': 'admin', 'password': credentials['admin']}))
     login.chmod(0o600)

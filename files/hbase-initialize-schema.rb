@@ -11,7 +11,13 @@ begin
     'ApplicationMapStatisticsCaller_Ver2' => 'APPMAPSTATCALLERV2_TTL',
     'ApplicationMapStatisticsCallee_Ver2' => 'APPMAPSTATCALLEV2_TTL',
     'ApplicationMapStatisticsSelf_Ver2' => 'APPMAPSTATSELFV2_TTL',
-    'HostApplicationMap_Ver2' => 'HOSTAPPMAPV2_TTL'
+    'HostApplicationMap_Ver2' => 'HOSTAPPMAPV2_TTL',
+    # Tables written by Pinpoint 3.1.1 v2 indexes and the optional v3 maps;
+    # names match the stock pinpoint-hbase image's TTL variables.
+    'TraceIndex' => 'TRACEINDEX_TTL', 'Application' => 'APPLICATION_TTL',
+    'AgentId' => 'AGENTID_TTL', 'MapAppSelf' => 'MAPAPPSELF_TTL',
+    'MapAgentSelf' => 'MAPAGENTSELF_TTL', 'MapAppOut' => 'MAPAPPOUT_TTL',
+    'MapAppIn' => 'MAPAPPIN_TTL', 'MapAppHost' => 'MAPAPPHOST_TTL'
   }
   File.foreach(ENV.fetch('HBASE_SCHEMA_FILE', '/opt/pinpoint-hbase/hbase-create.hbase')) do |line|
     match = /^create '([^']+)'/.match(line)

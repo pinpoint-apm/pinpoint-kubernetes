@@ -2,8 +2,40 @@ apiVersion: v2
 name: pinpoint
 description: A Helm chart for deploying Pinpoint APM (Application Performance Management) on Kubernetes.
 type: application
-version: 3.1.4
+version: 3.1.5
 appVersion: "3.1.1"
+
+annotations:
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/links: |
+    - name: Production guide
+      url: https://github.com/pinpoint-apm/pinpoint-kubernetes/blob/master/docs/PRODUCTION.md
+    - name: Upgrade notes
+      url: https://github.com/pinpoint-apm/pinpoint-kubernetes/blob/master/docs/UPGRADING.md
+  artifacthub.io/images: |
+    - name: pinpoint-web
+      image: pinpointdocker/pinpoint-web:3.1.1-metric
+    - name: pinpoint-collector
+      image: pinpointdocker/pinpoint-collector:3.1.1-metric
+    - name: pinpoint-hbase
+      image: pinpointdocker/pinpoint-hbase:3.1.1
+    - name: pinot
+      image: apachepinot/pinot:1.3.0
+  artifacthub.io/changes: |
+    - kind: security
+      description: Generate the Web admin API password instead of using "admin"
+    - kind: security
+      description: Generate bundled MySQL passwords and disable UI usage reporting by default
+    - kind: removed
+      description: Remove the non-functional standalone agent Deployment
+    - kind: fixed
+      description: Repair Kafka topics created with too few partitions
+    - kind: fixed
+      description: Apply Pinpoint 3.1.1 HBase index TTLs and Batch Spring Mail settings
+    - kind: changed
+      description: Make Telegraf an opt-in DaemonSet and harden init containers
+    - kind: added
+      description: Gateway API HTTPRoute, values-minimal.yaml and registry/pull-secret coverage
 
 keywords:
   - apm

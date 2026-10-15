@@ -10,5 +10,9 @@ data:
   telegraf.conf: |
 {{- $path := printf "files/telegraf/%s/pinpoint-telegraf.conf" .Values.global.pinpointVersion }}
 {{- $config := required "No bundled Telegraf configuration for global.pinpointVersion" (.Files.Get $path) }}
-{{ $config | replace "127.0.0.1" (printf "%s-collector" (include "pinpoint.fullname" .)) | indent 4 }}
+{{- /* Report each node under its Kubernetes name instead of the pod name. */}}
+{{- $config = $config | replace "127.0.0.1" (printf "%s-collector" (include "pinpoint.fullname" .)) }}
+{{- $config = $config | replace "hostname = \"\"" "hostname = \"${NODE_NAME}\"" }}
+{{- $config = $config | replace "hostGroupName = \"Metric-Test-APP\"" (printf "hostGroupName = %s" (.Values.telegraf.hostGroupName | quote)) }}
+{{ $config | indent 4 }}
 {{- end }}

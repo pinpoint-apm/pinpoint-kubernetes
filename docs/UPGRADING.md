@@ -1,5 +1,98 @@
 # Upgrading the Pinpoint chart
 
+## Chart 3.1.4 to 3.1.5
+
+Pinpoint stays on 3.1.1 and the locked dependency charts are unchanged. Most
+upgrades need no values changes, but review these behavior changes first.
+
+**Web admin API password.** Pinpoint Web's `/api/admin/**` endpoints (remove
+applications/agents) were protected only by the fixed password `admin`. The
+chart now creates `<release>-web-admin-api` with a random password and keeps it
+on later upgrades. To keep using a known password or render with
+`helm template`/Argo CD (no Helm lookup), reference your own Secret:
+
+```yaml
+web:
+  adminApi:
+    passwordSecret:
+      name: pinpoint-login
+      key: admin-api-password
+```
+
+`values-production.yaml` now uses that key; add `admin-api-password` to the
+login Secret before upgrading with it. Scripts that call the admin API with
+`password=admin` must use the new value. An empty password is never rendered
+because Pinpoint would then skip the check.
+
+**Bundled MySQL passwords.** The defaults `pinpoint`/`mysql` were removed. Helm
+CLI upgrades keep the existing `<release>-mysql` Secret through lookup, so
+existing databases continue to work. With `helm template` or Argo CD, set
+`mysql.auth.existingSecret`, or the previous explicit values, before upgrading;
+otherwise new random passwords would not match the initialized data directory.
+
+**Telegraf is opt-in.** It was a single-replica Deployment that reported one
+arbitrary node under its pod name. It is now a DaemonSet that reports every
+node under its Kubernetes node name, and it is disabled by default. Set
+`telegraf.enabled=true` (and optionally `telegraf.hostGroupName`) to keep host
+metrics. Host series appear under node names instead of the old pod name.
+Telegraf needs the Pod Security `privileged` level for its read-only `/proc`
+and `/sys` hostPath mounts; `/etc` is no longer mounted.
+
+**Standalone agent removed.** `agent.enabled=true` now fails rendering. That
+Deployment could not instrument other pods, crash-looped on its own volume and
+configured wrong stat/span ports. Follow [AGENTS.md](AGENTS.md) instead.
+
+**Kafka topics.** The topic list moved to `global.kafka.topics`. The
+initializer still creates missing topics, and now raises the partition count of
+existing topics that have fewer partitions than configured; it never deletes
+topics or lowers partitions. Bundled Kafka auto-creates topics with one
+partition when the Collector produces before the post-install hook runs, so
+the first 3.1.5 upgrade can log `Raising url-stat partitions from 1 to 64`.
+Topics with a lower replication factor are reported, not reassigned. Increasing
+partitions changes key-to-partition mapping for new records only. For external
+Kafka the change applies only with `global.kafka.manageExternalTopics=true`.
+
+**HBase.** New tables use the stock image's TTL variables for the 3.1.1 v2
+indexes: `TRACEINDEX_TTL` (now 7 days, matching `TRACEV2_TTL`),
+`APPLICATION_TTL`, `AGENTID_TTL` and the optional v3 `MAP*` tables. Existing
+tables keep their TTLs. The unused `AGENTSTATV2_TTL`/`APPSTATAGGRE_TTL` keys were
+dropped from the defaults. To apply new retention to an existing `TraceIndex`,
+alter it in the HBase shell during a maintenance window. The HBase pod now drops
+Linux capabilities and disables privilege escalation; it still runs as root,
+so existing volumes need no ownership change. HBase restarts during this
+upgrade because its pod template changes.
+
+**Other defaults.**
+- `web.config.sendUsage` and `batch.config.sendUsage` default to `false`;
+  Pinpoint Web no longer sends UI usage to Google Analytics unless enabled.
+- `networkPolicy.assetDownloadEgress` is empty. Bootstrap assets are bundled,
+  so initialization Jobs and Telegraf get no Internet egress by default.
+- Web's MySQL wait no longer receives the MySQL root password.
+- Dependency checks and bootstrap Jobs run with a restricted security context
+  (`global.initSecurityContext`), using `global.waitImage` instead of a fixed
+  `busybox:1.36`.
+- HBase, Quickstart, Telegraf, Batch and Flink receive `global.imagePullSecrets`.
+  `global.image.registry` falls back to `global.imageRegistry`, which Bitnami
+  dependencies also read; relocated Bitnami images additionally need
+  `global.security.allowInsecureImages=true`. Pinot needs
+  `pinot.imagePullSecrets` and `pinot.image.repository`.
+- Classic Flink moves from 3.0.3 to 3.0.5, the newest published Flink image.
+- Batch alarm mail uses Spring Mail properties read by 3.1.1:
+  `batch.mail.from`, `smtpAuth`, `starttls` and `starttlsRequired`. The ignored
+  `ALARM_MAIL_*` variables and Batch `ADMIN_PASSWORD` were removed, as were
+  the Gmail placeholder defaults for `batch.mail.host`/`username`.
+- `values.schema.json` rejects unknown top-level keys, such as `colector:`.
+- Web/Collector accept `serviceAccountName`, `priorityClassName`, `podLabels`
+  and `lifecycle`; `web.httpRoute` adds an optional Gateway API route.
+
+## Storage chart 0.1.2 to 0.1.3
+
+The schema Job name now includes a hash of its image, settings and schema
+files, so changing `hbase.version`, `bootstrap.*` or pull settings creates a new
+Job instead of failing on Kubernetes' immutable Job template. Upgrading reruns
+the idempotent verification once. New `TraceIndex` and v3 map tables use the
+7-day TTL of `TraceV2`; existing tables are unchanged.
+
 ## Storage chart 0.1.0 / 0.1.1 to 0.1.2
 
 The independently versioned `pinpoint-hbase-stackable` chart now limits WAL
