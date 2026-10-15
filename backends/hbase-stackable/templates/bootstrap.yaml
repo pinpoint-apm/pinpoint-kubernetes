@@ -1,18 +1,34 @@
 {{- if .Values.bootstrap.enabled }}
+{{- /*
+Jobs are immutable. Name the Job after every input of its pod template so a
+changed image, schema or setting creates a new Job instead of failing upgrade.
+*/}}
+{{- $schemaFile := .Files.Get "files/hbase-create.hbase" }}
+{{- $script := .Files.Get "files/initialize-schema.rb" }}
+{{- $inputs := list (include "backend.image" (dict "root" . "product" "hbase")) .Values.imagePullPolicy (toJson .Values.imagePullSecrets) (toJson .Values.bootstrap) $schemaFile $script }}
+{{- $jobHash := join "|" $inputs | sha256sum | trunc 8 }}
+{{- /* Job names feed the 63-character job-name label. */}}
+{{- $jobName := printf "%s-%s" (printf "%s-schema-%s" (include "backend.name" .) .Values.bootstrap.revision | trunc 54 | trimSuffix "-") $jobHash }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "backend.name" . }}-schema
+  labels:
+    app.kubernetes.io/part-of: pinpoint-storage
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
   hbase-create.hbase: |
-    {{- .Files.Get "files/hbase-create.hbase" | nindent 4 }}
+    {{- $schemaFile | nindent 4 }}
   initialize.rb: |
-    {{- .Files.Get "files/initialize-schema.rb" | nindent 4 }}
+    {{- $script | nindent 4 }}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "backend.name" . }}-schema-{{ .Values.bootstrap.revision }}
+  name: {{ $jobName }}
+  labels:
+    app.kubernetes.io/part-of: pinpoint-storage
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   # Normal Job: operators may need time to create discovery ConfigMaps and pods.
   activeDeadlineSeconds: 1800

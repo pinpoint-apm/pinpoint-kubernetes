@@ -42,6 +42,19 @@ helm template test "$backend" --set storageClass=validated-ssd \
 test "$(grep -c 'registry.example/hbase:qualified' "$temp/custom-image.yaml")" -eq 2
 test "$(grep -c 'registry-credentials' "$temp/custom-image.yaml")" -eq 4
 test "$(grep -c "^create '" "$backend/files/hbase-create.hbase")" -eq 22
+# Jobs are immutable: any pod template input must yield a new Job name.
+job_name() {
+  helm template telemetry "$backend" --set storageClass=validated-ssd "$@" \
+    --show-only templates/bootstrap.yaml | awk '/^kind: Job$/ {job=1} job && /^  name:/ {print $2; exit}'
+}
+default_job=$(job_name)
+[[ "$default_job" =~ ^telemetry-storage-schema-311-1-[0-9a-f]{8}$ ]]
+test "$(job_name)" = "$default_job"
+for changed in hbase.version=2.6.7 bootstrap.preSplit=false bootstrap.resources.limits.memory=3Gi imagePullPolicy=Always; do
+  test "$(job_name --set "$changed")" != "$default_job"
+done
+long_job=$(job_name --set bootstrap.revision=abcdefghij0123456789)
+test "${#long_job}" -le 63
 for invalid in '' 'zookeeper.replicas=2' 'hdfs.nameNodes.replicas=1' 'hdfs.journalNodes.replicas=2' 'hdfs.dataNodes.replicas=2' 'hbase.masters.replicas=1' 'hbase.regionServers.replicas=1' 'hdfs.replication=1' 'hdfs.replication=3.5' 'bootstrap.readyTimeoutSeconds=0' 'bootstrap.readyTimeoutSeconds=1800'; do
   args=()
   if [[ -n "$invalid" ]]; then args=(--set storageClass=validated-ssd --set "$invalid"); fi

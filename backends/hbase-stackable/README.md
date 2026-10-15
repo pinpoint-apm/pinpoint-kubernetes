@@ -1,6 +1,6 @@
 # Pinpoint HBase/HDFS storage chart
 
-Companion chart **0.1.2** runs independently of the Pinpoint application chart.
+Companion chart **0.1.3** runs independently of the Pinpoint application chart.
 It uses Stackable **26.7.0** with HBase **2.6.6**, HDFS **3.4.3** and ZooKeeper **3.9.5**.
 
 | Service | Default topology |
@@ -43,7 +43,7 @@ helm upgrade --install pinpoint-storage backends/hbase-stackable \
   -f my-storage-values.yaml --wait --wait-for-jobs --timeout 30m
 ```
 
-Published packages use `pinpoint/pinpoint-hbase-stackable --version 0.1.2`.
+Published packages use `pinpoint/pinpoint-hbase-stackable --version 0.1.3`.
 The application chart does not install these operators or this storage release.
 
 ## Connect Pinpoint

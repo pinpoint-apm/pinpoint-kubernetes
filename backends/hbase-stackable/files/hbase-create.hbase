@@ -20,13 +20,13 @@ create 'ApplicationMapStatisticsSelf_Ver2', { NAME => 'C', TTL => 604800, VERSIO
 
 create 'HostApplicationMap_Ver2', { NAME => 'M', TTL => 604800, VERSIONS => 1, DATA_BLOCK_ENCODING => 'PREFIX' }, {SPLITS=>["\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00","\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00","\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"]}
 
-create 'MapAppSelf',   { NAME => 'C', TTL => 5184000, VERSIONS => 1, DATA_BLOCK_ENCODING => 'PREFIX' }, {NUMREGIONS => 256, SPLITALGO => 'UniformSplit'}
-create 'MapAgentSelf', { NAME => 'C', TTL => 5184000, VERSIONS => 1, DATA_BLOCK_ENCODING => 'PREFIX' }, {NUMREGIONS => 256, SPLITALGO => 'UniformSplit'}
-create 'MapAppOut',    { NAME => 'C', TTL => 5184000, VERSIONS => 1, DATA_BLOCK_ENCODING => 'PREFIX' }, {NUMREGIONS => 256, SPLITALGO => 'UniformSplit'}
-create 'MapAppIn',     { NAME => 'C', TTL => 5184000, VERSIONS => 1, DATA_BLOCK_ENCODING => 'PREFIX' }, {NUMREGIONS => 256, SPLITALGO => 'UniformSplit'}
-create 'MapAppHost',   { NAME => 'C', TTL => 5184000, VERSIONS => 1, DATA_BLOCK_ENCODING => 'PREFIX' }, {NUMREGIONS => 256, SPLITALGO => 'UniformSplit'}
+create 'MapAppSelf',   { NAME => 'C', TTL => 604800, VERSIONS => 1, DATA_BLOCK_ENCODING => 'PREFIX' }, {NUMREGIONS => 256, SPLITALGO => 'UniformSplit'}
+create 'MapAgentSelf', { NAME => 'C', TTL => 604800, VERSIONS => 1, DATA_BLOCK_ENCODING => 'PREFIX' }, {NUMREGIONS => 256, SPLITALGO => 'UniformSplit'}
+create 'MapAppOut',    { NAME => 'C', TTL => 604800, VERSIONS => 1, DATA_BLOCK_ENCODING => 'PREFIX' }, {NUMREGIONS => 256, SPLITALGO => 'UniformSplit'}
+create 'MapAppIn',     { NAME => 'C', TTL => 604800, VERSIONS => 1, DATA_BLOCK_ENCODING => 'PREFIX' }, {NUMREGIONS => 256, SPLITALGO => 'UniformSplit'}
+create 'MapAppHost',   { NAME => 'C', TTL => 604800, VERSIONS => 1, DATA_BLOCK_ENCODING => 'PREFIX' }, {NUMREGIONS => 256, SPLITALGO => 'UniformSplit'}
 
-create 'TraceIndex', { NAME => 'I', TTL => 5184000, DATA_BLOCK_ENCODING => 'PREFIX' }, { NAME => 'M', TTL => 5184000, DATA_BLOCK_ENCODING => 'PREFIX' }, {NUMREGIONS => 256, SPLITALGO => 'UniformSplit'}
+create 'TraceIndex', { NAME => 'I', TTL => 604800, DATA_BLOCK_ENCODING => 'PREFIX' }, { NAME => 'M', TTL => 604800, DATA_BLOCK_ENCODING => 'PREFIX' }, {NUMREGIONS => 256, SPLITALGO => 'UniformSplit'}
 
 create 'Application', { NAME => 'A',  TTL => 31536000 }
 create 'AgentId', { NAME => 'A', TTL => 5184000 }
