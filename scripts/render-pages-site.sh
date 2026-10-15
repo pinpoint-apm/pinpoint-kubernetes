@@ -12,6 +12,7 @@ helm_repository_url="https://${owner}.github.io/${repo_name}"
 github_repository_url="https://github.com/${repository}"
 chart_version="$(awk '$1 == "version:" { print $2; exit }' "${chart_dir}/Chart.yaml")"
 app_version="$(awk '$1 == "appVersion:" { print $2; exit }' "${chart_dir}/Chart.yaml" | tr -d '"')"
+storage_chart_version="$(awk '$1 == "version:" { print $2; exit }' "${chart_dir}/backends/hbase-stackable/Chart.yaml")"
 
 mkdir -p "${target_dir}"
 
@@ -20,6 +21,7 @@ sed \
   -e "s|__GITHUB_REPOSITORY_URL__|${github_repository_url}|g" \
   -e "s|__CHART_VERSION__|${chart_version}|g" \
   -e "s|__APP_VERSION__|${app_version}|g" \
+  -e "s|__STORAGE_CHART_VERSION__|${storage_chart_version}|g" \
   "${chart_dir}/docs/helm-repository/index.html" > "${target_dir}/index.html"
 
 cp "${chart_dir}/docs/helm-repository/.nojekyll" "${target_dir}/.nojekyll"
