@@ -3,6 +3,51 @@ entries:
   pinpoint:
   - apiVersion: v2
     appVersion: 3.1.1
+    created: "2026-10-15T08:23:38.027221583Z"
+    dependencies:
+    - condition: zookeeper.enabled
+      name: zookeeper
+      repository: https://charts.bitnami.com/bitnami
+      version: 13.8.7
+    - condition: mysql.enabled
+      name: mysql
+      repository: https://charts.bitnami.com/bitnami
+      version: 14.0.3
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: 22.0.7
+    - condition: kafka.enabled,global.metric.enabled
+      name: kafka
+      repository: https://charts.bitnami.com/bitnami
+      version: 32.4.3
+    - condition: pinot.enabled,global.metric.enabled
+      name: pinot
+      repository: https://raw.githubusercontent.com/apache/pinot/master/helm
+      version: 0.3.4
+    description: A Helm chart for deploying Pinpoint APM (Application Performance
+      Management) on Kubernetes.
+    digest: c7d3bbbc7b9d68a36b7826350d78422d81075d762f0169cd59fba39073855ee5
+    home: https://github.com/pinpoint-apm/pinpoint-kubernetes
+    icon: https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.1.1/doc/images/NAVERPinpoint.png
+    keywords:
+    - apm
+    - pinpoint
+    - monitoring
+    - performance
+    - metrics
+    maintainers:
+    - email: thesadson@gmail.com
+      name: Emircan Agac
+    name: pinpoint
+    sources:
+    - https://github.com/pinpoint-apm/pinpoint
+    type: application
+    urls:
+    - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-3.1.4/pinpoint-3.1.4.tgz
+    version: 3.1.4
+  - apiVersion: v2
+    appVersion: 3.1.1
     created: "2026-10-13T11:40:59.339730394Z"
     dependencies:
     - condition: zookeeper.enabled
@@ -212,4 +257,4 @@ entries:
     urls:
     - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-hbase-stackable-0.1.0/pinpoint-hbase-stackable-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-13T11:40:59.584227944Z"
+generated: "2026-10-15T08:23:38.256937728Z"
