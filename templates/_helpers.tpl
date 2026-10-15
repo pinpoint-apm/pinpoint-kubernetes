@@ -61,10 +61,41 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Image registry
 */}}
 {{- define "pinpoint.imageRegistry" -}}
-{{- if .Values.global.image.registry }}
-{{- printf "%s/" (trimSuffix "/" .Values.global.image.registry) }}
+{{- $registry := default .Values.global.imageRegistry .Values.global.image.registry }}
+{{- if $registry }}
+{{- printf "%s/" (trimSuffix "/" $registry) }}
 {{- end }}
 {{- end }}
+
+{{/* Image for dependency wait init containers. */}}
+{{- define "pinpoint.waitImage" -}}
+{{- printf "%s%s:%s" (include "pinpoint.imageRegistry" .) .Values.global.waitImage.repository (toString .Values.global.waitImage.tag) -}}
+{{- end -}}
+
+{{/*
+Restricted container securityContext for chart-owned init containers and Jobs.
+Call with (dict "root" $ "uid" 65534); an explicit runAsUser in values wins.
+*/}}
+{{- define "pinpoint.initSecurityContext" -}}
+{{- $context := deepCopy .root.Values.global.initSecurityContext -}}
+{{- if not (hasKey $context "runAsUser") -}}
+{{- $_ := set $context "runAsUser" (int .uid) -}}
+{{- end -}}
+{{- toYaml $context -}}
+{{- end -}}
+
+{{/* Secret and key holding Pinpoint Web's admin.password. */}}
+{{- define "pinpoint.web.adminApiSecretName" -}}
+{{- default (printf "%s-web-admin-api" (include "pinpoint.fullname" .)) .Values.web.adminApi.passwordSecret.name -}}
+{{- end -}}
+
+{{- define "pinpoint.web.adminApiSecretKey" -}}
+{{- if .Values.web.adminApi.passwordSecret.name -}}
+{{- required "web.adminApi.passwordSecret.key is required with passwordSecret.name" .Values.web.adminApi.passwordSecret.key -}}
+{{- else -}}
+admin-password
+{{- end -}}
+{{- end -}}
 
 {{/* Explicit component tags are used verbatim; only default tags get a suffix. */}}
 {{- define "pinpoint.applicationImageTag" -}}
@@ -257,8 +288,8 @@ bundled Kafka image so the client matches the broker and is already cached.
 */}}
 {{- define "pinpoint.kafka.image" -}}
 {{- $registry := .Values.kafka.image.registry -}}
-{{- if .Values.global.image.registry -}}
-{{- $registry = trimSuffix "/" .Values.global.image.registry -}}
+{{- with (default .Values.global.imageRegistry .Values.global.image.registry) -}}
+{{- $registry = trimSuffix "/" . -}}
 {{- end -}}
 {{- printf "%s/%s:%s" $registry .Values.kafka.image.repository .Values.kafka.image.tag -}}
 {{- end -}}
@@ -351,6 +382,12 @@ bundled Kafka image so the client matches the broker and is already cached.
 {{- define "pinpoint.applicationPodSpec" }}
 terminationGracePeriodSeconds: {{ .config.terminationGracePeriodSeconds }}
 automountServiceAccountToken: {{ .config.automountServiceAccountToken }}
+{{- with .config.serviceAccountName }}
+serviceAccountName: {{ . | quote }}
+{{- end }}
+{{- with .config.priorityClassName }}
+priorityClassName: {{ . | quote }}
+{{- end }}
 {{- with .root.Values.global.imagePullSecrets }}
 imagePullSecrets:
 {{ toYaml . | indent 2 }}

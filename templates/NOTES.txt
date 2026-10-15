@@ -51,18 +51,17 @@ Pinpoint has been successfully deployed.
    Web is disabled in this release; use the separately installed application release.
 {{- end }}
 
+{{- if and .Values.web.enabled (not .Values.web.adminApi.passwordSecret.name) }}
+
+   The /api/admin/** password was generated (Helm keeps it on upgrade):
+     kubectl get secret -n {{ .Release.Namespace }} {{ include "pinpoint.web.adminApiSecretName" . }} -o jsonpath='{.data.admin-password}' | base64 -d
+{{- end }}
+
 2. Connecting Agents to Pinpoint Collector:
 {{- if .Values.collector.enabled }}
-{{- if .Values.agent.enabled }}
-   A Pinpoint Agent is deployed as part of this chart.
-   Agent status: kubectl get pods -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=agent"
-   Agent logs: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=agent" --tail=100 -f
-
-   For external applications, use the following internal Kubernetes DNS address:
-{{- else }}
-   The Pinpoint Collector is running. Use the following internal Kubernetes DNS address in your agent configuration:
-{{- end }}
-   - gRPC Service: {{ include "pinpoint.fullname" . }}-collector.{{ .Release.Namespace }}.svc:{{ .Values.collector.service.ports.grpcAgent }}
+   Point each agent at {{ include "pinpoint.fullname" . }}-collector.{{ .Release.Namespace }}.svc with gRPC ports
+   {{ .Values.collector.service.ports.grpcAgent }} (agent and metadata), {{ .Values.collector.service.ports.grpcStat }} (stat) and {{ .Values.collector.service.ports.grpcSpan }} (span).
+   See docs/AGENTS.md for an init-container example.
 {{- else }}
    Collector is disabled in this release; use the separately installed application release.
 {{- end }}
@@ -96,11 +95,18 @@ Pinpoint has been successfully deployed.
 {{- if .Values.web.enabled }}
    - Web UI: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=web" --tail=100 -f
 {{- end }}
-{{- if .Values.agent.enabled }}
-   - Agent: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=agent" --tail=100 -f
-{{- end }}
 {{- if and .Values.global.metric.enabled .Values.telegraf.enabled }}
    - Telegraf: kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/component=telegraf" --tail=100 -f
+{{- end }}
+{{- if or .Values.mysql.enabled .Values.redis.enabled .Values.zookeeper.enabled .Values.hbase.enabled (eq (include "pinpoint.kafka.internalEnabled" .) "true") }}
+
+4. Bundled backends are for evaluation:
+   Bitnami dependency images come from the frozen bitnamilegacy repository and
+   receive no security updates, and HBase runs as a single filesystem-backed pod.
+   Use values-production.yaml with independently managed backends for production.
+{{- end }}
+{{- if and .Values.global.imagePullSecrets (eq (include "pinpoint.pinot.internalEnabled" .) "true") .Values.global.metric.enabled (not .Values.pinot.imagePullSecrets) }}
+   Note: set pinot.imagePullSecrets as well; the Pinot chart does not read global.imagePullSecrets.
 {{- end }}
 {{- end -}}
 

@@ -18,12 +18,22 @@ spec:
         {{- include "pinpoint.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: batch
     spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.batch.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if or .Values.zookeeper.enabled .Values.hbase.enabled .Values.mysql.enabled .Values.flink.enabled }}
       initContainers:
         # Wait for Zookeeper to be ready
         {{- if .Values.zookeeper.enabled }}
         - name: wait-for-zookeeper
-          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          image: {{ include "pinpoint.waitImage" . | quote }}
+          securityContext:
+            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 65534) | nindent 12 }}
           resources:
             {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-zookeeper 2181; do echo "Batch is waiting for Zookeeper..."; sleep 2; done;']
@@ -32,7 +42,9 @@ spec:
         # Wait for HBase to be ready
         {{- if .Values.hbase.enabled }}
         - name: wait-for-hbase
-          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          image: {{ include "pinpoint.waitImage" . | quote }}
+          securityContext:
+            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 65534) | nindent 12 }}
           resources:
             {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-hbase 60000; do echo "Batch is waiting for HBase..."; sleep 2; done;']
@@ -41,7 +53,9 @@ spec:
         # Wait for MySQL to be ready
         {{- if .Values.mysql.enabled }}
         - name: wait-for-mysql
-          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          image: {{ include "pinpoint.waitImage" . | quote }}
+          securityContext:
+            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 65534) | nindent 12 }}
           resources:
             {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ .Release.Name }}-mysql 3306; do echo "Batch is waiting for MySQL..."; sleep 2; done;']
@@ -50,7 +64,9 @@ spec:
         # Wait for Flink JobManager to be ready (needed for health checks)
         {{- if .Values.flink.enabled }}
         - name: wait-for-flink-jobmanager
-          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          image: {{ include "pinpoint.waitImage" . | quote }}
+          securityContext:
+            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 65534) | nindent 12 }}
           resources:
             {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command: ['sh', '-c', 'until nc -z -w3 {{ include "pinpoint.fullname" . }}-flink-jobmanager 8081; do echo "Batch is waiting for Flink JobManager..."; sleep 2; done;']
@@ -60,6 +76,10 @@ spec:
         - name: batch
           image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.batch.image.repository }}:{{ .Values.batch.image.tag | default .Values.global.pinpointVersion }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          {{- with .Values.batch.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 8080
@@ -76,7 +96,7 @@ spec:
             - name: LOGGING_LEVEL_ROOT
               value: {{ .Values.batch.config.loggingLevel | quote }}
             - name: CONFIG_SENDUSAGE
-              value: "true"
+              value: {{ .Values.batch.config.sendUsage | quote }}
             - name: CONFIG_SHOW_APPLICATIONSTAT
               value: "true"
             - name: BATCH_FLINK_SERVER
@@ -111,49 +131,35 @@ spec:
             - name: SPRING_METADATASOURCE_HIKARI_PASSWORD
               {{ include "pinpoint.datasource.password" . | nindent 14 }}
             {{- end }}
-            # Mail Configuration for Alarms
-            {{- if and .Values.batch.mail.enabled .Values.batch.mail.host }}
-            - name: ALARM_MAIL_SERVER_URL
-              value: {{ .Values.batch.mail.host | quote }}
-            - name: ALARM_MAIL_SERVER_PORT
-              value: {{ .Values.batch.mail.port | quote }}
-            - name: ALARM_MAIL_SERVER_USERNAME
-              value: {{ .Values.batch.mail.username | quote }}
-            - name: ALARM_MAIL_SERVER_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.batch.mail.existingSecret | default (printf "%s-mail" .Release.Name) }}
-                  key: {{ .Values.batch.mail.existingSecretKey | default "password" }}
-            - name: ALARM_MAIL_SENDER_ADDRESS
-              value: {{ .Values.batch.mail.username | quote }}
-            - name: ALARM_MAIL_TRANSPORT_PROTOCOL
-              value: "smtp"
-            - name: ALARM_MAIL_SMTP_PORT
-              value: {{ .Values.batch.mail.port | quote }}
-            - name: ALARM_MAIL_SMTP_AUTH
-              value: "true"
-            - name: ALARM_MAIL_SMTP_STARTTLS_ENABLE
-              value: "true"
-            - name: ALARM_MAIL_SMTP_STARTTLS_REQUIRED
-              value: "false"
-            - name: ALARM_MAIL_DEBUG
-              value: "false"
-            # Spring Mail Configuration (Alternative naming)
+            # Alarm mail: Batch 3.1.1 reads Spring Mail properties (spring.mail.*).
+            {{- if .Values.batch.mail.enabled }}
+            {{- $mail := .Values.batch.mail }}
             - name: SPRING_MAIL_HOST
-              value: {{ .Values.batch.mail.host | quote }}
+              value: {{ $mail.host | quote }}
             - name: SPRING_MAIL_PORT
-              value: {{ .Values.batch.mail.port | quote }}
+              value: {{ $mail.port | quote }}
+            - name: SPRING_MAIL_PROTOCOL
+              value: "smtp"
             - name: SPRING_MAIL_USERNAME
-              value: {{ .Values.batch.mail.username | quote }}
+              value: {{ $mail.username | quote }}
+            {{- if $mail.existingSecret }}
             - name: SPRING_MAIL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.batch.mail.existingSecret | default (printf "%s-mail" .Release.Name) }}
-                  key: {{ .Values.batch.mail.existingSecretKey | default "password" }}
+                  name: {{ $mail.existingSecret | quote }}
+                  key: {{ default "password" $mail.existingSecretKey | quote }}
             {{- end }}
-            # Admin Configuration
-            - name: ADMIN_PASSWORD
-              value: {{ .Values.batch.config.adminPassword | default "admin" | quote }}
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_FROM
+              value: {{ default $mail.username $mail.from | quote }}
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_PORT
+              value: {{ $mail.port | quote }}
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH
+              value: {{ $mail.smtpAuth | quote }}
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE
+              value: {{ $mail.starttls | quote }}
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED
+              value: {{ $mail.starttlsRequired | quote }}
+            {{- end }}
             # Pinpoint Web URL for batch operations
             - name: SPRING_MAIL_PINPOINT-URL
               value: {{ tpl .Values.batch.config.pinpointWebUrl . | quote }}

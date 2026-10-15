@@ -1,3 +1,17 @@
+{{- if dig "enabled" false (default dict .Values.agent) -}}
+{{- fail "agent.enabled was removed in chart 3.1.5: the standalone agent Deployment could not instrument applications. Remove the agent values and add the agent to application pods with an init container; see docs/AGENTS.md" -}}
+{{- end -}}
+{{- if not (and .Values.global.waitImage.repository .Values.global.waitImage.tag) -}}
+{{- fail "global.waitImage.repository and global.waitImage.tag are required" -}}
+{{- end -}}
+{{- if and .Values.batch.enabled (not .Values.global.metric.enabled) .Values.batch.mail.enabled -}}
+{{- if not .Values.batch.mail.host -}}
+{{- fail "batch.mail.host is required when batch.mail.enabled=true" -}}
+{{- end -}}
+{{- if and .Values.batch.mail.smtpAuth (not (and .Values.batch.mail.username .Values.batch.mail.existingSecret)) -}}
+{{- fail "batch.mail.username and batch.mail.existingSecret are required when batch.mail.smtpAuth=true" -}}
+{{- end -}}
+{{- end -}}
 {{- if .Values.collector.externalService.enabled -}}
 {{- if not .Values.collector.enabled -}}
 {{- fail "collector.externalService.enabled requires collector.enabled=true" -}}
@@ -127,6 +141,17 @@
 {{- $replicas := .Values.global.kafka.topicReplicationFactor -}}
 {{- if or (lt (int $replicas) 1) (ne (float64 $replicas) (float64 (int $replicas))) -}}
 {{- fail "global.kafka.topicReplicationFactor must be a positive integer" -}}
+{{- end -}}
+{{- if not .Values.global.kafka.topics -}}
+{{- fail "global.kafka.topics must list the Pinpoint topics when createTopics=true" -}}
+{{- end -}}
+{{- range .Values.global.kafka.topics -}}
+{{- if not (regexMatch "^[A-Za-z0-9._-]{1,249}$" (toString .name)) -}}
+{{- fail "global.kafka.topics[].name must be a valid Kafka topic name" -}}
+{{- end -}}
+{{- if or (lt (int .partitions) 1) (ne (float64 .partitions) (float64 (int .partitions))) -}}
+{{- fail (printf "global.kafka.topics[%s].partitions must be a positive integer" .name) -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}

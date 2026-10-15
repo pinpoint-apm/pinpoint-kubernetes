@@ -33,6 +33,8 @@ spec:
       initContainers:
         - name: wait-for-mysql
           image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          securityContext:
+            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 1001) | nindent 12 }}
           resources:
             {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           env:
@@ -62,6 +64,8 @@ spec:
               echo "MYSQL Init Job: MySQL and database are ready!"
       containers:
         - name: mysql-schema-init
+          securityContext:
+            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 1001) | nindent 12 }}
           resources:
             {{- toYaml .Values.global.initResources.mysql | nindent 12 }}
           image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"

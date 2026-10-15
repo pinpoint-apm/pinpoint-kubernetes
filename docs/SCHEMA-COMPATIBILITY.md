@@ -14,7 +14,7 @@ all schema assets and their attribution in `files/NOTICE`.
 | HBase traces, metadata, maps and application/agent identity | Bundled HBase supervisor | 22 versioned tables, missing tables only; existing TTLs preserved |
 | Distributed HBase | Independent `pinpoint-hbase-stackable` chart | Same 22 table names/column families; separate install and ownership |
 | Pinot Inspector, URI, system metrics, Heatmap, exception trace and OTLP metrics | Metric profile + `global.pinot.createTables` | 11 schemas, 18 typed tables; all supplied REALTIME/OFFLINE definitions |
-| Kafka metric ingestion | Metric profile + `global.kafka.createTopics` | 11 topics, including all Pinot realtime sources |
+| Kafka metric ingestion | Metric profile + `global.kafka.createTopics` | 11 topics from `global.kafka.topics`, including all Pinot realtime sources; lower partition counts are raised |
 | Redis and ZooKeeper | Dependency charts or external services | No SQL/table initialization |
 
 For external MySQL, initialize the bundled SQL through the database owner;
@@ -36,9 +36,18 @@ name to `heatmap-stat-app-00`. Existing schemas/configs are preserved. Successfu
 resource creation is followed by existence verification; ingestion and queries
 are checked separately. A schema manifest is not a data migration or backup.
 
-HBase schema definitions retain the existing image/companion TTL defaults.
-The main chart applies `hbase.config.ttl` overrides to newly created tables.
-Changing values does not rewrite existing TTLs or move data between backends.
+HBase schema definitions retain the chart's TTL defaults; since 3.1.5 the v2
+`TraceIndex` and the v3 map tables follow the 7-day `TraceV2`/`_Ver2` map
+retention. The main chart applies `hbase.config.ttl` overrides, keyed like the
+stock image's variables, to newly created tables. Collector 3.1.1 writes the v2
+indexes (`TraceIndex`, `Application`, `AgentId`) and leaves the v1
+`ApplicationIndex`/`ApplicationTraceIndex` unused by default. Changing values
+does not rewrite existing TTLs or move data between backends.
+
+Collector modules that are disabled by default need their own resources when
+enabled; for example agent statistics
+(`pinpoint.modules.collector.agent-statistics.enabled=true`) produces to an
+`agent-info` topic that is not in the default topic list.
 
 This coverage is for the stock classic/metric deployment and versioned store
 assets. Optional Flink processing, custom authentication/JDBC implementations,

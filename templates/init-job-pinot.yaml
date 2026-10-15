@@ -31,7 +31,9 @@ spec:
       {{- if eq (include "pinpoint.pinot.internalEnabled" .) "true" }}
       initContainers:
         - name: wait-for-pinot
-          image: {{ include "pinpoint.imageRegistry" . }}busybox:1.36
+          image: {{ include "pinpoint.waitImage" . | quote }}
+          securityContext:
+            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 65534) | nindent 12 }}
           resources:
             {{- toYaml .Values.global.initResources.wait | nindent 12 }}
           command:

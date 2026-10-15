@@ -1,6 +1,6 @@
 # Argo CD deployment
 
-This example deploys application chart **3.1.4** (Pinpoint **3.1.1**) with
+This example deploys application chart **3.1.5** (Pinpoint **3.1.1**) with
 Git-managed values and independently managed backends. Argo CD 2.6+ is required
 for multiple sources; the optional storage example uses server-side diff,
 stable in Argo CD 3.1+.
@@ -27,7 +27,7 @@ stable in Argo CD 3.1+.
    | --- | --- |
    | `pinpoint-mysql-credentials` | `password` |
    | `pinpoint-redis-credentials` | `password` |
-   | `pinpoint-login` | `admin`, `jwt-secret` |
+   | `pinpoint-login` | `admin`, `jwt-secret`, `admin-api-password` |
    | `pinpoint-web-tls` | `tls.crt`, `tls.key` |
 
 4. Commit the directory, then bootstrap after the backends are ready:
@@ -37,7 +37,7 @@ stable in Argo CD 3.1+.
    kubectl -n argocd get application pinpoint-bootstrap pinpoint
    ```
 
-The Application merges the production profile from Git tag `pinpoint-3.1.4`
+The Application merges the production profile from Git tag `pinpoint-3.1.5`
 with your values file. Commit values changes to deploy configuration updates.
 For chart upgrades, update both the Helm revision and the defaults Git tag,
 review [upgrade notes](../../docs/UPGRADING.md), then commit.

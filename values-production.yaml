@@ -55,6 +55,11 @@ web:
   login:
     enabled: true
     existingSecret: pinpoint-login
+  # Random password for /api/admin/**, stored next to the login keys.
+  adminApi:
+    passwordSecret:
+      name: pinpoint-login
+      key: admin-api-password
   ingress:
     enabled: true
     ingressClassName: nginx

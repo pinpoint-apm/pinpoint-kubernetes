@@ -181,8 +181,8 @@
     {
       "path": "files/hbase/3.1.1/hbase-create.hbase",
       "source": "hbase/scripts/hbase-create.hbase",
-      "sha256": "c472daa9a1b25a631066256d95bdfcaae1beac2f99be1492556bfce875bfd64d",
-      "adaptations": "Image/companion TTL defaults preserved; runtime TTL overrides apply only to missing tables."
+      "sha256": "678517bebf7c888ab2e20d5b2f42d4db5d1e0d754ba8c8e8768ff107396a7321",
+      "adaptations": "Chart retention defaults: TraceIndex and v3 Map tables follow the 7-day TraceV2/Ver2 map TTLs; runtime TTL overrides apply only to missing tables."
     }
   ]
 }

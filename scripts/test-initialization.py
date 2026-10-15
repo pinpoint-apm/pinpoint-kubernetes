@@ -205,54 +205,84 @@ class PinotInitializationTests(unittest.TestCase):
 
 
 class KafkaInitializationTests(unittest.TestCase):
-    def run_creator(self, fail_topic=""):
-        rendered = subprocess.check_output(["helm", "template", "pinpoint", str(ROOT),
-                                            "--show-only", "templates/init-job-kafka.yaml"], text=True)
-        script = rendered.split("              set -eu\n", 1)[1].split("          env:", 1)[0]
-        script = "set -eu\n" + "\n".join(line[14:] for line in script.splitlines())
-        with tempfile.TemporaryDirectory() as directory:
-            state = Path(directory, "topics.json")
-            state.write_text(json.dumps(["url-stat-unrelated-" + str(i) for i in range(8)]))
-            mock = Path(directory, "kafka-topics")
-            mock.write_text('''#!/usr/bin/env python3
+    # Raw string: the escapes below belong to the generated mock script.
+    MOCK = r"""#!/usr/bin/env python3
 import json, os, sys
 from pathlib import Path
 p = Path(os.environ["TOPICS_STATE"])
 topics = json.loads(p.read_text())
-if "--list" in sys.argv:
-    print("\\n".join(topics))
-else:
-    name = sys.argv[sys.argv.index("--topic") + 1]
-    if name == os.environ.get("FAIL_TOPIC"):
-        sys.exit(1)
-    assert sys.argv[sys.argv.index("--replication-factor") + 1] == "3"
-    if name not in topics:
-        topics.append(name)
-    p.write_text(json.dumps(topics))
-''')
+args = sys.argv
+if "--list" in args:
+    print("\n".join(topics))
+    sys.exit(0)
+name = args[args.index("--topic") + 1]
+if name == os.environ.get("FAIL_TOPIC"):
+    sys.exit(1)
+if "--create" in args:
+    assert "--if-not-exists" in args
+    assert args[args.index("--replication-factor") + 1] == "3"
+    topics.setdefault(name, {"partitions": int(args[args.index("--partitions") + 1]), "replicas": 3})
+elif "--describe" in args:
+    topic = topics[name]
+    print("Topic: %s\tTopicId: x\tPartitionCount: %d\tReplicationFactor: %d\tConfigs: " % (
+        name, topic["partitions"], topic["replicas"]))
+    print("\tTopic: %s\tPartition: 0\tLeader: 1\tReplicas: 1\tIsr: 1" % name)
+elif "--alter" in args:
+    wanted = int(args[args.index("--partitions") + 1])
+    assert wanted > topics[name]["partitions"], "partitions may only increase"
+    topics[name]["partitions"] = wanted
+p.write_text(json.dumps(topics))
+"""
+
+    def run_creator(self, fail_topic="", existing=None):
+        rendered = subprocess.check_output(["helm", "template", "pinpoint", str(ROOT),
+                                            "--show-only", "templates/init-job-kafka.yaml"], text=True)
+        container = rendered.split("        - name: kafka-topics-creator\n", 1)[1]
+        script = container.split("            - |\n", 1)[1].split("          env:", 1)[0]
+        script = "\n".join(line[14:] for line in script.splitlines())
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory, "topics.json")
+            topics = {"url-stat-unrelated-" + str(i): {"partitions": 1, "replicas": 3} for i in range(8)}
+            topics.update(existing or {})
+            state.write_text(json.dumps(topics))
+            mock = Path(directory, "kafka-topics")
+            mock.write_text(self.MOCK)
             mock.chmod(0o755)
             script = script.replace("/opt/bitnami/kafka/bin/kafka-topics.sh", str(mock))
             env = dict(os.environ, KAFKA_BOOTSTRAP_SERVERS="kafka.example:9092",
                        TOPIC_REPLICATION_FACTOR="3", TOPICS_STATE=str(state), FAIL_TOPIC=fail_topic)
-            result = subprocess.run(["sh", "-c", script], env=env, capture_output=True, text=True)
+            result = subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True)
             if not fail_topic:
-                again = subprocess.run(["sh", "-c", script], env=env, capture_output=True, text=True)
+                again = subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True)
                 self.assertEqual(again.returncode, 0, again.stderr)
+                self.assertNotIn("Raising", again.stdout)
             return result, json.loads(state.read_text())
 
     def test_missing_topics_are_created_despite_unrelated_topics_and_reruns(self):
         result, topics = self.run_creator()
         self.assertEqual(result.returncode, 0, result.stderr)
-        required = {"url-stat", "system-metric-data-type", "system-metric-tag", "system-metric-double",
-                    "exception-trace", "inspector-stat-app", "inspector-stat-agent-00", "heatmap-stat-app-00",
-                    "otlp-metric-metadata", "otlp-metric-double-00", "otlp-metric-long-00"}
-        self.assertTrue(required.issubset(topics))
+        required = {"url-stat": 64, "system-metric-data-type": 3, "system-metric-tag": 3,
+                    "system-metric-double": 3, "exception-trace": 3, "inspector-stat-app": 64,
+                    "inspector-stat-agent-00": 32, "heatmap-stat-app-00": 32, "otlp-metric-metadata": 3,
+                    "otlp-metric-double-00": 32, "otlp-metric-long-00": 32}
+        for name, partitions in required.items():
+            self.assertEqual(topics[name]["partitions"], partitions, name)
         self.assertEqual(len(topics), 19)
+
+    def test_auto_created_topics_are_repaired_without_shrinking(self):
+        existing = {"url-stat": {"partitions": 1, "replicas": 1},
+                    "exception-trace": {"partitions": 12, "replicas": 3}}
+        result, topics = self.run_creator(existing=existing)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Raising url-stat partitions from 1 to 64", result.stdout)
+        self.assertEqual(topics["url-stat"]["partitions"], 64)
+        self.assertEqual(topics["exception-trace"]["partitions"], 12)
+        self.assertIn("url-stat has replication factor 1", result.stderr)
 
     def test_failed_topic_creation_is_not_reported_as_success(self):
         result, topics = self.run_creator("system-metric-tag")
         self.assertNotEqual(result.returncode, 0)
-        self.assertNotIn("Topics created successfully", result.stdout)
+        self.assertNotIn("Kafka topics verified", result.stdout)
         self.assertNotIn("inspector-stat-app", topics)
 
 

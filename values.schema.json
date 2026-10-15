@@ -79,6 +79,21 @@
         },
         "resources": {
           "type": "object"
+        },
+        "serviceAccountName": {
+          "type": "string"
+        },
+        "priorityClassName": {
+          "type": "string"
+        },
+        "podLabels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "lifecycle": {
+          "type": "object"
         }
       }
     }
@@ -167,6 +182,26 @@
             "topicReplicationFactor": {
               "type": "integer",
               "minimum": 1
+            },
+            "topics": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "partitions"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]{1,249}$"
+                  },
+                  "partitions": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
             }
           }
         },
@@ -184,11 +219,105 @@
               "minimum": 1
             }
           }
+        },
+        "imageRegistry": {
+          "type": "string"
+        },
+        "waitImage": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": [
+                "string",
+                "number"
+              ]
+            }
+          }
+        },
+        "initSecurityContext": {
+          "type": "object"
         }
       }
     },
     "web": {
-      "$ref": "#/definitions/application"
+      "allOf": [
+        {
+          "$ref": "#/definitions/application"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "config": {
+              "type": "object",
+              "properties": {
+                "sendUsage": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "adminApi": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "passwordSecret": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              }
+            },
+            "httpRoute": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "annotations": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "labels": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "parentRefs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "hostnames": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "path": {
+                  "type": "string",
+                  "pattern": "^/"
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "collector": {
       "allOf": [
@@ -365,22 +494,47 @@
       "properties": {
         "enabled": {
           "type": "boolean"
+        },
+        "hostGroupName": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
     "agent": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        }
-      }
+      "description": "Removed in chart 3.1.5; agent.enabled=true fails with migration guidance.",
+      "type": "object"
     },
     "batch": {
       "type": "object",
       "properties": {
         "enabled": {
           "type": "boolean"
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "sendUsage": {
+              "type": "boolean"
+            }
+          }
+        },
+        "mail": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "smtpAuth": {
+              "type": "boolean"
+            },
+            "starttls": {
+              "type": "boolean"
+            },
+            "starttlsRequired": {
+              "type": "boolean"
+            }
+          }
         }
       }
     },
@@ -391,6 +545,13 @@
           "type": "boolean"
         }
       }
+    },
+    "nameOverride": {
+      "type": "string"
+    },
+    "fullnameOverride": {
+      "type": "string"
     }
-  }
+  },
+  "additionalProperties": false
 }

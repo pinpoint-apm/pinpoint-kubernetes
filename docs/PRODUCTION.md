@@ -54,8 +54,10 @@ backend. No NFS qualification or production load benchmark is claimed here.
 1. Provision the backends and apply the bundled 3.1.1 definitions in
    `files/sql/3.1.1` and `files/pinot/3.1.1`. Create HBase tables using the
    upstream 3.1.1 HBase script, respecting the configured namespace. Create
-   the eight Kafka topics listed in `templates/init-job-kafka.yaml`, including
-   `heatmap-stat-app-00`. Set replication/retention for your recovery objectives.
+   the eleven Kafka topics listed under `global.kafka.topics` in `values.yaml`,
+   including `heatmap-stat-app-00`, with at least those partition counts.
+   Disable broker topic auto-creation so a misnamed or early topic cannot be
+   created with one partition. Set replication/retention for your recovery objectives.
    Existing table/topic configurations are preserved by chart bootstrap;
    their migration is an explicit operator action.
 2. Copy `values-production.yaml` to your own values file. Replace every example
@@ -64,8 +66,10 @@ backend. No NFS qualification or production load benchmark is claimed here.
    Keep access to all discovered RegionServers, Kafka advertised brokers and
    Pinot brokers, not just initial bootstrap/controller endpoints.
 3. Create the referenced MySQL, Redis, login and HTTPS Secrets in the release
-   namespace using your secret manager. Login needs a random JWT secret and
-   `admin` credentials as described in [configuration](CONFIGURATION.md#basic-login).
+   namespace using your secret manager. Login needs a random JWT secret,
+   `admin` credentials as described in [configuration](CONFIGURATION.md#basic-login)
+   and a random `admin-api-password` for the
+   [admin API](CONFIGURATION.md#web-admin-api-and-usage-reporting).
    All Web replicas must share the same JWT key. External MySQL uses the
    application user; the chart does not request external root credentials or
    modify its schema automatically.
@@ -87,7 +91,7 @@ helm upgrade --install pinpoint . --namespace pinpoint --create-namespace \
 ```
 
 This renders only Web/Collector, their Services, optional ingress, PDBs and
-network rules. It does not provision the external backends or guarantee their
+network rules. Every rendered pod meets the Pod Security `restricted` level. It does not provision the external backends or guarantee their
 availability. External topic/table initialization is opt-in:
 `global.kafka.manageExternalTopics=true` with `createTopics=true`, or
 `global.pinot.manageExternalTables=true` with `createTables=true` and

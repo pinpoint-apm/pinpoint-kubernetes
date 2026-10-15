@@ -179,8 +179,11 @@ def main():
             assert request(demo + '/getCurrentTimestamp.pinpoint')[0] == 200
         print('Web and 150 demo HTTP requests: OK', flush=True)
 
-        required = ['inspectorStatAgent00', 'inspectorStatApp', 'uriStat', 'heatmapStatApp',
-                    'systemMetricDataType', 'systemMetricTag', 'systemMetricDouble']
+        required = ['inspectorStatAgent00', 'inspectorStatApp', 'uriStat', 'heatmapStatApp']
+        # System metric tables are fed by the opt-in Telegraf DaemonSet.
+        telegraf = json.loads(kubectl('get', 'pods', '-l', 'app.kubernetes.io/component=telegraf', '-o', 'json'))['items']
+        if telegraf:
+            required += ['systemMetricDataType', 'systemMetricTag', 'systemMetricDouble']
         counts = {table: 0 for table in required}
         pending = {}
         while time.monotonic() < deadline:

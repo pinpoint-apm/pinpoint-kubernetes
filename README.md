@@ -3,12 +3,13 @@
 [![Helm CI](https://github.com/pinpoint-apm/pinpoint-kubernetes/actions/workflows/helm-ci.yaml/badge.svg)](https://github.com/pinpoint-apm/pinpoint-kubernetes/actions/workflows/helm-ci.yaml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-Deploy Pinpoint APM **3.1.1** with application chart **3.1.4**.
+Deploy Pinpoint APM **3.1.1** with application chart **3.1.5**.
 Chart and application versions are independent.
 
 | Profile | Deployment |
 | --- | --- |
 | Default | Evaluation stack with Web, Collector, bundled backends and demo data |
+| [Minimal](values-minimal.yaml) | The evaluation stack on one small node (kind, minikube, a laptop) |
 | [Production](values-production.yaml) | Two Web and two Collector replicas using independently managed backends |
 
 Metric mode uses HBase for traces, Kafka/Pinot for metrics, MySQL for Web
@@ -20,7 +21,8 @@ The bundled filesystem-backed HBase pod is intended for evaluation.
 Kubernetes, Helm 3, kubectl and persistent storage for bundled databases.
 Stock HBase/demo images require Linux amd64 nodes. The default stack requests
 about **22.6 GiB RAM and 7.75 CPU cores**, excluding initialization Jobs and
-cluster services. See [sizing and configuration](docs/CONFIGURATION.md).
+cluster services; add `-f values-minimal.yaml` for a single small node (about
+8.3 GiB). See [sizing and configuration](docs/CONFIGURATION.md).
 
 ## Quick start
 
@@ -28,12 +30,13 @@ cluster services. See [sizing and configuration](docs/CONFIGURATION.md).
 helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
 helm repo update
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.4 --namespace pinpoint --create-namespace \
+  --version 3.1.5 --namespace pinpoint --create-namespace \
   --wait --timeout 20m
 kubectl port-forward -n pinpoint service/pinpoint-web 8080:8080
 ```
 
-Open http://localhost:8080. Quickstart supplies demo data.
+Open http://localhost:8080. Quickstart supplies demo data. Host metrics from
+Telegraf are opt-in (`telegraf.enabled=true`).
 
 ## Production
 
@@ -44,7 +47,7 @@ Open http://localhost:8080. Quickstart supplies demo data.
 
 ```bash
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.4 --namespace pinpoint --create-namespace \
+  --version 3.1.5 --namespace pinpoint --create-namespace \
   -f my-production-values.yaml --wait --timeout 20m
 ```
 
@@ -73,11 +76,13 @@ collector:
 This creates `pinpoint-collector-external`; set `name` to retain an existing
 Service name. `LoadBalancer` is also supported. Configure the agent's Collector
 host/ports and a unique `agentId` per instance. Allow the traffic through your
-firewalls and NetworkPolicies. See [configuration](docs/CONFIGURATION.md).
+firewalls and NetworkPolicies. See [instrumenting applications](docs/AGENTS.md)
+for an init-container example.
 
 ## Documentation
 
 - [Production](docs/PRODUCTION.md): backends, storage, capacity and recovery.
+- [Agents](docs/AGENTS.md): instrumenting applications and Collector ports.
 - [Configuration](docs/CONFIGURATION.md): values, Secrets and external services.
 - [Upgrades](docs/UPGRADING.md) and [schema compatibility](docs/SCHEMA-COMPATIBILITY.md).
 - [Local testing](docs/LOCAL-TESTING.md) and [release process](docs/RELEASING.md).

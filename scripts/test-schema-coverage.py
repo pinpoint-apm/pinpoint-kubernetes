@@ -26,11 +26,12 @@ for path in (ROOT / 'files/pinot/3.1.1').glob('*-table.json'):
     if 'RealtimeToOfflineSegmentsTask' in table.get('task', {}).get('taskTypeConfigsMap', {}):
         assert (table['tableName'], 'OFFLINE') in typed, path
 rendered = subprocess.check_output(['helm', 'template', 'pinpoint', str(ROOT)], text=True)
-topic_script = (ROOT / 'templates/init-job-kafka.yaml').read_text()
+# Topics come from global.kafka.topics; the rendered initializer lists one
+# "<topic> <partitions>" line per topic.
 for _, table in definitions:
     if table['tableType'] == 'REALTIME':
         topic = table['tableIndexConfig']['streamConfigs']['stream.kafka.topic.name']
-        assert '--topic ' + topic + ' ' in topic_script, topic
+        assert re.search(r'^\s*' + re.escape(topic) + r' \d+$', rendered, re.M), topic
 sql_names = set()
 for path in (ROOT / 'files/sql/3.1.1').glob('*.sql'):
     sql_names.update(re.findall(r'^CREATE TABLE\s+`?([A-Za-z0-9_]+)', path.read_text(), re.M))

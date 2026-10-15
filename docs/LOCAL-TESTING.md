@@ -1,5 +1,10 @@
 # Local runtime testing
 
+For a quick single-node check, any kind/minikube cluster with about 10 GiB
+of free memory can run the evaluation stack with `-f values-minimal.yaml`
+(about 8.3 GiB of requests). The rest of this page records the full-size
+procedure.
+
 Use an isolated k3d cluster and its explicit kubeconfig on every command.
 A k3s executable alone does not imply a running server. These checks use Linux
 amd64, one physical computer with 30 GiB memory and local-path storage. Defaults

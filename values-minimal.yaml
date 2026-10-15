@@ -1,0 +1,102 @@
+# Small single-node evaluation profile for kind, minikube or a laptop.
+# Requests about 8.3 GiB memory and 2 CPU (all bundled backends, Metric mode,
+# Quickstart demo traffic). Nothing here is highly available or durable:
+# one replica per backend, Kafka/Pinot replication factor 1, small JVM heaps
+# and small persistent volumes.
+#
+#   helm upgrade --install pinpoint pinpoint/pinpoint -f values-minimal.yaml \
+#     --namespace pinpoint --create-namespace --wait --timeout 20m
+web:
+  jvmOptions: "-Xms256m -Xmx768m"
+  resources:
+    requests: {cpu: 250m, memory: 1Gi}
+    limits: {cpu: "2", memory: 1536Mi}
+
+collector:
+  jvmOptions: "-Xms256m -Xmx768m"
+  resources:
+    requests: {cpu: 250m, memory: 1Gi}
+    limits: {cpu: "2", memory: 1536Mi}
+
+hbase:
+  heapSize: "512"
+  persistence:
+    size: 5Gi
+  resources:
+    requests: {cpu: 250m, memory: 1536Mi}
+    limits: {cpu: "2", memory: 2560Mi}
+
+quickstart:
+  jvmOptions: "-Xms128m -Xmx256m"
+  resources:
+    requests: {cpu: 100m, memory: 384Mi}
+    limits: {cpu: "1", memory: 768Mi}
+
+zookeeper:
+  replicaCount: 1
+  heapSize: 256
+  persistence:
+    size: 1Gi
+  resources:
+    requests: {cpu: 100m, memory: 384Mi}
+    limits: {cpu: "1", memory: 768Mi}
+
+mysql:
+  primary:
+    persistence:
+      size: 2Gi
+    resources:
+      requests: {cpu: 100m, memory: 512Mi}
+      limits: {cpu: "1", memory: 1Gi}
+
+redis:
+  master:
+    persistence:
+      size: 1Gi
+    resources:
+      requests: {cpu: 50m, memory: 64Mi}
+      limits: {cpu: 500m, memory: 256Mi}
+
+# One combined KRaft controller+broker node.
+kafka:
+  overrideConfiguration:
+    offsets.topic.replication.factor: 1
+    transaction.state.log.replication.factor: 1
+    transaction.state.log.min.isr: 1
+  controller:
+    replicaCount: 1
+    heapOpts: "-Xms256m -Xmx512m"
+    persistence:
+      size: 2Gi
+    resources:
+      requests: {cpu: 250m, memory: 768Mi}
+      limits: {cpu: "2", memory: 1Gi}
+  broker:
+    replicaCount: 0
+
+pinot:
+  controller:
+    jvmOpts: "-XX:ActiveProcessorCount=2 -Xms128M -Xmx512M -XX:+UseG1GC -Djute.maxbuffer=4000000"
+    persistence:
+      size: 2Gi
+    resources:
+      requests: {cpu: 100m, memory: 640Mi}
+      limits: {cpu: "1", memory: 1Gi}
+  broker:
+    jvmOpts: "-XX:ActiveProcessorCount=2 -Xms128M -Xmx512M -XX:+UseG1GC -Djute.maxbuffer=4000000"
+    resources:
+      requests: {cpu: 100m, memory: 640Mi}
+      limits: {cpu: "1", memory: 1Gi}
+  server:
+    jvmOpts: "-Xms256M -Xmx768M -XX:+UseG1GC -Djute.maxbuffer=4000000"
+    persistence:
+      size: 5Gi
+    resources:
+      requests: {cpu: 250m, memory: 1Gi}
+      limits: {cpu: "2", memory: 2Gi}
+  # Pinot 1.3 rejects tables with minion tasks unless a Minion is registered.
+  minionStateless:
+    jvmOpts: "-XX:ActiveProcessorCount=2 -Xms128M -Xmx384M -XX:+UseG1GC -Djute.maxbuffer=4000000"
+    resources:
+      requests: {cpu: 100m, memory: 512Mi}
+      limits: {cpu: "1", memory: 768Mi}
