@@ -1,6 +1,82 @@
 apiVersion: v1
 entries:
   pinpoint:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: security
+          description: Generate the Web admin API password instead of using "admin"
+        - kind: security
+          description: Generate bundled MySQL passwords and disable UI usage reporting by default
+        - kind: removed
+          description: Remove the non-functional standalone agent Deployment
+        - kind: fixed
+          description: Repair Kafka topics created with too few partitions
+        - kind: fixed
+          description: Apply Pinpoint 3.1.1 HBase index TTLs and Batch Spring Mail settings
+        - kind: changed
+          description: Make Telegraf an opt-in DaemonSet and harden init containers
+        - kind: added
+          description: Gateway API HTTPRoute, values-minimal.yaml and registry/pull-secret coverage
+      artifacthub.io/images: |
+        - name: pinpoint-web
+          image: pinpointdocker/pinpoint-web:3.1.1-metric
+        - name: pinpoint-collector
+          image: pinpointdocker/pinpoint-collector:3.1.1-metric
+        - name: pinpoint-hbase
+          image: pinpointdocker/pinpoint-hbase:3.1.1
+        - name: pinot
+          image: apachepinot/pinot:1.3.0
+      artifacthub.io/license: Apache-2.0
+      artifacthub.io/links: |
+        - name: Production guide
+          url: https://github.com/pinpoint-apm/pinpoint-kubernetes/blob/master/docs/PRODUCTION.md
+        - name: Upgrade notes
+          url: https://github.com/pinpoint-apm/pinpoint-kubernetes/blob/master/docs/UPGRADING.md
+    apiVersion: v2
+    appVersion: 3.1.1
+    created: "2026-10-15T18:56:37.158970509Z"
+    dependencies:
+    - condition: zookeeper.enabled
+      name: zookeeper
+      repository: https://charts.bitnami.com/bitnami
+      version: 13.8.7
+    - condition: mysql.enabled
+      name: mysql
+      repository: https://charts.bitnami.com/bitnami
+      version: 14.0.3
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: 22.0.7
+    - condition: kafka.enabled,global.metric.enabled
+      name: kafka
+      repository: https://charts.bitnami.com/bitnami
+      version: 32.4.3
+    - condition: pinot.enabled,global.metric.enabled
+      name: pinot
+      repository: https://raw.githubusercontent.com/apache/pinot/master/helm
+      version: 0.3.4
+    description: A Helm chart for deploying Pinpoint APM (Application Performance
+      Management) on Kubernetes.
+    digest: 30fe34bb75d190e7c51feede4a301630f1a2668d339ba812a4ed33ba702c223a
+    home: https://github.com/pinpoint-apm/pinpoint-kubernetes
+    icon: https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.1.1/doc/images/NAVERPinpoint.png
+    keywords:
+    - apm
+    - pinpoint
+    - monitoring
+    - performance
+    - metrics
+    maintainers:
+    - email: thesadson@gmail.com
+      name: Emircan Agac
+    name: pinpoint
+    sources:
+    - https://github.com/pinpoint-apm/pinpoint
+    type: application
+    urls:
+    - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-3.1.5/pinpoint-3.1.5.tgz
+    version: 3.1.5
   - apiVersion: v2
     appVersion: 3.1.1
     created: "2026-10-15T08:23:38.027221583Z"
@@ -229,6 +305,21 @@ entries:
   pinpoint-hbase-stackable:
   - apiVersion: v2
     appVersion: 2.6.6
+    created: "2026-10-15T18:56:37.454742794Z"
+    description: Operator-managed distributed HBase/HDFS backend for Pinpoint; qualification
+      candidate.
+    digest: 23e091866d0b80c8c9eb2bdf8282f00eb837f8fc94a314f77bdde22e7e78dcc9
+    kubeVersion: '>=1.31.0-0 <1.37.0-0'
+    maintainers:
+    - email: thesadson@gmail.com
+      name: Emircan Agac
+    name: pinpoint-hbase-stackable
+    type: application
+    urls:
+    - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-hbase-stackable-0.1.3/pinpoint-hbase-stackable-0.1.3.tgz
+    version: 0.1.3
+  - apiVersion: v2
+    appVersion: 2.6.6
     created: "2026-10-15T13:54:11.580861348Z"
     description: Operator-managed distributed HBase/HDFS backend for Pinpoint; qualification
       candidate.
@@ -272,4 +363,4 @@ entries:
     urls:
     - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-hbase-stackable-0.1.0/pinpoint-hbase-stackable-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-15T13:54:11.580892076Z"
+generated: "2026-10-15T18:56:37.454780675Z"
