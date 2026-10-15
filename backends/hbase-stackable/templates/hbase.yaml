@@ -21,6 +21,10 @@ spec:
   {{ $role }}:
     roleConfig:
       podDisruptionBudget: {enabled: true, maxUnavailable: 1}
+    {{- with (index $.Values.hbase $role).configOverrides }}
+    configOverrides:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
     config:
       hbaseRootdir: /hbase
       listenerClass: cluster-internal

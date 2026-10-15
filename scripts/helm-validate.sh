@@ -20,6 +20,7 @@ helm dependency build "${chart_dir}"
 helm lint "${chart_dir}"
 helm lint "${chart_dir}" --set global.metric.enabled=false
 ruby "${chart_dir}/scripts/test-collector-service.rb" "${chart_dir}"
+ruby "${chart_dir}/scripts/validate-gitops.rb"
 
 helm template pinpoint "${chart_dir}" --namespace pinpoint > "${render_dir}/metric.yaml"
 helm template pinpoint "${chart_dir}" --namespace pinpoint \

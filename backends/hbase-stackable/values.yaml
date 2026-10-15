@@ -54,6 +54,11 @@ hbase:
       memory: {limit: 2Gi}
   regionServers:
     replicas: 3
+    configOverrides:
+      hbase-site.xml:
+        hbase.split.writer.creation.bounded: "true"
+        hbase.regionserver.hlog.splitlog.writer.threads: "2"
+        hbase.regionserver.wal.max.splitters: "1"
     resources:
       cpu: {min: "2", max: "8"}
       memory: {limit: 8Gi}

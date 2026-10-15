@@ -11,10 +11,20 @@ test "$(grep -c 'requiredDuringSchedulingIgnoredDuringExecution:' "$temp/backend
 test "$(grep -c 'storageClass: validated-ssd' "$temp/backend.yaml")" -eq 4
 test "$(grep -c 'podDisruptionBudget: {enabled: true, maxUnavailable: 1}' "$temp/backend.yaml")" -eq 6
 test "$(grep -c 'helm.sh/resource-policy: keep' "$temp/backend.yaml")" -eq 5
+test "$(grep -c 'argocd.argoproj.io/sync-options: ServerSideApply=true' "$temp/backend.yaml")" -eq 5
 grep -q 'dfsReplication: 3' "$temp/backend.yaml"
 grep -q 'hdfsStorageType: Disk' "$temp/backend.yaml"
 grep -q 'serverSecretClass: null' "$temp/backend.yaml"
 grep -q 'quorumSecretClass: tls' "$temp/backend.yaml"
+grep -q 'hbase.split.writer.creation.bounded: "true"' "$temp/backend.yaml"
+grep -q 'hbase.regionserver.hlog.splitlog.writer.threads: "2"' "$temp/backend.yaml"
+grep -q 'hbase.regionserver.wal.max.splitters: "1"' "$temp/backend.yaml"
+helm template telemetry "$backend" --namespace telemetry --set storageClass=validated-ssd \
+  --set-string 'hbase.regionServers.configOverrides.hbase-site\.xml.hbase\.regionserver\.hlog\.splitlog\.writer\.threads=4' \
+  --set-string 'hbase.masters.configOverrides.hbase-site\.xml.hbase\.master\.namespace\.init\.timeout=1800000' \
+  --show-only templates/hbase.yaml > "$temp/hbase-overrides.yaml"
+grep -q 'hbase.regionserver.hlog.splitlog.writer.threads: "4"' "$temp/hbase-overrides.yaml"
+grep -q 'hbase.master.namespace.init.timeout: "1800000"' "$temp/hbase-overrides.yaml"
 grep -q 'cluster-internal' "$temp/backend.yaml"
 grep -q 'telemetry-storage-hbase-znode' "$temp/backend.yaml"
 helm template telemetry "$backend" --namespace telemetry --set storageClass=validated-ssd \
@@ -42,5 +52,6 @@ for invalid in '' 'zookeeper.replicas=2' 'hdfs.nameNodes.replicas=1' 'hdfs.journ
 done
 ruby "$root/scripts/test-hbase-schema.rb"
 helm package "$backend" --destination "$temp"
-helm lint "$temp/pinpoint-hbase-stackable-0.1.1.tgz" --set storageClass=validated-ssd
+backend_version=$(helm show chart "$backend" | awk '/^version:/ {print $2}')
+helm lint "$temp/pinpoint-hbase-stackable-$backend_version.tgz" --set storageClass=validated-ssd
 echo "HA backend render and packaging checks passed. Runtime HA qualification is separate."

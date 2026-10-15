@@ -16,8 +16,9 @@
 labels:
   app.kubernetes.io/part-of: pinpoint-storage
   app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- if .Values.keepResources }}
 annotations:
+  argocd.argoproj.io/sync-options: ServerSideApply=true
+{{- if .Values.keepResources }}
   helm.sh/resource-policy: keep
 {{- end }}
 {{- end -}}

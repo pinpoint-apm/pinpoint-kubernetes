@@ -1,5 +1,25 @@
 # Upgrading the Pinpoint chart
 
+## Storage chart 0.1.0 / 0.1.1 to 0.1.2
+
+The independently versioned `pinpoint-hbase-stackable` chart now limits WAL
+recovery to one splitter and two bounded writer threads per RegionServer.
+HBase role-level `configOverrides` are supported. Applying these defaults
+rolls RegionServers; retain existing resource, PVC and image settings.
+The application chart remains 3.1.4 and Pinpoint remains 3.1.1.
+
+Backend CRs request Argo CD server-side apply, preserving explicit null
+ZooKeeper TLS settings. When adopting existing resources, run one sync if
+changing the apply method alone does not trigger it. Argo CD does not update
+the legacy Helm release history; inspect Application revisions and live health.
+
+If client TLS had been enabled unintentionally, first verify the ZooKeeper
+Service exposes 2181. Reconcile the existing HBase/HDFS Znode claims to refresh
+their discovery ConfigMaps without changing claim paths. Verify the generated
+HBase configuration, then restart affected roles in sequence. Confirm zero
+regions in transition, readable `Application`/`AgentId` data, recent ingestion
+and HDFS block health; ready pods alone are insufficient.
+
 ## Chart 3.1.3 to 3.1.4
 
 Pinpoint stays on 3.1.1; dependencies, schema definitions and persistence sizes

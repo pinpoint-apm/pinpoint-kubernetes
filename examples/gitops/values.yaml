@@ -1,0 +1,79 @@
+# Overrides the pinned production profile with environment-specific connection settings.
+global:
+  zookeeper:
+    address: zk.example.internal:2181
+  hbase:
+    zookeeperQuorum: hbase-zk.example.internal
+    clientPort: 2181
+    znodeParent: /hbase
+  datasource:
+    jdbcUrl: jdbc:mysql://mysql.example.internal:3306/pinpoint?sslMode=VERIFY_IDENTITY
+    username: pinpoint
+    passwordSecret:
+      name: pinpoint-mysql-credentials
+      key: password
+  redis:
+    host: redis.example.internal
+    passwordSecret:
+      name: pinpoint-redis-credentials
+      key: password
+  kafka:
+    bootstrapServers: kafka-1.example.internal:9092,kafka-2.example.internal:9092,kafka-3.example.internal:9092
+  pinot:
+    jdbcUrl: jdbc:pinot://pinot-controller.example.internal:9000
+
+web:
+  login:
+    existingSecret: pinpoint-login
+  ingress:
+    ingressClassName: nginx
+    hosts:
+      - host: pinpoint.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: pinpoint-web-tls
+        hosts: [pinpoint.example.com]
+
+collector:
+  externalService:
+    enabled: true
+    type: NodePort
+    nodePorts:
+      grpcAgent: 30991
+      grpcStat: 30992
+      grpcSpan: 30993
+
+networkPolicy:
+  collector:
+    ingressFrom:
+      - namespaceSelector:
+          matchLabels:
+            pinpoint-apm.io/agent-access: "true"
+      - ipBlock:
+          cidr: 192.0.2.0/24
+  externalEgress:
+    - to:
+        - ipBlock:
+            cidr: 192.0.2.0/24
+      ports:
+        - {port: 2181, protocol: TCP}
+        - {port: 16000, protocol: TCP}
+        - {port: 16020, protocol: TCP}
+        - {port: 3306, protocol: TCP}
+        - {port: 6379, protocol: TCP}
+        - {port: 9092, protocol: TCP}
+        - {port: 9000, protocol: TCP}
+        - {port: 8099, protocol: TCP}
+        - {port: 8098, protocol: TCP}
+    - to:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/instance
+                operator: In
+                values: [pinpoint-storage-zk, pinpoint-storage-hbase]
+      ports:
+        - {port: 2181, protocol: TCP}
+        - {port: 16000, protocol: TCP}
+        - {port: 16020, protocol: TCP}
