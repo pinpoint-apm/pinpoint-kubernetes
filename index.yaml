@@ -3,6 +3,73 @@ entries:
   pinpoint:
   - annotations:
       artifacthub.io/changes: |
+        - kind: fixed
+          description: Use the Pinpoint symbol as chart icon instead of a chat-group QR code
+        - kind: changed
+          description: Update the maintainer contact
+      artifacthub.io/images: |
+        - name: pinpoint-web
+          image: pinpointdocker/pinpoint-web:3.1.1-metric
+        - name: pinpoint-collector
+          image: pinpointdocker/pinpoint-collector:3.1.1-metric
+        - name: pinpoint-hbase
+          image: pinpointdocker/pinpoint-hbase:3.1.1
+        - name: pinot
+          image: apachepinot/pinot:1.3.0
+      artifacthub.io/license: Apache-2.0
+      artifacthub.io/links: |
+        - name: Production guide
+          url: https://github.com/pinpoint-apm/pinpoint-kubernetes/blob/master/docs/PRODUCTION.md
+        - name: Upgrade notes
+          url: https://github.com/pinpoint-apm/pinpoint-kubernetes/blob/master/docs/UPGRADING.md
+    apiVersion: v2
+    appVersion: 3.1.1
+    created: "2026-10-20T21:09:32.668022537Z"
+    dependencies:
+    - condition: zookeeper.enabled
+      name: zookeeper
+      repository: https://charts.bitnami.com/bitnami
+      version: 13.8.7
+    - condition: mysql.enabled
+      name: mysql
+      repository: https://charts.bitnami.com/bitnami
+      version: 14.0.3
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: 22.0.7
+    - condition: kafka.enabled,global.metric.enabled
+      name: kafka
+      repository: https://charts.bitnami.com/bitnami
+      version: 32.4.3
+    - condition: pinot.enabled,global.metric.enabled
+      name: pinot
+      repository: https://raw.githubusercontent.com/apache/pinot/master/helm
+      version: 0.3.4
+    description: A Helm chart for deploying Pinpoint APM (Application Performance
+      Management) on Kubernetes.
+    digest: 3e009d0dee6f3de4cb0d48f9002b1112f61cd92a607775e6ed581173947f4848
+    home: https://github.com/pinpoint-apm/pinpoint-kubernetes
+    icon: https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.1.1/web-frontend/src/main/v3/apps/web/public/img/mini-logo.png
+    keywords:
+    - apm
+    - pinpoint
+    - monitoring
+    - performance
+    - metrics
+    maintainers:
+    - email: emircanagac@proton.me
+      name: Emircan Agac
+      url: https://github.com/emircanagac
+    name: pinpoint
+    sources:
+    - https://github.com/pinpoint-apm/pinpoint
+    type: application
+    urls:
+    - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-3.1.7/pinpoint-3.1.7.tgz
+    version: 3.1.7
+  - annotations:
+      artifacthub.io/changes: |
         - kind: added
           description: Configure history retention in days with explicit opt-in for existing HBase and Pinot tables
       artifacthub.io/images: |
@@ -369,6 +436,23 @@ entries:
   pinpoint-hbase-stackable:
   - apiVersion: v2
     appVersion: 2.6.6
+    created: "2026-10-20T21:09:32.88365827Z"
+    description: Operator-managed distributed HBase/HDFS backend for Pinpoint; qualification
+      candidate.
+    digest: 2ddb736ec9aaa679dea43aac615ad4d3a1fc6cd67d252a65a0295b9d2244df51
+    icon: https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.1.1/web-frontend/src/main/v3/apps/web/public/img/mini-logo.png
+    kubeVersion: '>=1.31.0-0 <1.37.0-0'
+    maintainers:
+    - email: emircanagac@proton.me
+      name: Emircan Agac
+      url: https://github.com/emircanagac
+    name: pinpoint-hbase-stackable
+    type: application
+    urls:
+    - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-hbase-stackable-0.1.5/pinpoint-hbase-stackable-0.1.5.tgz
+    version: 0.1.5
+  - apiVersion: v2
+    appVersion: 2.6.6
     created: "2026-10-20T14:40:18.547391802Z"
     description: Operator-managed distributed HBase/HDFS backend for Pinpoint; qualification
       candidate.
@@ -442,4 +526,4 @@ entries:
     urls:
     - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-hbase-stackable-0.1.0/pinpoint-hbase-stackable-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-20T14:40:18.547432124Z"
+generated: "2026-10-20T21:09:32.883709815Z"
