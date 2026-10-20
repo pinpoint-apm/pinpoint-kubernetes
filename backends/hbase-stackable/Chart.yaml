@@ -2,9 +2,11 @@ apiVersion: v2
 name: pinpoint-hbase-stackable
 description: Operator-managed distributed HBase/HDFS backend for Pinpoint; qualification candidate.
 type: application
-version: 0.1.4
+version: 0.1.5
 appVersion: "2.6.6"
 kubeVersion: ">=1.31.0-0 <1.37.0-0"
+icon: https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.1.1/web-frontend/src/main/v3/apps/web/public/img/mini-logo.png
 maintainers:
   - name: Emircan Agac
-    email: thesadson@gmail.com
+    email: emircanagac@proton.me
+    url: https://github.com/emircanagac
