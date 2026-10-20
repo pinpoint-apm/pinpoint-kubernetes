@@ -25,3 +25,4 @@ sed \
   "${chart_dir}/docs/helm-repository/index.html" > "${target_dir}/index.html"
 
 cp "${chart_dir}/docs/helm-repository/.nojekyll" "${target_dir}/.nojekyll"
+cp "${chart_dir}/docs/helm-repository/artifacthub-repo.yml" "${target_dir}/artifacthub-repo.yml"
