@@ -3,6 +3,70 @@ entries:
   pinpoint:
   - annotations:
       artifacthub.io/changes: |
+        - kind: added
+          description: Configure history retention in days with explicit opt-in for existing HBase and Pinot tables
+      artifacthub.io/images: |
+        - name: pinpoint-web
+          image: pinpointdocker/pinpoint-web:3.1.1-metric
+        - name: pinpoint-collector
+          image: pinpointdocker/pinpoint-collector:3.1.1-metric
+        - name: pinpoint-hbase
+          image: pinpointdocker/pinpoint-hbase:3.1.1
+        - name: pinot
+          image: apachepinot/pinot:1.3.0
+      artifacthub.io/license: Apache-2.0
+      artifacthub.io/links: |
+        - name: Production guide
+          url: https://github.com/pinpoint-apm/pinpoint-kubernetes/blob/master/docs/PRODUCTION.md
+        - name: Upgrade notes
+          url: https://github.com/pinpoint-apm/pinpoint-kubernetes/blob/master/docs/UPGRADING.md
+    apiVersion: v2
+    appVersion: 3.1.1
+    created: "2026-10-20T14:40:18.390043242Z"
+    dependencies:
+    - condition: zookeeper.enabled
+      name: zookeeper
+      repository: https://charts.bitnami.com/bitnami
+      version: 13.8.7
+    - condition: mysql.enabled
+      name: mysql
+      repository: https://charts.bitnami.com/bitnami
+      version: 14.0.3
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: 22.0.7
+    - condition: kafka.enabled,global.metric.enabled
+      name: kafka
+      repository: https://charts.bitnami.com/bitnami
+      version: 32.4.3
+    - condition: pinot.enabled,global.metric.enabled
+      name: pinot
+      repository: https://raw.githubusercontent.com/apache/pinot/master/helm
+      version: 0.3.4
+    description: A Helm chart for deploying Pinpoint APM (Application Performance
+      Management) on Kubernetes.
+    digest: d5aae7f6ec6e78334f43d38a8d20fbd750413f5093a9cb59d33ec8884030269f
+    home: https://github.com/pinpoint-apm/pinpoint-kubernetes
+    icon: https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.1.1/doc/images/NAVERPinpoint.png
+    keywords:
+    - apm
+    - pinpoint
+    - monitoring
+    - performance
+    - metrics
+    maintainers:
+    - email: thesadson@gmail.com
+      name: Emircan Agac
+    name: pinpoint
+    sources:
+    - https://github.com/pinpoint-apm/pinpoint
+    type: application
+    urls:
+    - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-3.1.6/pinpoint-3.1.6.tgz
+    version: 3.1.6
+  - annotations:
+      artifacthub.io/changes: |
         - kind: security
           description: Generate the Web admin API password instead of using "admin"
         - kind: security
@@ -305,6 +369,21 @@ entries:
   pinpoint-hbase-stackable:
   - apiVersion: v2
     appVersion: 2.6.6
+    created: "2026-10-20T14:40:18.547391802Z"
+    description: Operator-managed distributed HBase/HDFS backend for Pinpoint; qualification
+      candidate.
+    digest: 071d74d6a46095c83845b5758db51a85d20bf7024d83f4d4f5fd8ae0297ccf54
+    kubeVersion: '>=1.31.0-0 <1.37.0-0'
+    maintainers:
+    - email: thesadson@gmail.com
+      name: Emircan Agac
+    name: pinpoint-hbase-stackable
+    type: application
+    urls:
+    - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-hbase-stackable-0.1.4/pinpoint-hbase-stackable-0.1.4.tgz
+    version: 0.1.4
+  - apiVersion: v2
+    appVersion: 2.6.6
     created: "2026-10-15T18:56:37.454742794Z"
     description: Operator-managed distributed HBase/HDFS backend for Pinpoint; qualification
       candidate.
@@ -363,4 +442,4 @@ entries:
     urls:
     - https://github.com/pinpoint-apm/pinpoint-kubernetes/releases/download/pinpoint-hbase-stackable-0.1.0/pinpoint-hbase-stackable-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-15T18:56:37.454780675Z"
+generated: "2026-10-20T14:40:18.547432124Z"
