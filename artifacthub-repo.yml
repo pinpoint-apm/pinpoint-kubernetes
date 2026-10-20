@@ -1,0 +1,7 @@
+# Artifact Hub repository metadata, published at the root of the Helm
+# repository to mark it as a Verified Publisher.
+# https://artifacthub.io/docs/topics/repositories/#verified-publisher
+repositoryID: 45a624ef-1458-4e85-95b8-11c46bc5d70a
+owners:
+  - name: Emircan Agac
+    email: emircanagac@proton.me
