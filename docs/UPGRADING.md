@@ -1,5 +1,25 @@
 # Upgrading the Pinpoint chart
 
+## Chart 3.1.5 to 3.1.6 / storage 0.1.3 to 0.1.4
+
+Pinpoint stays on 3.1.1 and dependency versions are unchanged. History retention
+is opt-in; existing deployments keep all current TTLs unless explicitly enabled
+with `global.retention.applyToExisting=true`. See the
+[retention settings](CONFIGURATION.md#history-retention) before shortening a
+window: old data can expire and cannot be restored by raising the value again.
+
+Pass the same `global.retention` block to application and Stackable storage
+releases. Application initialization manages Pinot and bundled HBase; the
+storage schema Job manages Stackable HBase. Metadata/liveness tables are
+excluded. Keep the policy enabled with `applyToExisting=true` if later values
+changes should also update existing history tables. Turning it off preserves
+the last applied database settings; it does not restore upstream defaults.
+
+Changing storage policy creates a newly named schema Job. Wait for it and the
+Pinot initialization hook to succeed before checking actual retention and
+ingestion. The bundled HBase pod rolls when its policy environment changes.
+Space is reclaimed by normal cleanup/compaction, not immediately during sync.
+
 ## Chart 3.1.4 to 3.1.5
 
 Pinpoint stays on 3.1.1 and the locked dependency charts are unchanged. Most

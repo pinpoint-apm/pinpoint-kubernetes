@@ -5,7 +5,8 @@ changed image, schema or setting creates a new Job instead of failing upgrade.
 */}}
 {{- $schemaFile := .Files.Get "files/hbase-create.hbase" }}
 {{- $script := .Files.Get "files/initialize-schema.rb" }}
-{{- $inputs := list (include "backend.image" (dict "root" . "product" "hbase")) .Values.imagePullPolicy (toJson .Values.imagePullSecrets) (toJson .Values.bootstrap) $schemaFile $script }}
+{{- $retentionScript := .Files.Get "files/hbase-retention.rb" }}
+{{- $inputs := list (include "backend.image" (dict "root" . "product" "hbase")) .Values.imagePullPolicy (toJson .Values.imagePullSecrets) (toJson .Values.bootstrap) (toJson .Values.global.retention) $schemaFile $script $retentionScript }}
 {{- $jobHash := join "|" $inputs | sha256sum | trunc 8 }}
 {{- /* Job names feed the 63-character job-name label. */}}
 {{- $jobName := printf "%s-%s" (printf "%s-schema-%s" (include "backend.name" .) .Values.bootstrap.revision | trunc 54 | trimSuffix "-") $jobHash }}
@@ -21,6 +22,8 @@ data:
     {{- $schemaFile | nindent 4 }}
   initialize.rb: |
     {{- $script | nindent 4 }}
+  hbase-retention.rb: |
+    {{- $retentionScript | nindent 4 }}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -64,6 +67,12 @@ spec:
               value: {{ .Values.bootstrap.readyTimeoutSeconds | quote }}
             - name: PRE_SPLIT
               value: {{ .Values.bootstrap.preSplit | quote }}
+            - name: PINPOINT_RETENTION_ENABLED
+              value: {{ .Values.global.retention.enabled | quote }}
+            - name: PINPOINT_RETENTION_DAYS
+              value: {{ .Values.global.retention.days | quote }}
+            - name: PINPOINT_RETENTION_APPLY_TO_EXISTING
+              value: {{ .Values.global.retention.applyToExisting | quote }}
             - {name: HOME, value: /tmp}
             - {name: HBASE_LOG_DIR, value: /tmp}
           securityContext:

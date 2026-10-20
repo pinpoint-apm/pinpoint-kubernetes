@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "properties": {
+        "retention": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "days",
+            "applyToExisting"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3650
+            },
+            "applyToExisting": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

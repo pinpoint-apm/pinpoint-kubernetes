@@ -36,6 +36,22 @@ DEFINITIONS = (
     ("heatmap-stat-application", "offline"),
 )
 
+METADATA_TABLES = frozenset(("otlpMetricMetadata", "systemMetricDataType", "systemMetricTag"))
+
+
+def retention_settings(environ):
+    flags = [environ.get(key, "false") for key in
+             ("PINPOINT_RETENTION_ENABLED", "PINPOINT_RETENTION_APPLY_TO_EXISTING")]
+    value = environ.get("PINPOINT_RETENTION_DAYS", "7")
+    if any(flag not in ("true", "false") for flag in flags):
+        raise InitializationError("Retention flags must be true or false")
+    if not value.isascii() or not value.isdecimal() or not 1 <= int(value) <= 3650:
+        raise InitializationError("Retention days must be an integer from 1 to 3650")
+    enabled, apply_existing = (flag == "true" for flag in flags)
+    if apply_existing and not enabled:
+        raise InitializationError("Applying retention to existing tables requires retention enabled")
+    return (int(value) if enabled else None), apply_existing
+
 
 class InitializationError(RuntimeError):
     pass
@@ -70,7 +86,7 @@ class Controller:
             time.sleep(5)
 
 
-def load_definitions(directory, bootstrap_servers, replicas):
+def load_definitions(directory, bootstrap_servers, replicas, retention_days=None):
     if not bootstrap_servers or replicas < 1:
         raise InitializationError("Kafka bootstrap servers and positive Pinot replicas are required")
     definitions = []
@@ -87,6 +103,9 @@ def load_definitions(directory, bootstrap_servers, replicas):
                     or table["tableType"] != kind.upper()):
                 raise ValueError()
             segments = table["segmentsConfig"]
+            if retention_days is not None and table_name not in METADATA_TABLES:
+                segments["retentionTimeUnit"] = "DAYS"
+                segments["retentionTimeValue"] = str(retention_days)
             segments["replicasPerPartition"] = str(replicas)
             if kind == "offline":
                 segments["replication"] = str(replicas)
@@ -127,7 +146,44 @@ def ensure_resource(controller, lookup, create, payload, label):
     print("Created: " + label, flush=True)
 
 
-def initialize(controller, definitions):
+def read_table_config(controller, name, kind):
+    status, payload = controller.request("GET", "/tables/" + quote(name, safe="") + "?type=" + kind)
+    if status != 200:
+        raise InitializationError("Cannot read table retention: " + name + "_" + kind + ": HTTP " + str(status))
+    config = payload.get(kind) if isinstance(payload, dict) else None
+    if (not isinstance(config, dict) or config.get("tableType") != kind
+            or config.get("tableName") not in (name, name + "_" + kind)
+            or not isinstance(config.get("segmentsConfig"), dict)):
+        raise InitializationError("Invalid table configuration for " + name + "_" + kind)
+    return config
+
+
+def reconcile_retention(controller, definitions, days):
+    targets = [(table["tableName"], table["tableType"]) for _, table in definitions
+               if table["tableName"] not in METADATA_TABLES]
+    # Fail on inaccessible/invalid targets before changing any retention config.
+    for name, kind in targets:
+        read_table_config(controller, name, kind)
+    for name, kind in targets:
+        config = copy.deepcopy(read_table_config(controller, name, kind))
+        segments = config["segmentsConfig"]
+        if (segments.get("retentionTimeUnit") == "DAYS"
+                and str(segments.get("retentionTimeValue")) == str(days)):
+            continue
+        segments["retentionTimeUnit"], segments["retentionTimeValue"] = "DAYS", str(days)
+        status, _ = controller.request("PUT", "/tables/" + quote(name, safe=""), config)
+        if not 200 <= status < 300:
+            raise InitializationError("Cannot update retention for " + name + "_" + kind + ": HTTP " + str(status))
+        actual = read_table_config(controller, name, kind)["segmentsConfig"]
+        if actual.get("retentionTimeUnit") != "DAYS" or str(actual.get("retentionTimeValue")) != str(days):
+            raise InitializationError("Retention verification failed for " + name + "_" + kind)
+        print("Applied " + str(days) + "-day retention to " + name + "_" + kind, flush=True)
+    print("Verified " + str(days) + "-day Pinot history retention; metadata retention preserved", flush=True)
+
+
+def initialize(controller, definitions, retention_days=None, apply_to_existing=False):
+    if apply_to_existing and retention_days is None:
+        raise InitializationError("Applying retention to existing tables requires retention enabled")
     for schema, table in definitions:
         schema_name = schema["schemaName"]
         table_name, kind = table["tableName"], table["tableType"]
@@ -135,15 +191,18 @@ def initialize(controller, definitions):
                         "/schemas?override=false", schema, "schema " + schema_name)
         ensure_resource(controller, "/tables/" + quote(table_name, safe="") + "/state?type=" + kind,
                         "/tables", table, "table " + table_name + "_" + kind)
+    if apply_to_existing:
+        reconcile_retention(controller, definitions, retention_days)
     print("All required Pinpoint schemas and typed tables exist; verify ingestion separately.", flush=True)
 
 
 def main():
     try:
+        retention_days, apply_existing = retention_settings(os.environ)
         definitions = load_definitions(os.environ["PINOT_DEFINITIONS_DIR"],
                                        os.environ["KAFKA_BOOTSTRAP_SERVERS"],
-                                       int(os.environ["PINOT_TABLE_REPLICAS"]))
-        initialize(Controller(os.environ["PINOT_CONTROLLER_URL"]), definitions)
+                                       int(os.environ["PINOT_TABLE_REPLICAS"]), retention_days)
+        initialize(Controller(os.environ["PINOT_CONTROLLER_URL"]), definitions, retention_days, apply_existing)
     except (InitializationError, KeyError, ValueError) as error:
         print("Pinot initialization failed: " + str(error), file=sys.stderr)
         return 1

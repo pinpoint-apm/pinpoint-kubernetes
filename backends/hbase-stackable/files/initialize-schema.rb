@@ -1,6 +1,9 @@
 # Run by HBase Shell. Wait for transient Master startup errors in this pod;
 # permanent failures (including disabled tables) still fail the Job.
 begin
+  load ENV.fetch('HBASE_RETENTION_FILE', '/schema/hbase-retention.rb')
+  retention = PinpointRetention.new
+  tables = []
   deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + Integer(ENV.fetch('HBASE_READY_TIMEOUT', '900'))
   loop do
     begin
@@ -19,6 +22,8 @@ begin
   File.foreach(ENV.fetch('HBASE_SCHEMA_FILE', '/schema/hbase-create.hbase')) do |line|
     match = /^create '([^']+)'/.match(line)
     next unless match
+    line = retention.definition(line, match[1])
+    tables << [match[1], line.scan(/NAME => '([^']+)'/).flatten]
     if ENV['PRE_SPLIT'] == 'false'
       line = line.sub(/,\s*\{SPLITS.*$/, '').sub(/,\s*\{NUMREGIONS.*$/, '')
     end
@@ -27,6 +32,7 @@ begin
     verified_tables += 1
   end
   raise 'Expected 22 Pinpoint 3.1.1 tables' unless verified_tables == 22
+  retention.reconcile_hbase(tables) { |table, changes| alter(table, *changes) }
   puts "Verified #{verified_tables} Pinpoint tables"
 rescue => error
   warn error.message

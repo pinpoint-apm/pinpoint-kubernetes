@@ -24,12 +24,17 @@ class FakeController:
         self.schemas = {"unrelated" + str(i) for i in range(8)}
         self.tables = {"unrelated" + str(i) + "_REALTIME" for i in range(8)}
         self.writes = []
+        self.configs = {}
         self.failure = None
 
     def request(self, method, path, payload=None):
         if self.failure:
             return self.failure, None
         if method == "GET":
+            if path.startswith("/tables/") and "/state?" not in path:
+                name, kind = path.split("/")[2].split("?type=")
+                config = self.configs.get(name + "_" + kind)
+                return (200, {kind: config}) if config is not None else (404, None)
             if path.startswith("/schemas/"):
                 found = path.split("/")[-1] in self.schemas
             else:
@@ -41,6 +46,10 @@ class FakeController:
             self.schemas.add(payload["schemaName"])
         else:
             self.tables.add(payload["tableName"] + "_" + payload["tableType"])
+            name = payload["tableName"]
+            kind = payload["tableType"]
+            typed_name = name if name.endswith("_" + kind) else name + "_" + kind
+            self.configs[typed_name] = json.loads(json.dumps(payload))
         return 200, {"status": "success"}
 
 
@@ -202,6 +211,114 @@ class PinotInitializationTests(unittest.TestCase):
                 request.reset_mock()
                 self.assertEqual(pinot.Controller("http://pinot").request("POST", "/schemas", {}), (503, None))
                 self.assertEqual(request.call_count, 1)
+
+
+class PinotRetentionTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = ROOT / "files/pinot/3.1.1"
+        self.original = pinot.load_definitions(self.directory, "old-kafka:9092", 1)
+        self.desired = pinot.load_definitions(self.directory, "new-kafka:9092", 2, 7)
+        self.controller = FakeController()
+        for schema, table in self.original:
+            self.controller.schemas.add(schema["schemaName"])
+            self.controller.tables.add(table["tableName"] + "_" + table["tableType"])
+            self.controller.configs[table["tableName"] + "_" + table["tableType"]] = json.loads(json.dumps(table))
+
+    def run_policy(self, apply=True):
+        with contextlib.redirect_stdout(io.StringIO()):
+            pinot.initialize(self.controller, self.desired, 7, apply)
+
+    def test_disabled_policy_preserves_upstream_defaults(self):
+        self.assertEqual(pinot.retention_settings({}), (None, False))
+        self.assertEqual(self.original[0][1]["segmentsConfig"]["retentionTimeValue"], "7")
+
+    def test_new_tables_get_policy_but_metadata_keeps_its_retention(self):
+        for (_, original), (_, desired) in zip(self.original, self.desired):
+            actual = desired["segmentsConfig"]
+            expected = original["segmentsConfig"]["retentionTimeValue"] if desired["tableName"] in pinot.METADATA_TABLES else "7"
+            self.assertEqual(actual["retentionTimeValue"], expected)
+        controller = FakeController()
+        with contextlib.redirect_stdout(io.StringIO()):
+            pinot.initialize(controller, self.desired, 7)
+        self.assertEqual(len(controller.configs), 18)
+
+    def test_existing_tables_require_explicit_opt_in(self):
+        before = json.loads(json.dumps(self.controller.configs))
+        self.run_policy(apply=False)
+        self.assertEqual(before, self.controller.configs)
+        self.assertEqual(self.controller.writes, [])
+
+    def test_only_retention_fields_change_and_rerun_is_idempotent(self):
+        before = json.loads(json.dumps(self.controller.configs))
+        self.run_policy()
+        self.assertGreater(len(self.controller.writes), 0)
+        for name, config in self.controller.configs.items():
+            expected = before[name]
+            if config["tableName"] not in pinot.METADATA_TABLES:
+                expected["segmentsConfig"]["retentionTimeValue"] = "7"
+                expected["segmentsConfig"]["retentionTimeUnit"] = "DAYS"
+            self.assertEqual(config, expected)
+        writes = list(self.controller.writes)
+        self.run_policy()
+        self.assertEqual(writes, self.controller.writes)
+
+    def test_invalid_flags_and_days_fail_closed(self):
+        for values in ({"PINPOINT_RETENTION_APPLY_TO_EXISTING": "true"},
+                       {"PINPOINT_RETENTION_ENABLED": "yes"},
+                       {"PINPOINT_RETENTION_APPLY_TO_EXISTING": "1"}):
+            with self.assertRaises(pinot.InitializationError):
+                pinot.retention_settings(values)
+        for days in ("0", "-1", "1.5", "3651", "seven", "", "７"):
+            with self.subTest(days=days), self.assertRaises(pinot.InitializationError):
+                pinot.retention_settings({"PINPOINT_RETENTION_DAYS": days})
+        for days in ("1", "7", "14", "3650"):
+            self.assertEqual(pinot.retention_settings({"PINPOINT_RETENTION_ENABLED": "true", "PINPOINT_RETENTION_DAYS": days}),
+                             (int(days), False))
+
+    def test_preflight_failure_does_not_partially_update_retention(self):
+        del self.controller.configs["heatmapStatApp_OFFLINE"]
+        with self.assertRaisesRegex(pinot.InitializationError, "HTTP 404"):
+            self.run_policy()
+        self.assertEqual(self.controller.writes, [])
+
+    def test_wrong_table_identity_is_rejected_before_mutation(self):
+        self.controller.configs["heatmapStatApp_OFFLINE"]["tableName"] = "unrelated"
+        with self.assertRaisesRegex(pinot.InitializationError, "Invalid table configuration"):
+            self.run_policy()
+        self.assertEqual(self.controller.writes, [])
+
+    def test_retention_config_access_errors_stop_before_any_update(self):
+        original = self.controller.request
+        for status in (401, 403, 500, 503):
+            def request(method, path, payload=None):
+                if method == "GET" and path.startswith("/tables/") and "/state?" not in path:
+                    return status, None
+                return original(method, path, payload)
+            self.controller.request = request
+            with self.subTest(status=status), self.assertRaisesRegex(pinot.InitializationError, "HTTP " + str(status)):
+                self.run_policy()
+            self.assertEqual(self.controller.writes, [])
+
+    def test_failed_update_is_not_reported_as_success(self):
+        original = self.controller.request
+        def request(method, path, payload=None):
+            return (403, None) if method == "PUT" else original(method, path, payload)
+        self.controller.request = request
+        with self.assertRaisesRegex(pinot.InitializationError, "HTTP 403"):
+            self.run_policy()
+
+    def test_successful_update_requires_readback_verification(self):
+        original = self.controller.request
+        self.controller.request = lambda method, path, payload=None: ((200, {}) if method == "PUT"
+                                                                     else original(method, path, payload))
+        with self.assertRaisesRegex(pinot.InitializationError, "verification failed"):
+            self.run_policy()
+
+    def test_retention_increase_is_supported(self):
+        desired = pinot.load_definitions(self.directory, "kafka:9092", 1, 14)
+        with contextlib.redirect_stdout(io.StringIO()):
+            pinot.initialize(self.controller, desired, 14, True)
+        self.assertEqual(self.controller.configs["uriStat_REALTIME"]["segmentsConfig"]["retentionTimeValue"], "14")
 
 
 class KafkaInitializationTests(unittest.TestCase):

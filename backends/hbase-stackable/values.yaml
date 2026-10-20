@@ -62,6 +62,12 @@ hbase:
     resources:
       cpu: {min: "2", max: "8"}
       memory: {limit: 8Gi}
+global:
+  # History retention excludes metadata and agent-liveness tables.
+  retention:
+    enabled: false
+    days: 7
+    applyToExisting: false
 bootstrap:
   enabled: true
   # Preserve upstream 3.1.1 splits by default; false is for small local tests.

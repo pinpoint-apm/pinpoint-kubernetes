@@ -100,6 +100,12 @@ spec:
             - name: {{ $key }}
               value: {{ $val | quote }}
             {{- end }}
+            - name: PINPOINT_RETENTION_ENABLED
+              value: {{ .Values.global.retention.enabled | quote }}
+            - name: PINPOINT_RETENTION_DAYS
+              value: {{ .Values.global.retention.days | quote }}
+            - name: PINPOINT_RETENTION_APPLY_TO_EXISTING
+              value: {{ .Values.global.retention.applyToExisting | quote }}
           volumeMounts:
             - name: hbase-data
               mountPath: /home/pinpoint/hbase

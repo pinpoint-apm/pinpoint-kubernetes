@@ -13,7 +13,7 @@ Web/Collector images and disables the default metric services. To select it:
 
 ```bash
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.5 \
+  --version 3.1.6 \
   --namespace pinpoint \
   --create-namespace \
   --set global.metric.enabled=false \
@@ -45,6 +45,55 @@ kafka:
 External services do not block Pinpoint pod startup. Kafka topics are assumed
 to be managed externally; set `global.kafka.manageExternalTopics=true` only if
 this Helm release should create them.
+
+### History retention
+
+Application chart 3.1.6 and storage chart 0.1.4 accept the same values:
+
+```yaml
+global:
+  retention:
+    enabled: true
+    days: 7
+    applyToExisting: true
+```
+
+`days` is an integer from 1 to 3650. The policy is disabled by default, keeping
+upstream defaults. When enabled, new history tables use this window; existing
+ones keep their settings unless `applyToExisting` is explicitly true. Changing
+the day count and syncing again reconciles those existing history tables.
+
+HBase targets are `TraceV2`, both `TraceIndex` families, `ApplicationTraceIndex`,
+`AgentEvent`, `AgentLifeCycle`, the five `Map*` tables, the three
+`ApplicationMapStatistics*` tables and `HostApplicationMap_Ver2`. Per-table
+`hbase.config.ttl` settings still apply to new tables outside this history set.
+The common policy takes precedence for history. Application/agent catalogs,
+API/SQL/string metadata and one-day liveness tables retain their existing TTLs.
+If history is extended beyond its supporting metadata TTLs, configure those
+metadata lifetimes separately so retained traces remain interpretable.
+
+Pinot applies the window to both REALTIME and OFFLINE history tables and
+preserves `otlpMetricMetadata`, `systemMetricDataType` and `systemMetricTag`.
+Only the two retention fields are changed in each existing table configuration;
+Kafka, indexing, replica and task settings are read from the controller and
+preserved. Both initializers verify changes and skip already matching settings.
+Kafka topic retention and sampling are separate controls.
+
+Bundled HBase uses the application chart's policy. With Stackable HBase, pass
+the same block to **both releases**; the application chart never alters an
+external HBase cluster. A common `retention-values.yaml` can be passed with
+`-f` to both, or referenced by both Argo CD Applications. For any other external
+HBase installation, its administrator manages TTLs separately. External Pinot
+also requires `global.pinot.manageExternalTables=true` and a controller URL.
+Metric mode rejects an enabled policy when chart-managed Pinot initialization
+is disabled; the storage chart similarly requires `bootstrap.enabled=true`.
+
+Reducing retention can make older history unavailable; increasing it cannot
+recover expired data. HBase compaction and Pinot's segment-retention/deletion
+jobs reclaim space asynchronously. No table drops, forced compactions or PVC
+changes are performed. Segment-based retention is not an exact per-row cutoff.
+The bundled HBase pod restarts when its policy environment changes; Stackable
+uses a new schema Job without restarting HBase/HDFS roles.
 
 ### External service support
 

@@ -1,6 +1,9 @@
 # Executed by HBase shell. Resume partially initialized stores one table at a
 # time; never use a single sentinel table to skip the entire schema.
 begin
+  load ENV.fetch('HBASE_RETENTION_FILE', '/opt/pinpoint-hbase/hbase-retention.rb')
+  retention = PinpointRetention.new
+  tables = []
   verified_tables = 0
   ttl_keys = {
     'AgentInfo' => 'AGENTINFO_TTL', 'ApplicationIndex' => 'APPINDEX_TTL',
@@ -28,11 +31,14 @@ begin
       raise 'HBase TTL must be positive' unless ttl > 0
       line = line.gsub(/TTL => \d+/, "TTL => #{ttl}")
     end
+    line = retention.definition(line, match[1])
+    tables << [match[1], line.scan(/NAME => '([^']+)'/).flatten]
     eval(line) unless exists(match[1])
     raise "Table #{match[1]} is disabled" unless is_enabled(match[1])
     verified_tables += 1
   end
   raise 'No Pinpoint table definitions found' if verified_tables == 0
+  retention.reconcile_hbase(tables) { |table, changes| alter(table, *changes) }
   puts "Verified #{verified_tables} Pinpoint tables"
 rescue => error
   warn error.message
