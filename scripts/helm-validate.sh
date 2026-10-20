@@ -20,6 +20,14 @@ helm dependency build "${chart_dir}"
 
 helm lint "${chart_dir}"
 helm lint "${chart_dir}" --set global.metric.enabled=false
+# Helm tools and Artifact Hub show the icon; a missing or non-HTTPS value falls
+# back to a generic logo or breaks on mixed-content pages.
+for chart_file in "${chart_dir}/Chart.yaml" "${chart_dir}/backends/hbase-stackable/Chart.yaml"; do
+  grep -Eq '^icon: https://[^ ]+\.(png|svg)$' "${chart_file}" || {
+    echo "${chart_file} must declare an HTTPS png/svg icon" >&2
+    exit 1
+  }
+done
 helm lint "${chart_dir}" -f "${chart_dir}/values-minimal.yaml"
 ruby "${chart_dir}/scripts/test-collector-service.rb" "${chart_dir}"
 ruby "${chart_dir}/scripts/validate-gitops.rb"

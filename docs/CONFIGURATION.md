@@ -13,7 +13,7 @@ Web/Collector images and disables the default metric services. To select it:
 
 ```bash
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.6 \
+  --version 3.1.7 \
   --namespace pinpoint \
   --create-namespace \
   --set global.metric.enabled=false \
@@ -48,7 +48,7 @@ this Helm release should create them.
 
 ### History retention
 
-Application chart 3.1.6 and storage chart 0.1.4 accept the same values:
+Application chart 3.1.7 and storage chart 0.1.5 accept the same values:
 
 ```yaml
 global:

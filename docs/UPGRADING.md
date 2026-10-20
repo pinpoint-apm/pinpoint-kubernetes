@@ -1,5 +1,12 @@
 # Upgrading the Pinpoint chart
 
+## Chart 3.1.6 to 3.1.7 / storage 0.1.4 to 0.1.5
+
+Metadata-only release: Pinpoint, dependencies, templates and values are
+unchanged, and no workload restarts. The chart icon was a chat-group QR code
+inherited from the original chart; it is now the Pinpoint symbol. The storage
+chart gained an icon, and both charts list the current maintainer contact.
+
 ## Chart 3.1.5 to 3.1.6 / storage 0.1.3 to 0.1.4
 
 Pinpoint stays on 3.1.1 and dependency versions are unchanged. History retention

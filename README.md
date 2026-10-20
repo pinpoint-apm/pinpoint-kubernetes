@@ -1,9 +1,10 @@
 # Pinpoint Helm Chart
 
 [![Helm CI](https://github.com/pinpoint-apm/pinpoint-kubernetes/actions/workflows/helm-ci.yaml/badge.svg)](https://github.com/pinpoint-apm/pinpoint-kubernetes/actions/workflows/helm-ci.yaml)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/pinpoint)](https://artifacthub.io/packages/search?repo=pinpoint)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-Deploy Pinpoint APM **3.1.1** with application chart **3.1.6**.
+Deploy Pinpoint APM **3.1.1** with application chart **3.1.7**.
 Chart and application versions are independent.
 
 | Profile | Deployment |
@@ -30,7 +31,7 @@ cluster services; add `-f values-minimal.yaml` for a single small node (about
 helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
 helm repo update
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.6 --namespace pinpoint --create-namespace \
+  --version 3.1.7 --namespace pinpoint --create-namespace \
   --wait --timeout 20m
 kubectl port-forward -n pinpoint service/pinpoint-web 8080:8080
 ```
@@ -47,7 +48,7 @@ Telegraf are opt-in (`telegraf.enabled=true`).
 
 ```bash
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.6 --namespace pinpoint --create-namespace \
+  --version 3.1.7 --namespace pinpoint --create-namespace \
   -f my-production-values.yaml --wait --timeout 20m
 ```
 

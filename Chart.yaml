@@ -2,7 +2,7 @@ apiVersion: v2
 name: pinpoint
 description: A Helm chart for deploying Pinpoint APM (Application Performance Management) on Kubernetes.
 type: application
-version: 3.1.6
+version: 3.1.7
 appVersion: "3.1.1"
 
 annotations:
@@ -22,8 +22,10 @@ annotations:
     - name: pinot
       image: apachepinot/pinot:1.3.0
   artifacthub.io/changes: |
-    - kind: added
-      description: Configure history retention in days with explicit opt-in for existing HBase and Pinot tables
+    - kind: fixed
+      description: Use the Pinpoint symbol as chart icon instead of a chat-group QR code
+    - kind: changed
+      description: Update the maintainer contact
 
 keywords:
   - apm
@@ -33,13 +35,14 @@ keywords:
   - metrics
 
 home: https://github.com/pinpoint-apm/pinpoint-kubernetes
-icon: https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.1.1/doc/images/NAVERPinpoint.png
+icon: https://raw.githubusercontent.com/pinpoint-apm/pinpoint/v3.1.1/web-frontend/src/main/v3/apps/web/public/img/mini-logo.png
 sources:
   - https://github.com/pinpoint-apm/pinpoint
 
 maintainers:
   - name: Emircan Agac
-    email: thesadson@gmail.com
+    email: emircanagac@proton.me
+    url: https://github.com/emircanagac
 
 dependencies:
   # Shared ZooKeeper for HBase, Pinpoint and Pinot (Kafka uses KRaft).
