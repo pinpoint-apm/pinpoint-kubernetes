@@ -16,6 +16,12 @@
 # Global Configuration
 # ========================================================================
 global:
+  # Optional history retention shared with the independently installed storage chart.
+  retention:
+    enabled: false
+    days: 7
+    # Explicitly allow changing existing history tables; older data can expire.
+    applyToExisting: false
   # Pinpoint version - ensure all components use the same version
   pinpointVersion: "3.1.1"
   image:

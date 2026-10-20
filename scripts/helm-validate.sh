@@ -647,6 +647,7 @@ fi
 
 PYTHONDONTWRITEBYTECODE=1 python3 "${chart_dir}/scripts/test-initialization.py"
 ruby "${chart_dir}/scripts/test-chart-hardening.rb" "${chart_dir}"
+ruby "${chart_dir}/scripts/test-retention.rb"
 bash "${chart_dir}/scripts/validate-hbase-backend.sh"
 
 echo "Helm lint and render validation passed."

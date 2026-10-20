@@ -1,3 +1,9 @@
+{{- if and .Values.global.retention.applyToExisting (not .Values.global.retention.enabled) -}}
+{{- fail "global.retention.applyToExisting requires global.retention.enabled=true" -}}
+{{- end -}}
+{{- if and .Values.global.retention.enabled .Values.global.metric.enabled (ne (include "pinpoint.pinot.initialize" .) "true") -}}
+{{- fail "global.retention.enabled requires chart-managed Pinot initialization in metric mode; enable global.pinot.createTables and explicitly opt in to managing external tables" -}}
+{{- end -}}
 {{- if dig "enabled" false (default dict .Values.agent) -}}
 {{- fail "agent.enabled was removed in chart 3.1.5: the standalone agent Deployment could not instrument applications. Remove the agent values and add the agent to application pods with an init container; see docs/AGENTS.md" -}}
 {{- end -}}

@@ -3,7 +3,7 @@
 [![Helm CI](https://github.com/pinpoint-apm/pinpoint-kubernetes/actions/workflows/helm-ci.yaml/badge.svg)](https://github.com/pinpoint-apm/pinpoint-kubernetes/actions/workflows/helm-ci.yaml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-Deploy Pinpoint APM **3.1.1** with application chart **3.1.5**.
+Deploy Pinpoint APM **3.1.1** with application chart **3.1.6**.
 Chart and application versions are independent.
 
 | Profile | Deployment |
@@ -30,7 +30,7 @@ cluster services; add `-f values-minimal.yaml` for a single small node (about
 helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
 helm repo update
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.5 --namespace pinpoint --create-namespace \
+  --version 3.1.6 --namespace pinpoint --create-namespace \
   --wait --timeout 20m
 kubectl port-forward -n pinpoint service/pinpoint-web 8080:8080
 ```
@@ -47,7 +47,7 @@ Telegraf are opt-in (`telegraf.enabled=true`).
 
 ```bash
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.5 --namespace pinpoint --create-namespace \
+  --version 3.1.6 --namespace pinpoint --create-namespace \
   -f my-production-values.yaml --wait --timeout 20m
 ```
 
@@ -55,6 +55,24 @@ Use the [production guide](docs/PRODUCTION.md) for schema setup and acceptance
 checks. The optional [HBase/HDFS storage chart](backends/hbase-stackable/README.md)
 and its Stackable operators have separate releases.
 [Argo CD examples](examples/gitops/README.md) support Git-based values and upgrades.
+
+## History retention
+
+Set the history window in your values file:
+
+```yaml
+global:
+  retention:
+    enabled: true
+    days: 7
+    applyToExisting: true
+```
+
+The policy covers trace, map, event and metric history; metadata and agent
+liveness keep their own retention. It is disabled by default. Existing tables
+change only with `applyToExisting: true`, which can expire older data.
+Apply the same block to the separate HBase storage release when using it.
+See [retention configuration](docs/CONFIGURATION.md#history-retention).
 
 ## Connect agents
 

@@ -1,3 +1,9 @@
+{{- if and .Values.global.retention.applyToExisting (not .Values.global.retention.enabled) -}}
+{{- fail "global.retention.applyToExisting requires global.retention.enabled=true" -}}
+{{- end -}}
+{{- if and .Values.global.retention.enabled (not .Values.bootstrap.enabled) -}}
+{{- fail "global.retention.enabled requires bootstrap.enabled=true" -}}
+{{- end -}}
 {{- $_ := required "storageClass is required: choose validated independent disk storage; NFS alone is not an HA storage design" .Values.storageClass -}}
 {{- if or (lt (int .Values.bootstrap.readyTimeoutSeconds) 1) (gt (int .Values.bootstrap.readyTimeoutSeconds) 1500) (ne (float64 .Values.bootstrap.readyTimeoutSeconds) (float64 (int .Values.bootstrap.readyTimeoutSeconds))) -}}
 {{- fail "bootstrap.readyTimeoutSeconds must be an integer between 1 and 1500, below the Job deadline" -}}

@@ -240,6 +240,28 @@
         },
         "initSecurityContext": {
           "type": "object"
+        },
+        "retention": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "days",
+            "applyToExisting"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3650
+            },
+            "applyToExisting": {
+              "type": "boolean"
+            }
+          }
         }
       }
     },
