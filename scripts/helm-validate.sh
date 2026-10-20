@@ -621,6 +621,7 @@ grep -q 'https://pinpoint-apm.github.io/pinpoint-kubernetes' "${render_dir}/page
 grep -q "Chart ${chart_version}" "${render_dir}/pages/index.html"
 grep -q 'Pinpoint 3.1.1' "${render_dir}/pages/index.html"
 test -f "${render_dir}/pages/.nojekyll"
+grep -q '^repositoryID: [0-9a-f-]\{36\}$' "${render_dir}/pages/artifacthub-repo.yml"
 
 if grep -q '__[A-Z_]*__' "${render_dir}/pages/index.html"; then
   echo "Rendered Pages site still contains template placeholders" >&2

@@ -89,7 +89,7 @@ jobs:
           pages_dir="$pages_root/gh-pages"
           git worktree add "$pages_dir" origin/gh-pages
           bash scripts/render-pages-site.sh "$pages_dir"
-          git -C "$pages_dir" add index.html .nojekyll
+          git -C "$pages_dir" add index.html .nojekyll artifacthub-repo.yml
           if ! git -C "$pages_dir" diff --cached --quiet; then
             git -C "$pages_dir" commit -m "docs: update Helm repository landing page"
             git -C "$pages_dir" push origin HEAD:gh-pages
