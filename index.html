@@ -79,7 +79,7 @@
 
   <main>
     <h1>Pinpoint APM on Kubernetes</h1>
-    <p class="meta">Chart 3.1.6 · Pinpoint 3.1.1 · Apache License 2.0</p>
+    <p class="meta">Chart 3.1.7 · Pinpoint 3.1.1 · Apache License 2.0</p>
     <p>
       Helm charts for <a href="https://github.com/pinpoint-apm/pinpoint">Pinpoint</a>, the open-source APM
       for distributed tracing. The application chart deploys Pinpoint Web and Collector, either with
@@ -90,7 +90,7 @@
     <pre><code>helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
 helm repo update
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.6 --namespace pinpoint --create-namespace \
+  --version 3.1.7 --namespace pinpoint --create-namespace \
   --wait --timeout 20m
 kubectl port-forward -n pinpoint service/pinpoint-web 8080:8080</code></pre>
     <p>Then open <code>http://localhost:8080</code>. The demo application sends traces automatically.</p>
@@ -114,8 +114,8 @@ kubectl port-forward -n pinpoint service/pinpoint-web 8080:8080</code></pre>
         <tr><th>Chart</th><th>Version</th><th>Description</th></tr>
       </thead>
       <tbody>
-        <tr><td><code>pinpoint/pinpoint</code></td><td>3.1.6</td><td>Pinpoint Web, Collector and optional evaluation backends.</td></tr>
-        <tr><td><code>pinpoint/pinpoint-hbase-stackable</code></td><td>0.1.4</td><td>Operator-managed HBase, HDFS and ZooKeeper for production storage. <a href="https://github.com/pinpoint-apm/pinpoint-kubernetes/blob/master/backends/hbase-stackable/README.md">Read more</a>.</td></tr>
+        <tr><td><code>pinpoint/pinpoint</code></td><td>3.1.7</td><td>Pinpoint Web, Collector and optional evaluation backends.</td></tr>
+        <tr><td><code>pinpoint/pinpoint-hbase-stackable</code></td><td>0.1.5</td><td>Operator-managed HBase, HDFS and ZooKeeper for production storage. <a href="https://github.com/pinpoint-apm/pinpoint-kubernetes/blob/master/backends/hbase-stackable/README.md">Read more</a>.</td></tr>
       </tbody>
     </table>
 
