@@ -6,7 +6,6 @@ bash -n scripts/helm-repo-smoke.sh
 bash -n scripts/render-pages-site.sh
 bash -n scripts/validate-hbase-backend.sh
 bash -n scripts/check-version-bump.sh
-python3 scripts/test-pinpoint-4.py
 python3 -m py_compile scripts/local-smoke.py scripts/local-ha-recovery.py scripts/local-mysql-recovery.py scripts/hbase_local_client.py
 python3 -m py_compile examples/local-production/setup-local.py examples/local-production/verify-ingress.py
 
@@ -18,6 +17,7 @@ trap 'rm -rf "${render_dir}"' EXIT
 helm repo add bitnami https://charts.bitnami.com/bitnami --force-update
 helm repo add pinot https://raw.githubusercontent.com/apache/pinot/master/helm --force-update
 helm dependency build "${chart_dir}" --skip-refresh
+python3 scripts/test-pinpoint-4.py
 
 helm lint "${chart_dir}"
 helm lint "${chart_dir}" --set global.metric.enabled=false
