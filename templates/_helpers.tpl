@@ -44,7 +44,7 @@ Common labels
 helm.sh/chart: {{ include "pinpoint.chart" . }}
 {{ include "pinpoint.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+app.kubernetes.io/version: {{ .Values.global.pinpointVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
@@ -415,12 +415,34 @@ topologySpreadConstraints:
   - maxSkew: 1
     topologyKey: kubernetes.io/hostname
     whenUnsatisfiable: {{ .config.topologySpreadWhenUnsatisfiable }}
+    {{- with .config.topologySpreadMinDomains }}
+    minDomains: {{ . }}
+    {{- end }}
     labelSelector:
       matchLabels:
 {{ include "pinpoint.selectorLabels" .root | indent 8 }}
         app.kubernetes.io/component: {{ .component }}
 {{- end }}
 {{- end }}
+
+{{- define "pinpoint.hasLoggingOverride" -}}
+{{- $found := false -}}
+{{- range .extraEnv -}}
+{{- if eq .name "LOGGING_CONFIG" -}}{{- $found = true -}}{{- end -}}
+{{- end -}}
+{{- $found -}}
+{{- end -}}
+
+{{- define "pinpoint.applicationPodAnnotations" -}}
+{{- $annotations := deepCopy (default dict .config.podAnnotations) -}}
+{{- if and (semverCompare ">=4.0.0" .root.Values.global.pinpointVersion) (ne (include "pinpoint.hasLoggingOverride" .config) "true") -}}
+{{- $_ := set $annotations "checksum/runtime-logging" (.root.Files.Get "files/log4j2-console.xml" | sha256sum) -}}
+{{- end -}}
+{{- if $annotations }}
+annotations:
+{{ toYaml $annotations | indent 2 }}
+{{- end -}}
+{{- end -}}
 
 {{- define "pinpoint.datasource.poolEnv" }}
 {{- range $prefix := list "SPRING_DATASOURCE_HIKARI" "SPRING_METADATASOURCE_HIKARI" }}
@@ -432,3 +454,85 @@ topologySpreadConstraints:
   value: {{ $.Values.global.datasource.pool.connectionTimeout | quote }}
 {{- end }}
 {{- end }}
+
+{{/* Schema initialization also supports an explicitly opted-in external MySQL. */}}
+{{- define "pinpoint.mysql.initialize" -}}
+{{- ternary "true" "false" (or .Values.mysql.enabled .Values.global.datasource.schema.enabled) -}}
+{{- end -}}
+
+{{- define "pinpoint.collector.healthProbe" -}}
+{{- if semverCompare ">=4.0.0" .Values.global.pinpointVersion }}
+exec:
+  command:
+    - /bin/bash
+    - -ec
+    - 'for port in 9991 9992 9993{{ if .Values.global.metric.enabled }} 9995 9997 9998{{ end }}; do exec 3<>/dev/tcp/127.0.0.1/$port; exec 3<&-; exec 3>&-; done'
+{{- else }}
+tcpSocket:
+  port: grpc-agent
+{{- end }}
+{{- end -}}
+{{- define "pinpoint.mysql.schemaHost" -}}
+{{- if .Values.mysql.enabled -}}
+{{- printf "%s-mysql" .Release.Name -}}
+{{- else -}}
+{{- required "global.datasource.schema.host is required for external schema initialization" .Values.global.datasource.schema.host -}}
+{{- end -}}
+{{- end -}}
+{{- define "pinpoint.mysql.schemaDatabase" -}}
+{{- if .Values.mysql.enabled -}}{{ .Values.mysql.auth.database }}{{- else -}}{{ .Values.global.datasource.schema.database }}{{- end -}}
+{{- end -}}
+{{- define "pinpoint.mysql.schemaPort" -}}
+{{- if .Values.mysql.enabled -}}3306{{- else -}}{{ .Values.global.datasource.schema.port }}{{- end -}}
+{{- end -}}
+{{- define "pinpoint.mysql.schemaSecret" -}}
+{{- if .Values.mysql.enabled -}}{{ include "pinpoint.mysql.secretName" . }}{{- else -}}
+{{- required "global.datasource.schema.rootPasswordSecret.name is required for external schema initialization" .Values.global.datasource.schema.rootPasswordSecret.name -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "pinpoint.mysql.expectedTables" -}}
+{{- $tables := list -}}
+{{- range $path, $_ := .Files.Glob (printf "files/sql/%s/*.sql" .Values.global.pinpointVersion) -}}
+{{- if or $.Values.global.metric.enabled (not (hasSuffix "/OtlpMetric-mysql.sql" $path)) -}}
+{{- range regexFindAll "(?m)^CREATE TABLE [^ (]+" ($.Files.Get $path) -1 -}}
+{{- $tables = append $tables (. | trimPrefix "CREATE TABLE " | replace "`" "") -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- join "," (sortAlpha (uniq $tables)) -}}
+{{- end -}}
+
+{{- define "pinpoint.mysql.waitForSchema" -}}
+{{- if eq (include "pinpoint.mysql.initialize" .) "true" }}
+- name: wait-for-mysql-schema
+  image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+  securityContext:
+    {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 1001) | nindent 4 }}
+  resources:
+    {{- toYaml .Values.global.initResources.wait | nindent 4 }}
+  env:
+    - {name: MYSQL_HOST, value: {{ include "pinpoint.mysql.schemaHost" . | quote }}}
+    - {name: MYSQL_TCP_PORT, value: {{ include "pinpoint.mysql.schemaPort" . | quote }}}
+    - {name: MYSQL_DATABASE, value: {{ include "pinpoint.mysql.schemaDatabase" . | quote }}}
+    - {name: MYSQL_USER, value: {{ include "pinpoint.datasource.username" . | quote }}}
+    - {name: EXPECTED_TABLES, value: {{ include "pinpoint.mysql.expectedTables" . | quote }}}
+    - name: MYSQL_PWD
+      {{ include "pinpoint.datasource.password" . | nindent 6 }}
+  command: ["sh", "-ec"]
+  args:
+    - |
+      count=$(printf '%s' "$EXPECTED_TABLES" | tr ',' '\n' | wc -l)
+      count=$((count + 1))
+      names=$(printf '%s' "$EXPECTED_TABLES" | sed "s/,/','/g")
+      deadline=$(( $(date +%s) + 600 ))
+      until actual=$(mysql --connect-timeout=3 -h "$MYSQL_HOST" -u "$MYSQL_USER" -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$MYSQL_DATABASE' AND table_name IN ('$names');" 2>&1) && [ "$actual" = "$count" ]; do
+        if [ "$(date +%s)" -ge "$deadline" ]; then
+          printf 'Timed out waiting for Pinpoint MySQL schema; last response: %s\n' "$actual" >&2
+          exit 1
+        fi
+        echo 'Waiting for Pinpoint MySQL schema...'
+        sleep 5
+      done
+{{- end }}
+{{- end -}}

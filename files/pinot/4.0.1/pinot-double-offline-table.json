@@ -1,0 +1,35 @@
+{
+  "tableName": "systemMetricDouble",
+  "tableType": "OFFLINE",
+  "segmentsConfig": {
+    "timeType": "MILLISECONDS",
+    "schemaName": "systemMetricDouble",
+    "retentionTimeUnit": "DAYS",
+    "retentionTimeValue": "56",
+    "replication": "3",
+    "timeColumnName": "eventTime",
+    "minimizeDataMovement": false
+  },
+  "tenants": {},
+  "tableIndexConfig": {
+    "sortedColumn": ["hostName"],
+    "bloomFilterColumns": ["tenantId", "serviceName", "hostGroupName", "hostName", "metricName", "fieldName"],
+    "noDictionaryColumns": ["fieldValue", "eventTime"],
+    "loadMode": "MMAP",
+    "nullHandlingEnabled": true
+  },
+  "metadata": {
+    "customConfigs": {}
+  },
+  "ingestionConfig": {
+    "batchIngestionConfig": {
+      "segmentIngestionType": "APPEND",
+      "segmentIngestionFrequency": "DAILY"
+    }
+  },
+  "routing": {
+    "segmentPrunerTypes": [
+      "time"
+    ]
+  }
+}

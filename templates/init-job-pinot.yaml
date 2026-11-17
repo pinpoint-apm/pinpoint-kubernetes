@@ -74,6 +74,8 @@ spec:
           env:
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: {{ include "pinpoint.kafka.bootstrapServers" . | quote }}
+            - name: PINPOINT_SCHEMA_MIGRATION_ENABLED
+              value: {{ .Values.global.pinot.migrateExistingSchemas | quote }}
             - name: PINOT_CONTROLLER_URL
               value: {{ include "pinpoint.pinot.controllerUrl" . | quote }}
             - name: PINOT_DEFINITIONS_DIR

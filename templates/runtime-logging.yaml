@@ -1,0 +1,11 @@
+{{- if semverCompare ">=4.0.0" .Values.global.pinpointVersion }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-runtime-logging
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+data:
+  log4j2-console.xml: |
+    {{- .Files.Get "files/log4j2-console.xml" | nindent 4 }}
+{{- end }}

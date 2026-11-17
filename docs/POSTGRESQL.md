@@ -1,6 +1,6 @@
-# PostgreSQL and Pinpoint 3.1.1
+# PostgreSQL and Pinpoint 4.0.1
 
-An external PostgreSQL server **cannot replace MySQL with the stock 3.1.1
+An external PostgreSQL server **cannot replace MySQL with the stock 4.0.1
 application images just by changing the JDBC URL**. The chart can inject a
 custom JDBC URL/driver/Secret, but that is configuration support for custom
 application images, not PostgreSQL runtime compatibility.
@@ -33,4 +33,4 @@ PostgreSQL tables. HBase remains the trace store and Pinot remains the Metric
 store; PostgreSQL would replace the relational MySQL component only.
 
 This is a separate upstream application compatibility change. The current
-3.1.1 chart release does not advertise stock PostgreSQL support.
+4.0.1 chart release does not advertise stock PostgreSQL support.

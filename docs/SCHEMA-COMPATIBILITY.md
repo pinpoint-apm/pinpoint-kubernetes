@@ -1,59 +1,46 @@
-# Pinpoint 3.1.1 schema compatibility
+# Schema compatibility
 
-Chart 3.1.3 targets the stock Pinpoint 3.1.1 images. Definitions are pinned to
-[`v3.1.1`](https://github.com/pinpoint-apm/pinpoint/tree/v3.1.1), with source paths
-and bundled checksums in `files/schema-manifest-3.1.1.json`. The archive includes
-all schema assets and their attribution in `files/NOTICE`.
+Chart 4.0.1 targets Pinpoint 4.0.1. Versioned assets are pinned to
+[`v4.0.1`](https://github.com/pinpoint-apm/pinpoint/tree/v4.0.1), with source paths
+and checksums in `files/schema-manifest-4.0.1.json`. Pinpoint 3.1.1 assets remain
+available for explicit compatibility installs and upgrade tests.
 
-| Store/module | Chart-managed initialization | Coverage |
+| Store | 4.0.1 coverage | Initialization |
 | --- | --- | --- |
-| MySQL Web, alarms, users | `mysql.enabled=true` | 8 core tables and their named indexes |
-| MySQL Spring Batch | `mysql.enabled=true` | 9 batch tables; existing sequence values preserved |
-| MySQL service registry / feature flags | `mysql.enabled=true` | `service`, `feature_flag` |
-| MySQL custom metrics / OTLP | MySQL + metric profile enabled | `application_metric_definition` |
-| HBase traces, metadata, maps and application/agent identity | Bundled HBase supervisor | 22 versioned tables, missing tables only; existing TTLs preserved |
-| Distributed HBase | Independent `pinpoint-hbase-stackable` chart | Same 22 table names/column families; separate install and ownership |
-| Pinot Inspector, URI, system metrics, Heatmap, exception trace and OTLP metrics | Metric profile + `global.pinot.createTables` | 11 schemas, 18 typed tables; all supplied REALTIME/OFFLINE definitions |
-| Kafka metric ingestion | Metric profile + `global.kafka.createTopics` | 11 topics from `global.kafka.topics`, including all Pinot realtime sources; lower partition counts are raised |
-| Redis and ZooKeeper | Dependency charts or external services | No SQL/table initialization |
+| MySQL | 29 tables: 20 existing Web/Batch/service/metric tables and 9 Service Alarm tables | Bundled MySQL or explicit external schema opt-in |
+| HBase | 22 upstream tables; unused legacy tables are retained | Bundled supervisor or independent Stackable schema Job |
+| Pinot | 11 schemas and 18 REALTIME/OFFLINE tables from 29 JSON assets | Metric mode and `global.pinot.createTables` |
+| Kafka | 11 configured topics covering the selected metric/trace modules | Bundled Kafka or explicit external topic opt-in |
+| Redis/ZooKeeper | No relational schema | Dependency chart or externally managed service |
 
-For external MySQL, initialize the bundled SQL through the database owner;
-`mysql.enabled=false` does not run a database-admin hook. External Kafka and
-Pinot require explicit `manageExternalTopics` / `manageExternalTables` opt-in
-for chart-managed initialization. Custom partitioned deployments with more
-than the upstream default `00` shard must create matching tables/topics;
-this chart does not infer shards from arbitrary application environment overrides.
+MySQL requires 8.4+ for 4.0.1. Initialization preserves existing records and
+Spring Batch sequences, creates missing tables/indexes and verifies required
+columns. Existing incompatible types, keys and grants need a reviewed migration.
+Generated invisible primary keys are enabled for newly created 4.0.1 tables so
+Spring Batch sequence tables can be created on MySQL Group Replication.
 
-SQL source adaptations are limited to idempotent batch sequence inserts and
-the already-required webhook 127-character columns. The migration transforms
-CREATE statements to IF NOT EXISTS and repairs missing named indexes. It checks
-required tables/columns but does not reconcile arbitrary column-type, primary-key
-or permission differences; these need a reviewed database migration.
+Pinot adds `exceptionTrace.serviceName` with the upstream `DEFAULT` fallback.
+Existing schemas change only with `global.pinot.migrateExistingSchemas=true`.
+Preflight rejects conflicting types/cardinality and additions without explicit
+defaults; custom fields are preserved. Controller-normalized attributes are
+accepted during readback verification. Existing segments are not rewritten or
+reloaded. Table settings change only through explicitly enabled retention.
 
-Pinot init selects the configured Kafka endpoint and replication. It uses the
-Kafka 3 consumer plugin for Pinot 1.3 and corrects the upstream Heatmap topic
-name to `heatmap-stat-app-00`. Existing schemas/configs are preserved. Successful
-resource creation is followed by existence verification; ingestion and queries
-are checked separately. A schema manifest is not a data migration or backup.
+HBase definitions retain upstream column families/splits. Initializers create
+missing tables and preserve existing settings unless retention updates were
+explicitly requested. Both application and storage releases select their schema
+with `global.pinpointVersion`; configure them consistently.
 
-HBase schema definitions retain the chart's TTL defaults; since 3.1.5 the v2
-`TraceIndex` and the v3 map tables follow the 7-day `TraceV2`/`_Ver2` map
-retention. The main chart applies `hbase.config.ttl` overrides, keyed like the
-stock image's variables, to newly created tables. Collector 3.1.1 writes the v2
-indexes (`TraceIndex`, `Application`, `AgentId`) and leaves the v1
-`ApplicationIndex`/`ApplicationTraceIndex` unused by default. Changing values
-does not rewrite existing TTLs or move data between backends.
+Kafka endpoints, Pinot replication and the Kafka 3 consumer plugin are adapted
+to the deployment. Heatmap uses `heatmap-stat-app-00`, matching the Collector.
+More shards or optional modules require corresponding schemas/topics; arbitrary
+environment overrides do not generate these automatically.
 
-Collector modules that are disabled by default need their own resources when
-enabled; for example agent statistics
-(`pinpoint.modules.collector.agent-statistics.enabled=true`) produces to an
-`agent-info` topic that is not in the default topic list.
-
-This coverage is for the stock classic/metric deployment and versioned store
-assets. Optional Flink processing, custom authentication/JDBC implementations,
-custom shard counts and log/OTLP exporters still need their module-specific
-configuration and integration tests. Do not equate creation of a table with
-end-to-end qualification of every optional upstream feature.
+The qualified 4.x profile uses BASIC, METRIC and OTLPTRACE Collector modules.
+The separate legacy LOG process is not configured. Service Alarm schema and
+an opt-in workload are provided; its custom image and notification paths need
+separate runtime qualification. Creation of schema assets does not establish
+end-to-end compatibility of every optional upstream feature.
 
 ## Retention and NFS capacity
 

@@ -48,10 +48,16 @@ telegraf:
   enabled: false  # Enable only for intentional system-metric collection.
 
 web:
+  terminationGracePeriodSeconds: 120
+  lifecycle:
+    preStop:
+      exec:
+        command: [sh, -c, sleep 10]
   replicaCount: 2
   pdb:
     enabled: true
   topologySpreadWhenUnsatisfiable: DoNotSchedule
+  topologySpreadMinDomains: 2
   login:
     enabled: true
     existingSecret: pinpoint-login
@@ -75,10 +81,16 @@ web:
         hosts: [pinpoint.example.com]
 
 collector:
+  terminationGracePeriodSeconds: 120
+  lifecycle:
+    preStop:
+      exec:
+        command: [sh, -c, sleep 10]
   replicaCount: 2
   pdb:
     enabled: true
   topologySpreadWhenUnsatisfiable: DoNotSchedule
+  topologySpreadMinDomains: 2
 
 networkPolicy:
   enabled: true

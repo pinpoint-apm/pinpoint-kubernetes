@@ -26,8 +26,9 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if or .Values.zookeeper.enabled .Values.hbase.enabled .Values.mysql.enabled .Values.flink.enabled }}
+      {{- if or .Values.zookeeper.enabled .Values.hbase.enabled .Values.mysql.enabled .Values.flink.enabled (eq (include "pinpoint.mysql.initialize" .) "true") }}
       initContainers:
+        {{- include "pinpoint.mysql.waitForSchema" . | nindent 8 }}
         # Wait for Zookeeper to be ready
         {{- if .Values.zookeeper.enabled }}
         - name: wait-for-zookeeper

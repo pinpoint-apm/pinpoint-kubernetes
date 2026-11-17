@@ -1,7 +1,7 @@
 # Bundled Pinpoint SQL
 
-The files in `3.1.1/` are unmodified Apache-2.0-licensed schema scripts from
-`pinpoint-apm/pinpoint` tag `v3.1.1`, under `web/src/main/resources/sql/`.
-The upstream license and NOTICE are shipped in `../pinot/NOTICE`.
-Bundling these files removes the need for pods to fetch SQL from GitHub during
-installation. Add reviewed assets when targeting a different application version.
+Version directories contain unmodified Apache-2.0 schema scripts pinned to
+upstream tags v3.1.1 and v4.0.1. `files/schema-manifest-<version>.json` records
+source paths and SHA-256 checksums, including the separate 4.x alarm DDL.
+The initializer makes table/index creation idempotent and verifies columns;
+it does not remove existing data or reset Spring Batch sequences.

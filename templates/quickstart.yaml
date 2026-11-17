@@ -75,11 +75,12 @@ spec:
                 {{ .Values.quickstart.jvmOptions }}
                 -javaagent:/agent/pinpoint-bootstrap.jar
                 -Dpinpoint.agentId={{ .Values.quickstart.agentId }}
+                -Dpinpoint.serviceName={{ .Values.quickstart.serviceName }}
                 -Dpinpoint.applicationName={{ .Values.quickstart.applicationName }}
                 -Dprofiler.transport.grpc.collector.ip={{ include "pinpoint.fullname" . }}-collector
                 -Dprofiler.transport.grpc.agent.port={{ .Values.collector.service.ports.grpcAgent }}
-                -Dprofiler.transport.grpc.stat.port={{ .Values.collector.service.ports.grpcStat }}
-                -Dprofiler.transport.grpc.span.port={{ .Values.collector.service.ports.grpcSpan }}
+                -Dprofiler.transport.grpc.stat.collector.port={{ .Values.collector.service.ports.grpcStat }}
+                -Dprofiler.transport.grpc.span.collector.port={{ .Values.collector.service.ports.grpcSpan }}
           volumeMounts:
             - name: agent-volume
               mountPath: /agent

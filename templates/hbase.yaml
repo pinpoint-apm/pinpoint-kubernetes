@@ -83,6 +83,8 @@ spec:
             - containerPort: 16030
               name: region-ui
           env:
+            - name: PRE_SPLIT
+              value: {{ .Values.hbase.preSplit | quote }}
             - name: HBASE_HEAPSIZE
               value: {{ .Values.hbase.heapSize | quote }}
             - name: HBASE_PID_DIR

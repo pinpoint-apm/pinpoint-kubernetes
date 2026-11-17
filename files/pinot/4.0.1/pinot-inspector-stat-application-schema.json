@@ -1,0 +1,72 @@
+{
+  "schemaName": "inspectorStatApp",
+  "dimensionFieldSpecs": [
+    {
+      "name": "tenantId",
+      "dataType": "STRING",
+      "defaultNullValue": ""
+    },
+    {
+      "name": "serviceName",
+      "dataType": "STRING",
+      "defaultNullValue": ""
+    },
+    {
+      "name": "sortKey",
+      "dataType": "STRING",
+      "defaultNullValue": ""
+    },
+    {
+      "name": "applicationName",
+      "dataType": "STRING"
+    },
+    {
+      "name": "metricName",
+      "dataType": "STRING"
+    },
+    {
+      "name": "fieldName",
+      "dataType": "STRING"
+    },
+    {
+      "name": "version",
+      "dataType": "STRING",
+      "defaultNullValue": ""
+    },
+    {
+      "name": "primaryTag",
+      "dataType": "STRING",
+      "defaultNullValue": ""
+    }
+  ],
+  "metricFieldSpecs": [
+    {
+      "name": "sumFieldValue",
+      "dataType": "DOUBLE",
+      "defaultNullValue": 0
+    },
+    {
+      "name": "minFieldValue",
+      "dataType": "DOUBLE",
+      "defaultNullValue": 0
+    },
+    {
+      "name": "maxFieldValue",
+      "dataType": "DOUBLE",
+      "defaultNullValue": 0
+    },
+    {
+      "name": "countFieldValue",
+      "dataType": "INT",
+      "defaultNullValue": 0
+    }
+  ],
+  "dateTimeFieldSpecs": [
+    {
+      "name": "roundedEventTime",
+      "dataType": "TIMESTAMP",
+      "format" : "1:MILLISECONDS:EPOCH",
+      "granularity": "1:MILLISECONDS"
+    }
+  ]
+}

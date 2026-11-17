@@ -64,4 +64,4 @@ assert 'name: otlp-trace' not in classic
 assert 'name: otlp-trace' in rendered
 policy=subprocess.check_output(['helm','template','pinpoint',str(ROOT),'--set','networkPolicy.enabled=true'],text=True)
 assert '{ port: 9998, protocol: TCP }' in policy
-print('3.1.1 coverage: 20 SQL tables, 22 HBase tables, 11 Pinot schemas/18 typed tables, matching Kafka topics; probes/storage/profile renders OK')
+print('Legacy 3.1.1 asset coverage: 20 SQL tables, 22 HBase tables, 11 Pinot schemas/18 typed tables, matching Kafka topics; probes/storage/profile renders OK')

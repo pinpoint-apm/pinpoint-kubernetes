@@ -94,6 +94,13 @@
         },
         "lifecycle": {
           "type": "object"
+        },
+        "topologySpreadMinDomains": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
         }
       }
     }
@@ -103,7 +110,11 @@
       "type": "object",
       "properties": {
         "pinpointVersion": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "3.1.1",
+            "4.0.1"
+          ]
         },
         "imagePullSecrets": {
           "type": "array",
@@ -167,6 +178,38 @@
                   "minimum": 250
                 }
               }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "host": {
+                  "type": "string"
+                },
+                "port": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535
+                },
+                "database": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_]+$"
+                },
+                "rootPasswordSecret": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              }
             }
           }
         },
@@ -217,6 +260,9 @@
             "tableReplicas": {
               "type": "integer",
               "minimum": 1
+            },
+            "migrateExistingSchemas": {
+              "type": "boolean"
             }
           }
         },
@@ -259,6 +305,14 @@
               "maximum": 3650
             },
             "applyToExisting": {
+              "type": "boolean"
+            }
+          }
+        },
+        "service": {
+          "type": "object",
+          "properties": {
+            "enabled": {
               "type": "boolean"
             }
           }
@@ -573,6 +627,35 @@
     },
     "fullnameOverride": {
       "type": "string"
+    },
+    "alarmBatch": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "replicaCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "agentStat": {
+          "type": "object",
+          "properties": {
+            "tablePrefix": {
+              "type": "string",
+              "minLength": 1
+            },
+            "paddingLength": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
     }
   },
   "additionalProperties": false

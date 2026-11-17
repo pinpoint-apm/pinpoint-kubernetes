@@ -1,107 +1,14 @@
-{{- if .Values.mysql.enabled }}
-# Job to run and VERIFY the database initialization
+{{- if eq (include "pinpoint.mysql.initialize" .) "true" }}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Release.Name }}-mysql-init
+  name: {{ .Release.Name | trunc 38 | trimSuffix "-" }}-mysql-init-{{ printf "%s%s" (include (print $.Template.BasePath "/init-config-mysql.yaml") .) (include "pinpoint.mysql.initSpec" .) | sha256sum | trunc 8 }}
   labels:
     {{- include "pinpoint.labels" . | nindent 4 }}
     app.kubernetes.io/component: mysql-init
   annotations:
-    # Initialize fresh databases and apply idempotent schema changes on upgrades.
-    "helm.sh/hook": post-install,post-upgrade
-    # Keep failed jobs for inspection and remove old/successful hook jobs.
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
-    "helm.sh/hook-weight": "1"
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+
 spec:
-  # Increase backoff limit and add active deadline
-  backoffLimit: 3
-  activeDeadlineSeconds: 600
-  template:
-    metadata:
-      name: {{ .Release.Name }}-mysql-init
-      labels:
-        {{- include "pinpoint.labels" . | nindent 8 }}
-        app.kubernetes.io/component: mysql-init
-    spec:
-      {{- with .Values.global.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      restartPolicy: OnFailure
-      automountServiceAccountToken: false
-      initContainers:
-        - name: wait-for-mysql
-          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
-          securityContext:
-            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 1001) | nindent 12 }}
-          resources:
-            {{- toYaml .Values.global.initResources.wait | nindent 12 }}
-          env:
-            - name: MYSQL_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "pinpoint.mysql.secretName" . | quote }}
-                  key: mysql-root-password
-          command:
-            - 'sh'
-            - '-c'
-            - |
-              echo "MYSQL Init Job: Waiting for MySQL database to be ready..."
-
-              # Wait for MySQL to respond to ping
-              until mysqladmin ping -h {{ .Release.Name }}-mysql --user=root -p"$MYSQL_ROOT_PASSWORD" --silent; do
-                echo "MYSQL Init Job: Waiting for MySQL..."
-                sleep 5
-              done
-
-              # Ensure the target database exists and is ready
-              until mysql -h {{ .Release.Name }}-mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "USE {{ .Values.mysql.auth.database }};" > /dev/null 2>&1; do
-                echo "MYSQL Init Job: Waiting for database '{{ .Values.mysql.auth.database }}'..."
-                sleep 3
-              done
-
-              echo "MYSQL Init Job: MySQL and database are ready!"
-      containers:
-        - name: mysql-schema-init
-          securityContext:
-            {{- include "pinpoint.initSecurityContext" (dict "root" . "uid" 1001) | nindent 12 }}
-          resources:
-            {{- toYaml .Values.global.initResources.mysql | nindent 12 }}
-          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
-          env:
-            - name: MYSQL_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "pinpoint.mysql.secretName" . | quote }}
-                  key: mysql-root-password
-            - name: MYSQL_HOST
-              value: "{{ .Release.Name }}-mysql"
-            - name: MYSQL_DATABASE
-              value: {{ .Values.mysql.auth.database | quote }}
-            - name: PINPOINT_METRIC_ENABLED
-              value: {{ .Values.global.metric.enabled | quote }}
-          command: ["sh", "/shared/initialize-mysql.sh"]
-          volumeMounts:
-            - name: sql-scripts
-              mountPath: /shared
-      volumes:
-        - name: sql-scripts
-          configMap:
-            name: {{ .Release.Name }}-mysql-init-sql
-            items:
-              - key: initialize-mysql.sh
-                path: initialize-mysql.sh
-              - key: create-tables.sql
-                path: create-tables.sql
-              - key: create-batch-tables.sql
-                path: create-batch-tables.sql
-              - key: create-service.sql
-                path: create-service.sql
-              - key: create-feature-flag.sql
-                path: create-feature-flag.sql
-              {{- if .Values.global.metric.enabled }}
-              - key: create-otlp-metric.sql
-                path: create-otlp-metric.sql
-              {{- end }}
+  {{- include "pinpoint.mysql.initSpec" . | nindent 2 }}
 {{- end }}

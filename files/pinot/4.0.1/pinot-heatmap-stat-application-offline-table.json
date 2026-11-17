@@ -1,0 +1,34 @@
+{
+  "tableName": "heatmapStatApp",
+  "tableType": "OFFLINE",
+  "segmentsConfig": {
+    "timeColumnName": "roundedEventTime",
+    "timeType": "MILLISECONDS",
+    "schemaName": "heatmapStatApp",
+    "replication": "3",
+    "retentionTimeUnit": "DAYS",
+    "retentionTimeValue": "14"
+  },
+  "tenants": {},
+  "tableIndexConfig": {
+    "sortedColumn": ["sortKey"],
+    "bloomFilterColumns": ["serviceName", "applicationName", "sortKey"],
+    "noDictionaryColumns": ["countValue"],
+    "loadMode": "MMAP",
+    "nullHandlingEnabled": true
+  },
+  "metadata": {
+    "customConfigs": {}
+  },
+  "ingestionConfig": {
+    "batchIngestionConfig": {
+      "segmentIngestionType": "APPEND",
+      "segmentIngestionFrequency": "DAILY"
+    }
+  },
+  "routing": {
+    "segmentPrunerTypes": [
+      "time"
+    ]
+  }
+}

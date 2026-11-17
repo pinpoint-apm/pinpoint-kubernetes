@@ -31,7 +31,8 @@ begin
     raise "Table #{match[1]} is disabled" unless is_enabled(match[1])
     verified_tables += 1
   end
-  raise 'Expected 22 Pinpoint 3.1.1 tables' unless verified_tables == 22
+  expected_tables = File.readlines(ENV.fetch('HBASE_SCHEMA_FILE', '/schema/hbase-create.hbase')).count { |line| line.match(/^create '/) }
+  raise 'Incomplete Pinpoint schema verification' unless expected_tables > 0 && verified_tables == expected_tables
   retention.reconcile_hbase(tables) { |table, changes| alter(table, *changes) }
   puts "Verified #{verified_tables} Pinpoint tables"
 rescue => error

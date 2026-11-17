@@ -181,9 +181,63 @@ def reconcile_retention(controller, definitions, days):
     print("Verified " + str(days) + "-day Pinot history retention; metadata retention preserved", flush=True)
 
 
-def initialize(controller, definitions, retention_days=None, apply_to_existing=False):
+
+def schema_migration_plan(controller, definitions, migrate_existing):
+    plans = []
+    expected = {schema["schemaName"]: schema for schema, _ in definitions}
+    for name, wanted in expected.items():
+        status, current = controller.request("GET", "/schemas/" + quote(name, safe=""))
+        if status == 404:
+            continue
+        if status != 200 or not isinstance(current, dict) or current.get("schemaName") != name:
+            raise InitializationError("Cannot preflight Pinot schema " + name)
+        updated = copy.deepcopy(current)
+        changed = False
+        for group in ("dimensionFieldSpecs", "metricFieldSpecs", "dateTimeFieldSpecs"):
+            fields = {field["name"]: field for field in current.get(group, [])}
+            for field in wanted.get(group, []):
+                old = fields.get(field["name"])
+                if old is not None:
+                    if (old.get("dataType") != field.get("dataType")
+                            or old.get("singleValueField", True) != field.get("singleValueField", True)):
+                        raise InitializationError("Incompatible Pinot field type: " + name + "." + field["name"])
+                    continue
+                if group == "dateTimeFieldSpecs" or "defaultNullValue" not in field:
+                    raise InitializationError("Pinot field requires a reviewed migration: " + name + "." + field["name"])
+                if not migrate_existing:
+                    raise InitializationError("Missing Pinot field " + name + "." + field["name"] +
+                                              "; set global.pinot.migrateExistingSchemas=true after reviewing the upgrade")
+                updated.setdefault(group, []).append(copy.deepcopy(field))
+                changed = True
+        if changed:
+            plans.append((name, updated))
+    return plans
+
+
+def apply_schema_migrations(controller, plans):
+    for name, schema in plans:
+        path = "/schemas/" + quote(name, safe="")
+        status, _ = controller.request("PUT", path, schema)
+        if not 200 <= status < 300:
+            raise InitializationError("Cannot update Pinot schema " + name)
+        status, actual = controller.request("GET", path)
+        if status != 200 or not isinstance(actual, dict):
+            raise InitializationError("Cannot verify Pinot schema " + name)
+        for group in ("dimensionFieldSpecs", "metricFieldSpecs", "dateTimeFieldSpecs"):
+            fields = {field["name"]: field for field in actual.get(group, [])}
+            if any(any(fields.get(field["name"], {}).get(key) != value for key, value in field.items())
+                   for field in schema.get(group, [])):
+                raise InitializationError("Pinot schema verification failed: " + name)
+        print("Applied additive schema migration: " + name, flush=True)
+
+
+def initialize(controller, definitions, retention_days=None, apply_to_existing=False,
+               migrate_schemas=None):
     if apply_to_existing and retention_days is None:
         raise InitializationError("Applying retention to existing tables requires retention enabled")
+    if migrate_schemas is not None:
+        plans = schema_migration_plan(controller, definitions, migrate_schemas)
+        apply_schema_migrations(controller, plans)
     for schema, table in definitions:
         schema_name = schema["schemaName"]
         table_name, kind = table["tableName"], table["tableType"]
@@ -202,7 +256,11 @@ def main():
         definitions = load_definitions(os.environ["PINOT_DEFINITIONS_DIR"],
                                        os.environ["KAFKA_BOOTSTRAP_SERVERS"],
                                        int(os.environ["PINOT_TABLE_REPLICAS"]), retention_days)
-        initialize(Controller(os.environ["PINOT_CONTROLLER_URL"]), definitions, retention_days, apply_existing)
+        flag = os.environ.get("PINPOINT_SCHEMA_MIGRATION_ENABLED", "false")
+        if flag not in ("true", "false"):
+            raise InitializationError("Schema migration flag must be true or false")
+        initialize(Controller(os.environ["PINOT_CONTROLLER_URL"]), definitions, retention_days,
+                   apply_existing, migrate_schemas=flag == "true")
     except (InitializationError, KeyError, ValueError) as error:
         print("Pinot initialization failed: " + str(error), file=sys.stderr)
         return 1

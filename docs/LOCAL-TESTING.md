@@ -38,12 +38,12 @@ can use a single virtual node; the distributed example needs three.
 ```bash
 bash scripts/helm-validate.sh
 helm package . --destination /tmp/pinpoint-release
-helm install pinpoint /tmp/pinpoint-release/pinpoint-3.1.2.tgz \
+helm install pinpoint /tmp/pinpoint-release/pinpoint-4.0.1.tgz \
   --kubeconfig /tmp/pinpoint-311-kubeconfig.yaml \
-  --namespace pinpoint --create-namespace --wait --timeout 20m
+  --namespace pinpoint --create-namespace --wait --wait-for-jobs --timeout 20m
 python3 scripts/local-smoke.py \
   --kubeconfig /tmp/pinpoint-311-kubeconfig.yaml \
-  --namespace pinpoint --release pinpoint
+  --namespace pinpoint --release pinpoint --check-v4
 kubectl --kubeconfig /tmp/pinpoint-311-kubeconfig.yaml \
   --namespace pinpoint port-forward service/pinpoint-web 18081:8080
 ```

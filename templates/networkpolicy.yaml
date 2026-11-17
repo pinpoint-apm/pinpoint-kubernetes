@@ -88,6 +88,9 @@ spec:
         - { port: 9995, protocol: TCP }
         {{- if .Values.global.metric.enabled }}
         - { port: 9998, protocol: TCP }
+        {{- if semverCompare ">=4.0.0" $.Values.global.pinpointVersion }}
+        - { port: 9997, protocol: TCP }
+        {{- end }}
         {{- end }}
         - { port: 60000, protocol: TCP }
         - { port: 60020, protocol: TCP }
@@ -123,7 +126,7 @@ spec:
             matchExpressions:
               - key: app.kubernetes.io/component
                 operator: In
-                values: [web, collector, batch, mysql-init]
+                values: [web, collector, batch, alarm-batch, mysql-init]
       ports:
         - { port: 3306, protocol: TCP }
   egress:
@@ -181,7 +184,7 @@ spec:
             matchExpressions:
               - key: app.kubernetes.io/component
                 operator: In
-                values: [web, collector, batch, flink-jobmanager, hbase]
+                values: [web, collector, batch, alarm-batch, flink-jobmanager, hbase]
 {{ include "pinpoint.networkPolicy.kafkaPeer" . | nindent 8 }}
 {{ include "pinpoint.networkPolicy.pinotPeer" . | nindent 8 }}
 {{ include "pinpoint.networkPolicy.zookeeperPeer" . | nindent 8 }}
@@ -251,7 +254,7 @@ spec:
             matchExpressions:
               - key: app.kubernetes.io/component
                 operator: In
-                values: [web, collector, pinot-init]
+                values: [web, collector, alarm-batch, pinot-init]
 {{ include "pinpoint.networkPolicy.pinotPeer" . | nindent 8 }}
       ports:
         - { port: 9000, protocol: TCP }
@@ -335,6 +338,9 @@ spec:
         - { port: 9995, protocol: TCP }
         {{- if $.Values.global.metric.enabled }}
         - { port: 9998, protocol: TCP }
+        {{- if semverCompare ">=4.0.0" $.Values.global.pinpointVersion }}
+        - { port: 9997, protocol: TCP }
+        {{- end }}
         {{- end }}
 {{- end }}
 {{- end }}
