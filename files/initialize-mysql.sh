@@ -8,7 +8,13 @@ case "$MYSQL_DATABASE" in
   *[!a-zA-Z0-9_]*|'') echo 'Invalid MySQL database identifier' >&2; exit 1 ;;
 esac
 export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
-mysql_cmd() { mysql -h "$MYSQL_HOST" -u root -s -N "$@"; }
+mysql_cmd() {
+  if [ "${PINPOINT_VERSION:-3.1.1}" = "4.0.1" ]; then
+    mysql -h "$MYSQL_HOST" -P "${MYSQL_PORT:-3306}" -u root -s -N --init-command='SET SESSION sql_generate_invisible_primary_key=ON' "$@"
+  else
+    mysql -h "$MYSQL_HOST" -P "${MYSQL_PORT:-3306}" -u root -s -N "$@"
+  fi
+}
 workdir=$(mktemp -d)
 trap 'rm -rf "$workdir"' EXIT HUP INT TERM
 schemas="create-tables.sql create-batch-tables.sql create-service.sql create-feature-flag.sql"
@@ -17,6 +23,13 @@ case "${PINPOINT_METRIC_ENABLED:-false}" in
   false) ;;
   *) echo "PINPOINT_METRIC_ENABLED must be true or false" >&2; exit 1 ;;
 esac
+if [ "${PINPOINT_VERSION:-3.1.1}" = "4.0.1" ]; then
+  version=$(mysql -h "$MYSQL_HOST" -P "${MYSQL_PORT:-3306}" -u root -s -N -e 'SELECT VERSION();')
+  case "$version" in *MariaDB*) echo 'Pinpoint requires MySQL; MariaDB is not supported' >&2; exit 1 ;; esac
+  supported=$(printf '%s' "$version" | awk -F. '{print ($1>8 || ($1==8 && $2>=4)) ? "yes" : "no"}')
+  [ "$supported" = yes ] || { echo 'Pinpoint 4.0.1 requires MySQL 8.4 or newer' >&2; exit 1; }
+  schemas="$schemas create-alarm.sql"
+fi
 for schema in $schemas; do
   sed -e 's/^CREATE TABLE /CREATE TABLE IF NOT EXISTS /' -e '/^ALTER TABLE .* ADD /d' "/shared/$schema" > "$workdir/$schema"
   mysql_cmd "$MYSQL_DATABASE" < "$workdir/$schema"
@@ -54,7 +67,7 @@ for schema in $schemas; do
       if (column ~ /^`/) {
         split($0, parts, "`"); column=parts[2]; kind=parts[3]; sub(/^[[:space:]]+/, "", kind)
       }
-      if (toupper(kind) ~ /^(INT|BIGINT|VARCHAR|CHAR|DATETIME|TEXT|ENUM)(\(|[[:space:]]|$)/) print table, column
+      if (toupper(kind) ~ /^(INT|BIGINT|TINYINT|VARCHAR|CHAR|DATETIME|TEXT|MEDIUMTEXT|JSON|ENUM)(\(|[[:space:]]|$)/) print table, column
     }' "/shared/$schema"
 done > "$workdir/expected-columns"
 while read -r table column; do

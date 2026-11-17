@@ -1,0 +1,72 @@
+{{- if .Values.alarmBatch.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pinpoint.fullname" . }}-alarm-batch
+  labels:
+    {{- include "pinpoint.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alarm-batch
+spec:
+  replicas: {{ .Values.alarmBatch.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "pinpoint.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: alarm-batch
+  template:
+    metadata:
+      {{- include "pinpoint.applicationPodAnnotations" (dict "root" . "config" .Values.alarmBatch) | nindent 6 }}
+      labels:
+        {{- include "pinpoint.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: alarm-batch
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toJson . }}
+      {{- end }}
+      securityContext: {runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
+      {{- if eq (include "pinpoint.mysql.initialize" .) "true" }}
+      initContainers:
+        {{- include "pinpoint.mysql.waitForSchema" . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: alarm-batch
+          image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.alarmBatch.image.repository }}:{{ .Values.alarmBatch.image.tag }}"
+          imagePullPolicy: {{ .Values.alarmBatch.imagePullPolicy }}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          resources:
+            {{- toYaml .Values.alarmBatch.resources | nindent 12 }}
+          env:
+            {{- if ne (include "pinpoint.hasLoggingOverride" .Values.alarmBatch) "true" }}
+            - {name: LOGGING_CONFIG, value: /etc/pinpoint/logging/log4j2-console.xml}
+            {{- end }}
+            - name: JAVA_TOOL_OPTIONS
+              value: {{ printf "%s -Dalarm.agent-stat.table.prefix=%s -Dalarm.agent-stat.table.padding-length=%v -Dalarm.agent-stat.table.count=%v" .Values.alarmBatch.jvmOptions .Values.alarmBatch.agentStat.tablePrefix .Values.alarmBatch.agentStat.paddingLength .Values.alarmBatch.agentStat.count | quote }}
+            - {name: SPRING_PROFILES_ACTIVE, value: release}
+            - {name: PINPOINT_ZOOKEEPER_ADDRESS, value: {{ include "pinpoint.zookeeper.address" . | quote }}}
+            {{- include "pinpoint.hbase.clientEnv" . | nindent 12 }}
+            {{- include "pinpoint.datasource.poolEnv" . | nindent 12 }}
+            - {name: SPRING_DATASOURCE_HIKARI_JDBCURL, value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}}
+            - {name: SPRING_DATASOURCE_HIKARI_USERNAME, value: {{ include "pinpoint.datasource.username" . | quote }}}
+            - name: SPRING_DATASOURCE_HIKARI_PASSWORD
+              {{ include "pinpoint.datasource.password" . | nindent 14 }}
+            - {name: SPRING_METADATASOURCE_HIKARI_JDBCURL, value: {{ include "pinpoint.datasource.jdbcUrl" . | quote }}}
+            - {name: SPRING_METADATASOURCE_HIKARI_USERNAME, value: {{ include "pinpoint.datasource.username" . | quote }}}
+            - name: SPRING_METADATASOURCE_HIKARI_PASSWORD
+              {{ include "pinpoint.datasource.password" . | nindent 14 }}
+            - {name: SPRING_PINOTDATASOURCE_PINOT_JDBCURL, value: {{ include "pinpoint.pinot.jdbcUrl" . | quote }}}
+            {{- with .Values.alarmBatch.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - {name: runtime-logging, mountPath: /etc/pinpoint/logging, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+            - {name: logs, mountPath: /app/logs}
+      volumes:
+        - name: runtime-logging
+          configMap:
+            name: {{ include "pinpoint.fullname" . }}-runtime-logging
+        - name: tmp
+          emptyDir: {sizeLimit: 256Mi}
+        - name: logs
+          emptyDir: {sizeLimit: 256Mi}
+{{- end }}

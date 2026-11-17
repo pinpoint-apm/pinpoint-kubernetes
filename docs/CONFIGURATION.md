@@ -2,20 +2,21 @@
 
 ## Configuration
 
-**Metric is the default:** Web/Collector use the `3.1.1-metric` images; Kafka
+**Metric is the default:** Web/Collector use the `4.0.1-metric` images; Kafka
 and Pinot are enabled; Batch and Flink are disabled; Telegraf host metrics are
 opt-in. No profile flag is needed for the installation in the README.
 [`values-minimal.yaml`](../values-minimal.yaml) runs the same stack on one
 small node (about 8.3 GiB of memory requests) for kind or a laptop.
 
-**Classic is optional**, for existing Batch/Flink users. It selects the classic
+**Classic is retained for Pinpoint 3.1.1** Batch/Flink users; 4.0.1 qualification covers Metric mode. It selects the classic
 Web/Collector images and disables the default metric services. To select it:
 
 ```bash
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.7 \
+  --version 4.0.1 \
   --namespace pinpoint \
   --create-namespace \
+  --set global.pinpointVersion=3.1.1 \
   --set global.metric.enabled=false \
   --wait \
   --timeout 20m
@@ -46,9 +47,33 @@ External services do not block Pinpoint pod startup. Kafka topics are assumed
 to be managed externally; set `global.kafka.manageExternalTopics=true` only if
 this Helm release should create them.
 
+### Pinpoint 4.x
+
+`global.service.enabled` enables Service Map and Collector service lookup.
+Register a service in Web before pointing agents at it; 4.x agents require
+`pinpoint.serviceName`. `DEFAULT` keeps pre-upgrade/legacy data separate from
+newly registered services. See [AGENTS](AGENTS.md) and [UPGRADING](UPGRADING.md).
+
+In Metric mode the Collector starts BASIC, METRIC and OTLPTRACE explicitly.
+The separate legacy LOG process is not configured by this chart. OTLP logs
+co-hosted with the trace receiver are a different module. Collector probes check
+all selected native, Metric and OTLP listener ports. Web and Collector log to
+stdout; custom logging can override `LOGGING_CONFIG` with a mounted config.
+
+MySQL initialization is a regular content-addressed Job. When chart-managed
+initialization is enabled, application init containers wait for the required
+schema using the application account. External MySQL must already contain the
+database/account; opt in to schema initialization with
+`global.datasource.schema.enabled=true`, host, port, database and a root-password
+Secret reference. Root credentials stay in the initialization Job.
+
+The optional `alarmBatch` workload needs a qualified custom image: upstream
+4.0.1 currently has no published Alarm Batch Docker tag or attached executable
+artifact. Its schema is bundled even when the process is disabled.
+
 ### History retention
 
-Application chart 3.1.7 and storage chart 0.1.5 accept the same values:
+Application chart 4.0.1 and storage chart 0.2.0 accept the same values:
 
 ```yaml
 global:
@@ -100,9 +125,9 @@ uses a new schema Job without restarting HBase/HDFS roles.
 | Service | Chart support | Limits |
 | --- | --- | --- |
 | Redis | `redis.enabled=false` with `global.redis.*` | Host, port, ACL username and password/Secret; TLS and Sentinel are not exposed. This switches to external Redis, not a feature disable. |
-| Kafka | `kafka.enabled=false` with `global.kafka.bootstrapServers` | Plaintext endpoints only: stock Pinpoint 3.1.1 producers do not bind SASL/TLS properties. External topics are operator-managed by default. |
-| MySQL | `mysql.enabled=false` with `global.datasource.*` | External schema initialization and upgrades are operator-managed. Passwords can reference an existing Secret. |
-| PostgreSQL | Custom JDBC configuration only | Stock Pinpoint 3.1.1 uses MySQL SQL and mappers. A PostgreSQL driver/JDBC URL alone is insufficient; custom application images, ported schemas and queries are required. |
+| Kafka | `kafka.enabled=false` with `global.kafka.bootstrapServers` | Plaintext endpoints only: stock Pinpoint producers do not bind SASL/TLS properties. External topics are operator-managed by default. |
+| MySQL | `mysql.enabled=false` with `global.datasource.*` | Requires MySQL 8.4+ for 4.0.1. Schema initialization is opt-in via `global.datasource.schema`; existing Secrets are supported. |
+| PostgreSQL | Custom JDBC configuration only | Stock Pinpoint uses MySQL SQL and mappers. A PostgreSQL driver/JDBC URL alone is insufficient; custom application images, ported schemas and queries are required. |
 | HBase | `hbase.enabled=false` + `global.hbase.*` | ZooKeeper quorum, client port, znode and namespace; tables/regions and backups are operator-managed. |
 | ZooKeeper | `zookeeper.enabled=false` + `global.zookeeper.address` | Pinpoint coordination uses comma-separated host:port endpoints; it can be separate from HBase discovery. No client-authentication/TLS wiring. |
 | Pinot | `pinot.enabled=false` + `global.pinot.jdbcUrl` | Tables/schemas are operator-managed unless `manageExternalTables=true` and `controllerUrl` are provided. No REST authentication wiring for the optional initializer. |
@@ -117,7 +142,7 @@ External Pinot still needs its brokers reachable by the Web JDBC client, and
 Kafka/HBase discovered broker/RegionServer addresses must be routable from pods.
 
 For an external MySQL instance, initialize the database with the versioned
-[Pinpoint SQL scripts](https://github.com/pinpoint-apm/pinpoint/tree/v3.1.1/web/src/main/resources/sql),
+[Pinpoint SQL scripts](https://github.com/pinpoint-apm/pinpoint/tree/v4.0.1/web/src/main/resources/sql),
 then configure:
 
 ```yaml
@@ -140,8 +165,8 @@ it does not disable Pinpoint's database-dependent features.
 `global.datasource.pool` bounds both primary and metadata Hikari pools in Web,
 Collector and optional Batch. Defaults are `maximumPoolSize: 10`,
 `minimumIdle: 2`, `connectionTimeout: 5000` milliseconds **per pool**. Budget
-two pools per application replica plus rollout surge, hooks and administrative
-connections; raising replicas without a database connection budget can exhaust
+all pools in every application context, rollout surge, schema Jobs and administrative
+connections; the 4.x Collector runs multiple Spring contexts, each with its own pools; raising replicas without a database connection budget can exhaust
 MySQL even without user traffic.
 
 Bundled MySQL generates random passwords in `<release>-mysql` on install and
@@ -149,12 +174,12 @@ keeps them on Helm upgrades through lookup. Rendering with `helm template` or
 Argo CD cannot look up that Secret: set `mysql.auth.existingSecret` to a Secret
 containing `mysql-root-password`, `mysql-password` and
 `mysql-replication-password`, as required by the dependency. Web, Collector,
-Batch and SQL init hooks reference that same Secret. When reusing a database
+Batch and SQL init Jobs reference that same Secret. When reusing a database
 volume, the Secret must match its existing credentials.
 
 ### Basic login
 
-Pinpoint 3.1.1 requires a JWT secret when basic login is enabled. Create a Secret
+Pinpoint requires a JWT secret when basic login is enabled. Create a Secret
 in the release namespace containing `jwt-secret` (a random string of at least
 24 characters) and `admin` (comma-separated `username:password` pairs), then set:
 
@@ -183,7 +208,8 @@ seccomp, a read-only root filesystem and no service-account token. Writable
 the image's `/etc/passwd`: Hadoop's login fails with an unknown numeric UID.
 Use `extraEnv`, `extraVolumes` and `extraVolumeMounts` to mount custom truststores.
 `global.imagePullSecrets` applies to every chart-owned pod and to the Bitnami
-dependencies; Pinot needs the same list in `pinot.imagePullSecrets`.
+dependencies; Pinot needs the same list in `pinot.imagePullSecrets`. Private
+mirrors also need overrides for Pinot's image and per-role init container images.
 
 Web/Collector support `replicaCount`, `pdb`, `strategy`, `nodeSelector`,
 `tolerations`, `affinity`, `podAnnotations`, `podLabels`, `serviceAccountName`,
@@ -248,8 +274,8 @@ and Jobs; `hbase.*SecurityContext`, `quickstart.*SecurityContext`,
 
 ### Images and production deployments
 
-An empty Web or Collector image tag selects `3.1.1-metric` in metric mode and
-`3.1.1` in classic mode. Explicit `web.image.tag` and `collector.image.tag`
+An empty Web or Collector image tag follows `global.pinpointVersion` (default
+`4.0.1`), adding `-metric` in Metric mode. Explicit `web.image.tag` and `collector.image.tag`
 values are used verbatim, including any `-metric` suffix.
 Pinot defaults to the compatible `1.3.0` image. Its init job uses an independently
 pinned Python image (`global.pinot.initImage.*`) and the controller REST API.
@@ -313,7 +339,7 @@ budget plus bootstrap hooks (for example `--timeout 45m`).
 
 `hbase.config.ttl` sets retention in seconds when bundled HBase creates a
 missing table; existing TTLs are never rewritten. Keys match the stock
-pinpoint-hbase image. Collector 3.1.1 writes the v2 indexes `TraceIndex`
+pinpoint-hbase image. The Collector writes the v2 indexes `TraceIndex`
 (`TRACEINDEX_TTL`), `Application` (`APPLICATION_TTL`) and `AgentId`
 (`AGENTID_TTL`); keep `TRACEINDEX_TTL` equal to `TRACEV2_TTL` so scatter-chart
 entries do not outlive their traces. The v1 index keys remain for existing
@@ -343,7 +369,7 @@ See [local k3s testing](LOCAL-TESTING.md) for an isolated default installation,
 traffic checks and the recorded validation scope. MySQL SQL, Pinot definitions
 and Telegraf configuration are bundled; their bootstrap no longer requires
 runtime GitHub downloads. Collector's metric Service port 15200 maps to the
-3.1.1 MetricApp HTTP listener on 9995/TCP. Kafka defaults give each JVM a 1 GiB
+MetricApp HTTP listener on 9995/TCP. Kafka defaults give each JVM a 1 GiB
 maximum heap and each pod a 2 GiB memory limit; the dependency's original
 768 MiB limit was insufficient under test traffic.
 
@@ -373,13 +399,13 @@ If encrypted/authenticated Kafka or ZooKeeper is mandatory, additional client
 integration is required before this chart can meet that requirement.
 
 Topic initialization reads `global.kafka.topics`, the eleven topics produced
-by the default 3.1.1 Collector modules. It creates missing topics with
+by the chart-selected Collector modules. It creates missing topics with
 `--if-not-exists`, raises lower partition counts (for example after broker
 auto-creation), reports replication factors below
 `global.kafka.topicReplicationFactor`, and fails when an operation fails.
 Optional Collector modules can need more topics, such as `agent-info` for
-`pinpoint.modules.collector.agent-statistics.enabled=true`. Pinot initialization validates all 20 bundled
-3.1.1 JSON definitions before making changes, creates missing schemas/tables
+`pinpoint.modules.collector.agent-statistics.enabled=true`. Pinot initialization validates the selected version's 29 bundled
+JSON assets (11 schemas, 18 typed tables) before making changes, creates missing schemas/tables
 by their actual names (including `inspectorStatApp` and the REALTIME/OFFLINE
 table pairs for agent Inspector, URI statistics, system measurements and
 Heatmap), and preserves existing configs. Retries and upgrades can repair a partially initialized cluster;
@@ -395,7 +421,7 @@ UI query-range settings do not change retention or HBase trace TTL. Size disk
 capacity for these histories, not just the realtime window.
 
 Set `global.pinot.createTables=false` if schemas/tables are managed separately.
-An explicit application version override without bundled definitions requires
+Only versions with bundled definitions (3.1.1 and 4.0.1) are supported. An override also requires
 this setting and operator-managed initialization. Existing schemas/table configs
 are not migrated automatically. A successful init hook confirms resources
 exist; validate Collector ingestion and Inspector queries separately before

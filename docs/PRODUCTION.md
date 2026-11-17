@@ -29,12 +29,12 @@ not qualification of your NFS storage or production workload.
 | Collector | Two or more Kubernetes replicas; gRPC Service | Agent routing, ingress capacity, ingestion monitoring |
 | HBase | External distributed HBase with HDFS and its ZooKeeper ensemble | Master/RegionServer redundancy, WAL durability, region health, TTLs, snapshots and tested restore |
 | ZooKeeper | External ensemble for Pinpoint coordination, optionally separate from HBase | Quorum, private networking, stable addresses |
-| MySQL | External MySQL | Pinpoint schema, credentials, verified TLS, connection limits and backups |
+| MySQL | External MySQL 8.4+ for Pinpoint 4.0.1 | Pinpoint schema, credentials, verified TLS, connection limits and backups |
 | Redis | External Redis endpoint | Capacity, persistence/failover appropriate to its usage; stock clients in this chart lack TLS/Sentinel configuration |
 | Kafka | External Kafka | Required topics, replication, retention, advertised listeners and consumer lag |
 | Pinot | External Pinot | Required schemas/tables, replication, Kafka ingestion, segment storage and query health |
 
-PostgreSQL cannot replace MySQL with stock Pinpoint 3.1.1 images: its schemas
+PostgreSQL cannot replace MySQL with stock Pinpoint images: its schemas
 and application queries require a [driver/schema/query adaptation](POSTGRESQL.md).
 Kafka producers and ZooKeeper consumers
 also lack the authenticated/encrypted connection configuration in this chart.
@@ -51,9 +51,9 @@ backend. No NFS qualification or production load benchmark is claimed here.
 
 ## Configure the external profile
 
-1. Provision the backends and apply the bundled 3.1.1 definitions in
-   `files/sql/3.1.1` and `files/pinot/3.1.1`. Create HBase tables using the
-   upstream 3.1.1 HBase script, respecting the configured namespace. Create
+1. Provision the backends and apply the bundled 4.0.1 definitions in
+   `files/sql/4.0.1` and `files/pinot/4.0.1`. Create HBase tables using the
+   upstream 4.0.1 HBase script, respecting the configured namespace. Create
    the eleven Kafka topics listed under `global.kafka.topics` in `values.yaml`,
    including `heatmap-stat-app-00`, with at least those partition counts.
    Disable broker topic auto-creation so a misnamed or early topic cannot be
@@ -87,7 +87,7 @@ backend. No NFS qualification or production load benchmark is claimed here.
 ```bash
 helm dependency build .
 helm upgrade --install pinpoint . --namespace pinpoint --create-namespace \
-  -f my-production-values.yaml --wait --timeout 20m
+  -f my-production-values.yaml --wait --wait-for-jobs --timeout 20m
 ```
 
 This renders only Web/Collector, their Services, optional ingress, PDBs and
@@ -100,17 +100,20 @@ existing definitions.
 
 ## Capacity and availability
 
-The example requires two schedulable workers and spreads each application
-across hostnames. PDBs keep one replica available during voluntary disruption;
+The example requires Kubernetes 1.30+ and two eligible workers. Hostname spread
+uses `minDomains: 2`: when only one worker remains eligible, replacement pods
+stay Pending rather than weakening separation. Uncordoning the worker restores
+the placement. PDBs keep one replica available during voluntary disruption;
 they cannot prevent failure from simultaneous node loss. Rolling updates use
 `maxUnavailable: 0`, `maxSurge: 1`; provide spare CPU/memory and node capacity
 for the replacement pods. Agent gRPC connections also need reconnect/failover
 verification against your actual Service/load-balancer setup.
 
-Both Web and Collector create primary and metadata MySQL pools. With two Web
-and two Collector replicas and the default pool maximum of 10, reserve up to
-`4 × 2 × 10 = 80` connections plus surge pods, other clients, bootstrap and
-administration. Their baseline minimum is `4 × 2 × 2 = 16`. Tune
+In the tested 4.0.1 Metric profile, Web opened one MySQL pool and Collector two.
+With two Web and two Collector replicas and a pool maximum of 10, reserve
+60 connections plus up to 30 for simultaneous rollout surge, other clients,
+bootstrap and administration. Their baseline minimum is 12. Verify pool counts
+again when enabling additional modules. Tune
 `global.datasource.pool` against the database limit and measured demand. Stock
 Pinpoint defaults can hold 30 idle connections per pool; explicit chart limits
 avoid scaling into that idle connection cost.

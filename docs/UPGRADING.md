@@ -1,5 +1,56 @@
 # Upgrading the Pinpoint chart
 
+## Chart 3.1.7 to 4.0.1 / storage 0.1.5 to 0.2.0
+
+Chart 4.0.1 defaults to Pinpoint 4.0.1. Back up MySQL, HBase and Pinot metadata
+before touching an existing installation. Upgrade MySQL to 8.4+ first; changing
+the image of an existing 8.0 PVC is not a database upgrade plan. Test a copy of
+the database and follow MySQL's supported upgrade path.
+
+Both 3.1.1 and 4.0.1 schema assets are bundled. Set the same
+`global.pinpointVersion` on the application and the independently installed
+Stackable storage release. Existing HBase tables are retained; no legacy
+index table is dropped. Retention remains opt-in and applies only to history.
+
+For existing Pinot installations set `global.pinot.migrateExistingSchemas=true`
+after reviewing the schema difference. The initializer preflights all schemas,
+adds only fields with explicit defaults, preserves custom fields/table configs,
+and rejects conflicting types. It does not rewrite or reload existing segments;
+verify queries against historical segments during the migration test.
+
+Service Map and Collector service lookup follow `global.service.enabled`
+(default true for 4.0.1). Register services in Web before sending 4.x agents;
+set `pinpoint.serviceName` and keep the default v4 identity. `DEFAULT` is the
+compatibility service; historical 3.x data is not automatically reassigned.
+Downgrading a 4.x Collector to 3.1.x in place is unsupported: restore the
+pre-upgrade deployment and backups instead.
+
+The bundled MySQL evaluation image is now 8.4.5. Production should use a
+maintained MySQL 8.4+ deployment. External/operator-managed MySQL can opt in to
+`global.datasource.schema.enabled`, with an explicit host/database and root
+password Secret. The job manages schema only; provision the database and
+application account separately. Root credentials are never injected into Web
+or Collector.
+
+The SQL initializer is a regular Job whose name hashes its configuration and
+Pod spec. Web/Collector wait for required SQL tables before starting. Use
+`--wait --wait-for-jobs` with Helm CLI and check initialization Job completion
+in GitOps. Incompatible existing columns still fail initialization and need a
+reviewed migration.
+
+Collector types are selected explicitly. Metric mode starts BASIC, METRIC and
+OTLPTRACE; the separate legacy LOG process is not part of this deployment.
+Collector health probes check all selected listener ports. The 4.x Web and
+Collector use stdout logging to work with their read-only root filesystems.
+
+OTLP/HTTP is exposed on Collector port 9997 in Metric mode; OTLP/gRPC stays on
+9998. External agent Services still expose only the three native agent ports.
+Service Alarm has a separate opt-in `alarmBatch` Deployment. The 4.0.1 upstream
+release does not publish its Docker image or executable JAR; supply a compatible
+custom image via `alarmBatch.image.repository` before enabling it. It requires
+Metric mode, services and the configured Inspector table layout. Legacy alarm
+rules are not migrated automatically.
+
 ## Chart 3.1.6 to 3.1.7 / storage 0.1.4 to 0.1.5
 
 Metadata-only release: Pinpoint, dependencies, templates and values are

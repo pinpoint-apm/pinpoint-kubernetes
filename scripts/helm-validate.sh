@@ -6,6 +6,7 @@ bash -n scripts/helm-repo-smoke.sh
 bash -n scripts/render-pages-site.sh
 bash -n scripts/validate-hbase-backend.sh
 bash -n scripts/check-version-bump.sh
+python3 scripts/test-pinpoint-4.py
 python3 -m py_compile scripts/local-smoke.py scripts/local-ha-recovery.py scripts/local-mysql-recovery.py scripts/hbase_local_client.py
 python3 -m py_compile examples/local-production/setup-local.py examples/local-production/verify-ingress.py
 
@@ -16,7 +17,7 @@ trap 'rm -rf "${render_dir}"' EXIT
 
 helm repo add bitnami https://charts.bitnami.com/bitnami --force-update
 helm repo add pinot https://raw.githubusercontent.com/apache/pinot/master/helm --force-update
-helm dependency build "${chart_dir}"
+helm dependency build "${chart_dir}" --skip-refresh
 
 helm lint "${chart_dir}"
 helm lint "${chart_dir}" --set global.metric.enabled=false
@@ -237,7 +238,7 @@ helm template pinpoint "${chart_dir}" --namespace pinpoint \
   --show-only templates/web.yaml --show-only templates/batch.yaml \
   --show-only templates/init-job-mysql.yaml \
   > "${render_dir}/mysql-existing-secret.yaml"
-test "$(grep -c 'name: "mysql-credentials"' "${render_dir}/mysql-existing-secret.yaml")" -eq 8
+test "$(grep -c 'name: "mysql-credentials"' "${render_dir}/mysql-existing-secret.yaml")" -eq 10
 if grep -A 1 'secretKeyRef:' "${render_dir}/mysql-existing-secret.yaml" | grep -q 'name: pinpoint-mysql\|name: "pinpoint-mysql"'; then
   echo "Bundled MySQL references its generated Secret instead of mysql.auth.existingSecret" >&2
   exit 1
@@ -417,7 +418,7 @@ expect_render_failure 'tableReplicas' --set global.pinot.tableReplicas=1.5
 expect_render_failure 'global.pinot.tableReplicas cannot exceed pinot.server.replicaCount' --set global.pinot.tableReplicas=2
 expect_render_failure 'topicReplicationFactor' --set global.kafka.topicReplicationFactor=0
 expect_render_failure 'topicReplicationFactor' --set global.kafka.topicReplicationFactor=1.5
-expect_render_failure 'No bundled Pinot definitions' --set global.pinpointVersion=9.9.9
+expect_render_failure 'pinpointVersion' --set global.pinpointVersion=9.9.9
 expect_render_failure 'maximumPoolSize' --set global.datasource.pool.maximumPoolSize=10.5
 expect_render_failure 'minimumIdle' --set global.datasource.pool.minimumIdle=2.5
 expect_render_failure 'connectionTimeout' --set global.datasource.pool.connectionTimeout=5000.5
@@ -474,11 +475,11 @@ helm template pinpoint "${chart_dir}" --namespace pinpoint \
   --set 'hbase.nodeSelector.kubernetes\.io/arch=arm64' \
   > "${render_dir}/custom-hbase-architecture.yaml"
 grep -q 'kubernetes.io/arch: arm64' "${render_dir}/custom-hbase-architecture.yaml"
-grep -q 'example/arm64-hbase:3.1.1' "${render_dir}/custom-hbase-architecture.yaml"
+grep -q 'example/arm64-hbase:4.0.1' "${render_dir}/custom-hbase-architecture.yaml"
 
-grep -q 'pinpointdocker/pinpoint-web:3.1.1-metric' "${render_dir}/metric.yaml"
-grep -q 'pinpointdocker/pinpoint-collector:3.1.1-metric' "${render_dir}/metric.yaml"
-grep -q 'pinpointdocker/pinpoint-hbase:3.1.1' "${render_dir}/metric.yaml"
+grep -q 'pinpointdocker/pinpoint-web:4.0.1-metric' "${render_dir}/metric.yaml"
+grep -q 'pinpointdocker/pinpoint-collector:4.0.1-metric' "${render_dir}/metric.yaml"
+grep -q 'pinpointdocker/pinpoint-hbase:4.0.1' "${render_dir}/metric.yaml"
 grep -q 'pinpointdocker/pinpoint-flink:3.0.5' "${render_dir}/classic.yaml"
 grep -q 'apachepinot/pinot:1.3.0' "${render_dir}/metric.yaml"
 grep -q 'name: pinpoint-mysql-init-sql' "${render_dir}/mysql-init.yaml"
@@ -496,14 +497,19 @@ if grep -q 'raw.githubusercontent.com\|pinot-admin.sh\|EXISTING_TABLES' "${rende
 fi
 grep -q 'name: pinpoint-telegraf-config' "${render_dir}/telegraf.yaml"
 grep -q 'targetPort: 9995' "${render_dir}/metric.yaml"
-grep -q 'post-install,post-upgrade' "${render_dir}/mysql-init.yaml"
+grep -q 'name: pinpoint-mysql-init-[a-f0-9]' "${render_dir}/mysql-init.yaml"
+grep -q 'name: wait-for-mysql-schema' "${render_dir}/metric.yaml"
+if grep -q 'helm.sh/hook' "${render_dir}/mysql-init.yaml"; then
+  echo "MySQL schema must be initialized before application init containers finish" >&2
+  exit 1
+fi
 grep -q 'initialize-mysql.sh' "${render_dir}/mysql-init.yaml"
 sh -n "${chart_dir}/files/initialize-mysql.sh"
-grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-web:3.1.1' "${render_dir}/custom-registry.yaml"
-grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-collector:3.1.1' "${render_dir}/custom-registry.yaml"
-grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-hbase:3.1.1' "${render_dir}/custom-registry.yaml"
-grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-agent:3.1.1' "${render_dir}/custom-registry.yaml"
-grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-batch:3.1.1' "${render_dir}/custom-registry.yaml"
+grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-web:4.0.1' "${render_dir}/custom-registry.yaml"
+grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-collector:4.0.1' "${render_dir}/custom-registry.yaml"
+grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-hbase:4.0.1' "${render_dir}/custom-registry.yaml"
+grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-agent:4.0.1' "${render_dir}/custom-registry.yaml"
+grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-batch:4.0.1' "${render_dir}/custom-registry.yaml"
 grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-flink:3.0.5' "${render_dir}/custom-registry.yaml"
 grep -q 'registry.example.com/mirror/pinpointdocker/pinpoint-quickstart:2.5.4' "${render_dir}/custom-registry.yaml"
 
@@ -524,7 +530,7 @@ fi
 
 test "$(grep -c '^kind: NetworkPolicy' "${render_dir}/network-policy-enabled.yaml")" -eq 8
 grep -q 'name: pinpoint-mysql' "${render_dir}/network-policy-enabled.yaml"
-grep -q 'values: \[web, collector, batch, mysql-init\]' "${render_dir}/network-policy-enabled.yaml"
+grep -q 'values: \[web, collector, batch, alarm-batch, mysql-init\]' "${render_dir}/network-policy-enabled.yaml"
 grep -q 'name: pinpoint-zookeeper' "${render_dir}/network-policy-enabled.yaml"
 grep -q 'name: pinpoint-kafka' "${render_dir}/network-policy-enabled.yaml"
 grep -q 'name: pinpoint-pinot' "${render_dir}/network-policy-enabled.yaml"
@@ -553,7 +559,7 @@ grep -q 'bitnamilegacy/kafka:4.0.0-debian-12-r10' "${render_dir}/external-kafka-
 grep -q '/opt/bitnami/kafka/bin/kafka-topics.sh' "${render_dir}/external-kafka-init.yaml"
 grep -q 'post-install,post-upgrade' "${render_dir}/external-kafka-init.yaml"
 grep -q 'post-install,post-upgrade' "${render_dir}/pinot-init.yaml"
-for job in mysql-init pinot-init external-kafka-init; do
+for job in pinot-init external-kafka-init; do
   grep -q 'before-hook-creation,hook-succeeded' "${render_dir}/${job}.yaml"
   if grep -q 'ttlSecondsAfterFinished:\|helm.sh/hook-timeout' "${render_dir}/${job}.yaml"; then
     echo "Init job discards failed diagnostics or relies on a nonstandard hook timeout" >&2
@@ -627,7 +633,7 @@ GITHUB_REPOSITORY=pinpoint-apm/pinpoint-kubernetes \
 grep -q '<title>Pinpoint Helm Chart</title>' "${render_dir}/pages/index.html"
 grep -q 'https://pinpoint-apm.github.io/pinpoint-kubernetes' "${render_dir}/pages/index.html"
 grep -q "Chart ${chart_version}" "${render_dir}/pages/index.html"
-grep -q 'Pinpoint 3.1.1' "${render_dir}/pages/index.html"
+grep -q 'Pinpoint 4.0.1' "${render_dir}/pages/index.html"
 test -f "${render_dir}/pages/.nojekyll"
 grep -q '^repositoryID: [0-9a-f-]\{36\}$' "${render_dir}/pages/artifacthub-repo.yml"
 
@@ -644,7 +650,7 @@ test -f "${chart_package}"
 helm lint "${chart_package}"
 helm template observability "${chart_package}" --namespace telemetry \
   > "${render_dir}/packaged.yaml"
-grep -q 'pinpointdocker/pinpoint-web:3.1.1-metric' "${render_dir}/packaged.yaml"
+grep -q 'pinpointdocker/pinpoint-web:4.0.1-metric' "${render_dir}/packaged.yaml"
 grep -q 'controller.zk.str=observability-zookeeper:2181' "${render_dir}/packaged.yaml"
 tar -tf "${chart_package}" > "${render_dir}/package-files.txt"
 test "$(grep -c 'files/pinot/3.1.1/.*\.json$' "${render_dir}/package-files.txt")" -eq 29

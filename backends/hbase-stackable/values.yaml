@@ -63,6 +63,7 @@ hbase:
       cpu: {min: "2", max: "8"}
       memory: {limit: 8Gi}
 global:
+  pinpointVersion: "4.0.1"
   # History retention excludes metadata and agent-liveness tables.
   retention:
     enabled: false
@@ -70,12 +71,12 @@ global:
     applyToExisting: false
 bootstrap:
   enabled: true
-  # Preserve upstream 3.1.1 splits by default; false is for small local tests.
+  # Preserve upstream splits by default; false is for small local tests.
   preSplit: true
   # Keep transient startup errors inside the schema pod, bounded by Job deadline.
   readyTimeoutSeconds: 900
   # Change this revision to explicitly rerun idempotent schema verification.
-  revision: "311-1"
+  revision: "401-1"
   resources:
     requests: {cpu: 250m, memory: 1Gi}
     limits: {cpu: "2", memory: 2Gi}

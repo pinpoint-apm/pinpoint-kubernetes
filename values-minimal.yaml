@@ -19,6 +19,7 @@ collector:
     limits: {cpu: "2", memory: 1536Mi}
 
 hbase:
+  preSplit: false
   heapSize: "512"
   persistence:
     size: 5Gi

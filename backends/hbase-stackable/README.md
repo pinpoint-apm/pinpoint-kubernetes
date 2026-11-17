@@ -1,6 +1,6 @@
 # Pinpoint HBase/HDFS storage chart
 
-Companion chart **0.1.5** runs independently of the Pinpoint application chart.
+Companion chart **0.2.0** runs independently of the Pinpoint application chart.
 It uses Stackable **26.7.0** with HBase **2.6.6**, HDFS **3.4.3** and ZooKeeper **3.9.5**.
 
 | Service | Default topology |
@@ -43,7 +43,7 @@ helm upgrade --install pinpoint-storage backends/hbase-stackable \
   -f my-storage-values.yaml --wait --wait-for-jobs --timeout 30m
 ```
 
-Published packages use `pinpoint/pinpoint-hbase-stackable --version 0.1.5`.
+Published packages use `pinpoint/pinpoint-hbase-stackable --version 0.2.0`.
 The application chart does not install these operators or this storage release.
 
 ## Connect Pinpoint
@@ -70,7 +70,7 @@ MySQL, Redis, Kafka and Pinot need their own installations and connection settin
 
 ## Configuration and upgrades
 
-The schema Job verifies all 22 bundled Pinpoint 3.1.1 tables and preserves
+The schema Job verifies all 22 tables from the selected `global.pinpointVersion` (default 4.0.1) and preserves
 existing TTLs/splits by default. `bootstrap.revision` reruns verification;
 `bootstrap.preSplit=false` is available for small test installations.
 

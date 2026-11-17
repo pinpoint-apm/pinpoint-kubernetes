@@ -33,6 +33,9 @@ begin
     end
     line = retention.definition(line, match[1])
     tables << [match[1], line.scan(/NAME => '([^']+)'/).flatten]
+    if ENV['PRE_SPLIT'] == 'false'
+      line = line.sub(/,\s*\{SPLITS.*$/, '').sub(/,\s*\{NUMREGIONS.*$/, '')
+    end
     eval(line) unless exists(match[1])
     raise "Table #{match[1]} is disabled" unless is_enabled(match[1])
     verified_tables += 1

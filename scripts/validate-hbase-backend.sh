@@ -48,7 +48,7 @@ job_name() {
     --show-only templates/bootstrap.yaml | awk '/^kind: Job$/ {job=1} job && /^  name:/ {print $2; exit}'
 }
 default_job=$(job_name)
-[[ "$default_job" =~ ^telemetry-storage-schema-311-1-[0-9a-f]{8}$ ]]
+[[ "$default_job" =~ ^telemetry-storage-schema-401-1-[0-9a-f]{8}$ ]]
 test "$(job_name)" = "$default_job"
 for changed in hbase.version=2.6.7 bootstrap.preSplit=false bootstrap.resources.limits.memory=3Gi imagePullPolicy=Always; do
   test "$(job_name --set "$changed")" != "$default_job"

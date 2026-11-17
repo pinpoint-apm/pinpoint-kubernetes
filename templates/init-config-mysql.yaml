@@ -1,4 +1,4 @@
-{{- if .Values.mysql.enabled }}
+{{- if eq (include "pinpoint.mysql.initialize" .) "true" }}
 {{- $schemaPath := printf "files/sql/%s/CreateTableStatement-mysql.sql" .Values.global.pinpointVersion }}
 {{- $batchPath := printf "files/sql/%s/SpringBatchJobRepositorySchema-mysql.sql" .Values.global.pinpointVersion }}
 apiVersion: v1
@@ -19,6 +19,10 @@ data:
     {{- required "No bundled service schema" (.Files.Get (printf "files/sql/%s/Service-mysql.sql" .Values.global.pinpointVersion)) | nindent 4 }}
   create-feature-flag.sql: |
     {{- required "No bundled feature flag schema" (.Files.Get (printf "files/sql/%s/FeatureFlag-mysql.sql" .Values.global.pinpointVersion)) | nindent 4 }}
+  {{- if semverCompare ">=4.0.0" .Values.global.pinpointVersion }}
+  create-alarm.sql: |
+    {{- required "No bundled service alarm schema" (.Files.Get (printf "files/sql/%s/Alarm-mysql.sql" .Values.global.pinpointVersion)) | nindent 4 }}
+  {{- end }}
   {{- if .Values.global.metric.enabled }}
   create-otlp-metric.sql: |
     {{- required "No bundled OTLP metric schema" (.Files.Get (printf "files/sql/%s/OtlpMetric-mysql.sql" .Values.global.pinpointVersion)) | nindent 4 }}

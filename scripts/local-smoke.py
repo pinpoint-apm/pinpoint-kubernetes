@@ -10,6 +10,7 @@ import threading
 from pathlib import Path
 import re
 import socket
+import secrets
 import subprocess
 import tempfile
 import time
@@ -26,14 +27,18 @@ def main():
     parser.add_argument('--release', required=True)
     parser.add_argument('--backend-namespace', help='Namespace of external HBase/Pinot for the local integration test')
     parser.add_argument('--backend-release', help='Helm release supplying those external backends')
+    parser.add_argument('--demo-namespace', help='Namespace of the instrumented quickstart when outside this application release')
     parser.add_argument('--stackable-hbase-cluster', help='HbaseCluster name when HBase is managed by the companion backend chart')
     parser.add_argument('--hbase-namespace', help='HBase namespace, independent of the Pinot backend namespace')
     parser.add_argument('--application-name', default='PINPOINT_DEMO_APP')
+    parser.add_argument('--service-name', default='DEFAULT')
+    parser.add_argument('--check-v4', action='store_true', help='Also verify service registration, OTLP/HTTP ingestion and trace queries')
     parser.add_argument('--login-credentials', help='Local JSON file with username/password; tests Secure JWT via a loopback TLS terminator')
     parser.add_argument('--timeout', type=int, default=240)
     args = parser.parse_args()
     for name in (args.namespace, args.release, args.backend_namespace or args.namespace, args.backend_release or args.release,
-                 args.stackable_hbase_cluster or args.release, args.hbase_namespace or args.namespace):
+                 args.stackable_hbase_cluster or args.release, args.hbase_namespace or args.namespace,
+                 args.demo_namespace or args.namespace):
         if not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]*[a-z0-9])?', name):
             parser.error('namespace/release must be DNS labels')
     if args.timeout < 60:
@@ -82,7 +87,7 @@ def main():
             raise TimeoutError('port-forward readiness timed out')
 
         web = forward(args.release + '-web', 8080)
-        demo = forward(args.release + '-quickstart', 8080)
+        demo = forward(args.release + '-quickstart', 8080, args.demo_namespace or args.namespace)
         broker = forward(backend_release + '-pinot-broker', 8099, backend_namespace)
         client = build_opener()
         if args.login_credentials:
@@ -168,13 +173,15 @@ def main():
                         raise RuntimeError('JWT from one Web replica failed on another')
             print('Login rejects anonymous/invalid credentials; Secure/HttpOnly/Lax JWT works across Web replicas: OK', flush=True)
 
-        def request(url, payload=None):
+        def request(url, payload=None, headers=None):
             data = None if payload is None else json.dumps(payload).encode()
-            req = Request(url, data=data, headers={'Content-Type': 'application/json'})
+            req = Request(url, data=data, headers={'Content-Type': 'application/json',
+                                                 'pServiceName': args.service_name, **(headers or {})})
             with client.open(req, timeout=20) as response:
                 return response.status, response.read()
 
         assert request(web + '/')[0] == 200
+        traffic_start = int(time.time() * 1000)
         for _ in range(150):
             assert request(demo + '/getCurrentTimestamp.pinpoint')[0] == 200
         print('Web and 150 demo HTTP requests: OK', flush=True)
@@ -188,7 +195,11 @@ def main():
         pending = {}
         while time.monotonic() < deadline:
             for table in required:
-                _, body = request(broker + '/query/sql', {'sql': 'SELECT COUNT(*) FROM ' + table})
+                sql = 'SELECT COUNT(*) FROM ' + table
+                fresh_columns = {'inspectorStatAgent00': 'eventTime', 'inspectorStatApp': 'roundedEventTime'}
+                if table in fresh_columns:
+                    sql += ' WHERE "' + fresh_columns[table] + '" >= ' + str(traffic_start)
+                _, body = request(broker + '/query/sql', {'sql': sql})
                 result = json.loads(body)
                 # New table segments can still be assigned after Helm hooks
                 # complete. Retry within the budget; incomplete queries never
@@ -223,6 +234,59 @@ def main():
         else:
             raise TimeoutError('Inspector heap chart contains no positive samples')
         print('Web application registration and Inspector heap chart: OK', flush=True)
+        _, body = request(web + '/api/applications?clearCache=true')
+        native_app = next(item for item in json.loads(body) if item['applicationName'] == args.application_name)
+        query = urlencode({'application': args.application_name, 'serviceTypeCode': native_app['code'],
+                           'from': traffic_start, 'to': int(time.time() * 1000) + 1000,
+                           'xGroupUnit': 1000, 'yGroupUnit': 1, 'limit': 100})
+        _, body = request(web + '/api/getScatterData?' + query)
+        if not json.loads(body)['scatter']['dotList']:
+            raise RuntimeError('Current demo traffic is absent from Web scatter query')
+        print('Fresh agent metrics and current native trace queries: OK', flush=True)
+
+        if args.check_v4:
+            service = 'HELM_SMOKE'
+            _, body = request(web + '/api/v2/services')
+            if service not in json.loads(body):
+                request(web + '/api/v2/services', {'serviceName': service})
+            _, body = request(web + '/api/v2/services')
+            assert service in json.loads(body)
+            receiver = forward(args.release + '-collector', 9997)
+            trace_id = secrets.token_hex(16)
+            now_ns = time.time_ns()
+            attributes = {'service.name': 'HELM_OTLP_APP', 'pinpoint.serviceName': service,
+                          'service.instance.id': 'helm-smoke-otlp-instance'}
+            payload = {'resourceSpans': [{
+                'resource': {'attributes': [{'key': key, 'value': {'stringValue': value}}
+                                            for key, value in attributes.items()]},
+                'scopeSpans': [{'scope': {'name': 'helm-smoke'}, 'spans': [{
+                    'traceId': trace_id, 'spanId': secrets.token_hex(8), 'name': 'helm-otlp-smoke',
+                    'kind': 2, 'startTimeUnixNano': str(now_ns),
+                    'endTimeUnixNano': str(now_ns + 10000000), 'status': {'code': 1}}]}]}]}
+            status, body = request(receiver + '/v1/traces', payload)
+            assert status == 200
+            assert int(json.loads(body or b'{}').get('partialSuccess', {}).get('rejectedSpans', 0)) == 0
+            service_headers = {'pServiceName': service}
+            trace_deadline = time.monotonic() + 120
+            while time.monotonic() < trace_deadline:
+                _, body = request(web + '/api/applications?clearCache=true', headers=service_headers)
+                app = next((item for item in json.loads(body) if item['applicationName'] == 'HELM_OTLP_APP'), None)
+                if app:
+                    break
+                time.sleep(3)
+            else:
+                raise TimeoutError('OTLP application did not register under its custom service')
+            query = urlencode({'application': 'HELM_OTLP_APP', 'serviceTypeCode': app['code'],
+                               'from': now_ns // 1000000 - 60000, 'to': int(time.time() * 1000) + 1000,
+                               'xGroupUnit': 1000, 'yGroupUnit': 1, 'limit': 100})
+            _, body = request(web + '/api/getScatterData?' + query, headers=service_headers)
+            scatter = json.loads(body)['scatter']['dotList']
+            if not scatter:
+                raise RuntimeError('OTLP trace is absent from Web scatter query')
+            _, body = request(web + '/api/trace?' + urlencode({'traceId': trace_id}), headers=service_headers)
+            if 'HELM_OTLP_APP' not in body.decode():
+                raise RuntimeError('Web trace detail does not contain the OTLP application')
+            print('4.x service registry, OTLP/HTTP ingestion, service-scoped scatter and trace detail: OK', flush=True)
 
         # The 3.1 schema uses TraceIndex. Launch one bounded shell for both counts.
         command = '''printf "count 'TraceV2', INTERVAL => 100000; count 'TraceIndex', INTERVAL => 100000\\n" | HBASE_CONF_DIR=/tmp/pinpoint-hbase-conf timeout 90 "$HBASE_HOME/bin/hbase" shell -n 2>/dev/null'''

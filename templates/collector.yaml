@@ -17,10 +17,7 @@ spec:
       app.kubernetes.io/component: collector
   template:
     metadata:
-      {{- with .Values.collector.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "pinpoint.applicationPodAnnotations" (dict "root" . "config" .Values.collector) | nindent 6 }}
       labels:
         {{- include "pinpoint.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: collector
@@ -29,8 +26,9 @@ spec:
         {{- end }}
     spec:
       {{- include "pinpoint.applicationPodSpec" (dict "root" . "component" "collector" "config" .Values.collector) | nindent 6 }}
-      {{- if or .Values.hbase.enabled .Values.redis.enabled .Values.mysql.enabled (and .Values.global.metric.enabled (eq (include "pinpoint.pinot.internalEnabled" .) "true")) }}
+      {{- if or (eq (include "pinpoint.mysql.initialize" .) "true") .Values.hbase.enabled .Values.redis.enabled .Values.mysql.enabled (and .Values.global.metric.enabled (eq (include "pinpoint.pinot.internalEnabled" .) "true")) }}
       initContainers:
+        {{- include "pinpoint.mysql.waitForSchema" . | nindent 8 }}
         # Wait for HBase - always required
         {{- if .Values.hbase.enabled }}
         - name: wait-for-hbase
@@ -115,6 +113,11 @@ spec:
 
       {{- end }}
       volumes:
+        {{- if semverCompare ">=4.0.0" .Values.global.pinpointVersion }}
+        - name: runtime-logging
+          configMap:
+            name: {{ include "pinpoint.fullname" . }}-runtime-logging
+        {{- end }}
         - name: tmp
           emptyDir:
             sizeLimit: 256Mi
@@ -128,6 +131,10 @@ spec:
         - name: collector
           image: "{{ include "pinpoint.imageRegistry" . }}{{ .Values.collector.image.repository }}:{{ include "pinpoint.applicationImageTag" (dict "tag" .Values.collector.image.tag "root" .) }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          {{- if semverCompare ">=4.0.0" .Values.global.pinpointVersion }}
+          args:
+            - {{ ternary "--pinpoint.collector.type=BASIC,METRIC,OTLPTRACE" "--pinpoint.collector.type=BASIC" .Values.global.metric.enabled | quote }}
+          {{- end }}
           {{- with .Values.collector.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
@@ -137,23 +144,23 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           startupProbe:
-            tcpSocket:
-              port: grpc-agent
+            {{- include "pinpoint.collector.healthProbe" . | nindent 12 }}
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 120
           readinessProbe:
-            tcpSocket:
-              port: grpc-agent
+            {{- include "pinpoint.collector.healthProbe" . | nindent 12 }}
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
-            tcpSocket:
-              port: grpc-agent
+            {{- include "pinpoint.collector.healthProbe" . | nindent 12 }}
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 3
           volumeMounts:
+            {{- if semverCompare ">=4.0.0" .Values.global.pinpointVersion }}
+            - {name: runtime-logging, mountPath: /etc/pinpoint/logging, readOnly: true}
+            {{- end }}
             - name: tmp
               mountPath: /tmp
             - name: logs
@@ -169,6 +176,10 @@ spec:
             - name: grpc-span
               containerPort: 9993
             {{- if .Values.global.metric.enabled }}
+            {{- if semverCompare ">=4.0.0" .Values.global.pinpointVersion }}
+            - name: otlp-http
+              containerPort: 9997
+            {{- end }}
             - name: otlp-trace
               containerPort: 9998
             {{- end }}
@@ -183,6 +194,9 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: {{ .Values.collector.jvmOptions | quote }}
+            {{- if and (semverCompare ">=4.0.0" .Values.global.pinpointVersion) (ne (include "pinpoint.hasLoggingOverride" .Values.collector) "true") }}
+            - {name: LOGGING_CONFIG, value: /etc/pinpoint/logging/log4j2-console.xml}
+            {{- end }}
             # Dynamically set the Spring profile
             - name: SPRING_PROFILES_ACTIVE
               {{- if .Values.global.metric.enabled }}
@@ -190,6 +204,12 @@ spec:
               {{- else }}
               value: {{ .Values.collector.config.springProfiles | quote }}
               {{- end }}
+            {{- if semverCompare ">=4.0.0" .Values.global.pinpointVersion }}
+            - name: PINPOINT_MODULES_UID_VERSION
+              value: "v4"
+            - name: PINPOINT_COLLECTOR_SERVICE_LOOKUP_ENABLED
+              value: {{ .Values.global.service.enabled | quote }}
+            {{- end }}
             - name: CLUSTER_ENABLE
               value: {{ .Values.collector.config.cluster.enable | quote }}
             - name: LOGGING_LEVEL_ROOT
@@ -300,6 +320,12 @@ spec:
       targetPort: udp-span
       protocol: UDP
     {{- if .Values.global.metric.enabled }}
+    {{- if semverCompare ">=4.0.0" .Values.global.pinpointVersion }}
+    - name: otlp-http
+      port: {{ .Values.collector.service.ports.otlpHttp }}
+      targetPort: otlp-http
+      protocol: TCP
+    {{- end }}
     - name: otlp-trace
       port: {{ .Values.collector.service.ports.otlpTrace }}
       targetPort: otlp-trace

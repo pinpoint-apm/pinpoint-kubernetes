@@ -3,7 +3,7 @@
 Jobs are immutable. Name the Job after every input of its pod template so a
 changed image, schema or setting creates a new Job instead of failing upgrade.
 */}}
-{{- $schemaFile := .Files.Get "files/hbase-create.hbase" }}
+{{- $schemaFile := required "No backend HBase schema for global.pinpointVersion" (.Files.Get (printf "files/hbase/%s/hbase-create.hbase" .Values.global.pinpointVersion)) }}
 {{- $script := .Files.Get "files/initialize-schema.rb" }}
 {{- $retentionScript := .Files.Get "files/hbase-retention.rb" }}
 {{- $inputs := list (include "backend.image" (dict "root" . "product" "hbase")) .Values.imagePullPolicy (toJson .Values.imagePullSecrets) (toJson .Values.bootstrap) (toJson .Values.global.retention) $schemaFile $script $retentionScript }}

@@ -18,6 +18,7 @@ def main():
                         help='Explicitly allow creating a unique disposable database on the selected remote cluster')
     parser.add_argument('--namespace', required=True)
     parser.add_argument('--release', default='pinpoint')
+    parser.add_argument('--pinpoint-version', choices=('3.1.1', '4.0.1'), default='4.0.1')
     args = parser.parse_args()
     kubectl = ['kubectl', '--kubeconfig', args.kubeconfig] if args.kubeconfig else ['kubectl', '--context', args.context]
 
@@ -34,12 +35,15 @@ def main():
     name = 'mysql-recovery-' + uuid.uuid4().hex[:8]
     database = name.replace('-', '_')
     root = Path(__file__).resolve().parent.parent
+    schema_dir = root / 'files/sql' / args.pinpoint_version
     data = {'initialize-mysql.sh': (root / 'files/initialize-mysql.sh').read_text(),
-            'create-tables.sql': (root / 'files/sql/3.1.1/CreateTableStatement-mysql.sql').read_text(),
-            'create-batch-tables.sql': (root / 'files/sql/3.1.1/SpringBatchJobRepositorySchema-mysql.sql').read_text(),
-            'create-service.sql': (root / 'files/sql/3.1.1/Service-mysql.sql').read_text(),
-            'create-feature-flag.sql': (root / 'files/sql/3.1.1/FeatureFlag-mysql.sql').read_text(),
-            'create-otlp-metric.sql': (root / 'files/sql/3.1.1/OtlpMetric-mysql.sql').read_text()}
+            'create-tables.sql': (schema_dir / 'CreateTableStatement-mysql.sql').read_text(),
+            'create-batch-tables.sql': (schema_dir / 'SpringBatchJobRepositorySchema-mysql.sql').read_text(),
+            'create-service.sql': (schema_dir / 'Service-mysql.sql').read_text(),
+            'create-feature-flag.sql': (schema_dir / 'FeatureFlag-mysql.sql').read_text(),
+            'create-otlp-metric.sql': (schema_dir / 'OtlpMetric-mysql.sql').read_text()}
+    if args.pinpoint_version == '4.0.1':
+        data['create-alarm.sql'] = (schema_dir / 'Alarm-mysql.sql').read_text()
     statefulset = json.loads(run(['get', 'statefulset', args.release + '-mysql', '-o', 'json']))
     spec = statefulset['spec']['template']['spec']
     container = spec['containers'][0]
@@ -94,16 +98,17 @@ echo 'Partial schema repaired; marker and sequence preserved across reruns and d
            'containers': [{'name': 'test', 'image': image, 'command': ['sh', '-c', command],
                            'volumeMounts': [{'name': 'scripts', 'mountPath': '/shared'}],
                            'env': [{'name': 'MYSQL_HOST', 'value': args.release + '-mysql'},
+                                   {'name': 'PINPOINT_VERSION', 'value': args.pinpoint_version},
                                    {'name': 'MYSQL_DATABASE', 'value': database},
                                    {'name': 'MYSQL_ROOT_PASSWORD', 'valueFrom': {
                                        'secretKeyRef': {'name': root_secret, 'key': 'mysql-root-password'}}}],
                            'resources': {'requests': {'cpu': '50m', 'memory': '64Mi'},
                                          'limits': {'cpu': '500m', 'memory': '256Mi'}}}]}
     job = {'apiVersion': 'batch/v1', 'kind': 'Job', 'metadata': {'name': name},
-           'spec': {'backoffLimit': 0, 'activeDeadlineSeconds': 180,
+           'spec': {'backoffLimit': 0, 'activeDeadlineSeconds': 600,
                     'template': {'metadata': {'labels': labels}, 'spec': pod}}}
     run(['create', '-f', '-'], job)
-    deadline = time.monotonic() + 210
+    deadline = time.monotonic() + 630
     while time.monotonic() < deadline:
         status = json.loads(run(['get', 'job', name, '-o', 'json'])).get('status', {})
         conditions = {c['type']: c['status'] for c in status.get('conditions', [])}

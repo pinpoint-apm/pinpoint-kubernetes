@@ -4,7 +4,7 @@
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/pinpoint)](https://artifacthub.io/packages/search?repo=pinpoint)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-Deploy Pinpoint APM **3.1.1** with application chart **3.1.7**.
+Deploy Pinpoint APM **4.0.1** with application chart **4.0.1**.
 Chart and application versions are independent.
 
 | Profile | Deployment |
@@ -20,6 +20,8 @@ The bundled filesystem-backed HBase pod is intended for evaluation.
 ## Requirements
 
 Kubernetes, Helm 3, kubectl and persistent storage for bundled databases.
+The production profile requires Kubernetes 1.30+ and two eligible workers.
+Pinpoint 4.0.1 requires MySQL 8.4 or newer and Java 17 for server processes.
 Stock HBase/demo images require Linux amd64 nodes. The default stack requests
 about **22.6 GiB RAM and 7.75 CPU cores**, excluding initialization Jobs and
 cluster services; add `-f values-minimal.yaml` for a single small node (about
@@ -31,8 +33,8 @@ cluster services; add `-f values-minimal.yaml` for a single small node (about
 helm repo add pinpoint https://pinpoint-apm.github.io/pinpoint-kubernetes
 helm repo update
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.7 --namespace pinpoint --create-namespace \
-  --wait --timeout 20m
+  --version 4.0.1 --namespace pinpoint --create-namespace \
+  --wait --wait-for-jobs --timeout 20m
 kubectl port-forward -n pinpoint service/pinpoint-web 8080:8080
 ```
 
@@ -48,8 +50,8 @@ Telegraf are opt-in (`telegraf.enabled=true`).
 
 ```bash
 helm upgrade --install pinpoint pinpoint/pinpoint \
-  --version 3.1.7 --namespace pinpoint --create-namespace \
-  -f my-production-values.yaml --wait --timeout 20m
+  --version 4.0.1 --namespace pinpoint --create-namespace \
+  -f my-production-values.yaml --wait --wait-for-jobs --timeout 20m
 ```
 
 Use the [production guide](docs/PRODUCTION.md) for schema setup and acceptance

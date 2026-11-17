@@ -8,3 +8,4 @@
 # Bundled upstream NOTICE/SQL are preserved byte-for-byte, including whitespace.
 files/pinot/NOTICE -whitespace
 files/sql/3.1.1/*.sql -whitespace
+files/sql/4.0.1/*.sql -whitespace

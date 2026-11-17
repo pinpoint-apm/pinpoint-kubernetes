@@ -30,10 +30,7 @@ spec:
       app.kubernetes.io/component: web
   template:
     metadata:
-      {{- with .Values.web.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "pinpoint.applicationPodAnnotations" (dict "root" . "config" .Values.web) | nindent 6 }}
       labels:
         {{- include "pinpoint.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: web
@@ -42,8 +39,9 @@ spec:
         {{- end }}
     spec:
       {{- include "pinpoint.applicationPodSpec" (dict "root" . "component" "web" "config" .Values.web) | nindent 6 }}
-      {{- if or .Values.zookeeper.enabled .Values.hbase.enabled .Values.redis.enabled .Values.mysql.enabled (and .Values.global.metric.enabled (eq (include "pinpoint.pinot.internalEnabled" .) "true")) }}
+      {{- if or (eq (include "pinpoint.mysql.initialize" .) "true") .Values.zookeeper.enabled .Values.hbase.enabled .Values.redis.enabled .Values.mysql.enabled (and .Values.global.metric.enabled (eq (include "pinpoint.pinot.internalEnabled" .) "true")) }}
       initContainers:
+        {{- include "pinpoint.mysql.waitForSchema" . | nindent 8 }}
         {{- if .Values.zookeeper.enabled }}
         - name: wait-for-zookeeper
           image: {{ include "pinpoint.waitImage" . | quote }}
@@ -118,6 +116,11 @@ spec:
 
       {{- end }}
       volumes:
+        {{- if semverCompare ">=4.0.0" .Values.global.pinpointVersion }}
+        - name: runtime-logging
+          configMap:
+            name: {{ include "pinpoint.fullname" . }}-runtime-logging
+        {{- end }}
         - name: tmp
           emptyDir:
             sizeLimit: 256Mi
@@ -140,6 +143,9 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
+            {{- if semverCompare ">=4.0.0" .Values.global.pinpointVersion }}
+            - {name: runtime-logging, mountPath: /etc/pinpoint/logging, readOnly: true}
+            {{- end }}
             - name: tmp
               mountPath: /tmp
             - name: logs
@@ -174,8 +180,19 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: {{ .Values.web.jvmOptions | quote }}
+            {{- if and (semverCompare ">=4.0.0" .Values.global.pinpointVersion) (ne (include "pinpoint.hasLoggingOverride" .Values.web) "true") }}
+            - {name: LOGGING_CONFIG, value: /etc/pinpoint/logging/log4j2-console.xml}
+            {{- end }}
             - name: PINPOINT_ZOOKEEPER_ADDRESS
               value: {{ include "pinpoint.zookeeper.address" . | quote }}
+            {{- if semverCompare ">=4.0.0" .Values.global.pinpointVersion }}
+            - name: PINPOINT_MODULES_UID_VERSION
+              value: "v4"
+            - name: EXPERIMENTAL_ENABLESERVICEMAP_VALUE
+              value: {{ .Values.global.service.enabled | quote }}
+            - name: PINPOINT_MODULES_WEB_SERVICEMAP_ENABLED
+              value: {{ .Values.global.service.enabled | quote }}
+            {{- end }}
             - name: CLUSTER_ENABLE
               value: "true"
             # Dynamically set the Spring profile
